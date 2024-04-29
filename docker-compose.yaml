@@ -1,0 +1,135 @@
+version: "3.9"
+
+services:
+  xpcr: # 对接AI的模块
+    image: ${IMAGE_X_PCR}
+    pull_policy: never
+    restart: always
+    expose:
+      - "3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ${DATA_PATH}/.data/xpcr:/data
+      - ${DATA_PATH}/.data/xpcr/files:/data/files
+      - ${DATA_PATH}/.data/xsearch:/xsearch
+    env_file:
+      - "${ENV_FILE:-.env}"
+    networks:
+      - xpcr
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  xsearch: # 搜索模块
+    image: ${IMAGE_X_SEARCH}
+    pull_policy: never
+    restart: always
+    volumes:
+      - ${DATA_PATH}/.data/xsearch/reference_data:/reference_data
+    expose:
+      - "8082"
+    ports:
+      - "8082:8082"
+    env_file:
+      - "${ENV_FILE:-.env}"
+    networks:
+      - xpcr
+  xsearchdev: # 搜索模块-dev
+    image: ${IMAGE_X_SEARCH_DEV}
+    pull_policy: never
+    restart: always
+    volumes:
+      - ${DATA_PATH}/.data/xsearchdev/reference_data:/reference_data
+    expose:
+      - "8081"
+    ports:
+      - "8081:8081"
+    env_file:
+      - "${ENV_FILE:-.env}"
+    networks:
+      - xpcr
+  mysql:
+    image: ${IMAGE_MYSQL}
+    container_name: pcr_mysql
+    restart: always
+    volumes:
+      - ${DATA_PATH}/.data/mysql:/var/lib/mysql
+    expose:
+      - "3306"
+    ports:
+      - "33061:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - TZ=${TIMEZONE}
+    command: --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --sql_mode=IGNORE_SPACE,NO_ENGINE_SUBSTITUTION
+      --lower_case_table_names=2
+      --sort_buffer_size=256000000
+    healthcheck:
+      test: "mysql ${MYSQL_DATABASE} -u${MYSQL_USERNAME} -p${MYSQL_PASSWORD} -e 'SELECT 1;'"
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 60
+    networks:
+      - xpcr
+
+  redis:
+    image: ${IMAGE_REDIS}
+    container_name: pcr_redis
+    restart: always
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD}",
+      ]
+    expose:
+      - "6379"
+    ports:
+      - "63791:6379"
+    volumes:
+      - ${DATA_PATH}/.data/redis:/data
+    environment:
+      - TZ=${TIMEZONE}
+    networks:
+      - xpcr
+  
+  cloud-pacs-primer:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.primer.dev
+      context: ./mgi-pcr-adapter/
+    image: cloud-pacs-primer:dev
+    container_name: cloud-pacs-primer
+    restart: always
+    ports:
+      - 9516:9516
+    environment:
+      - JVM_XMS=256m
+      - JVM_XMX=1024m
+      - JVM_XMN=256m
+      - SPRING_PCR_MYSQL_URL=jdbc:mysql://pcr_mysql/?useUnicode=true&useSSL=false&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+      - SPRING_PCR_MYSQL_USERNAME=root
+      - SPRING_PCR_MYSQL_PASSWORD=mgix@com
+    volumes:
+      - ./mgi-pcr-adapter/logs:/bgi/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - xpcr
+
+networks:
+  xpcr:
+    driver: bridge
+    ipam:
+      driver: default
+    name: prc_network
