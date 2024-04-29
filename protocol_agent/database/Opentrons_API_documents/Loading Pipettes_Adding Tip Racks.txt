@@ -1,0 +1,61 @@
+
+The `load_instrument()` method includes the optional argument `tip_racks`. This parameter accepts a list of tip rack labware objects, which lets you to specify as many tip racks as you want. You can also edit a pipette’s tip racks after loading it by setting its [`InstrumentContext.tip_racks`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.tip_racks) property.
+
+Note
+
+Some methods, like [`configure_nozzle_layout()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.configure_nozzle_layout), reset a pipette’s tip racks. See [Partial Tip Pickup](https://docs.opentrons.com/v2/pipettes/partial_tip_pickup.html#partial-tip-pickup) for more information.
+
+The advantage of using `tip_racks` is twofold. First, associating tip racks with your pipette allows for automatic tip tracking throughout your protocol. Second, it removes the need to specify tip locations in the [`InstrumentContext.pick_up_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.pick_up_tip) method. For example, let’s start by loading loading some labware and instruments like this:
+
+```
+def run(protocol: protocol_api.ProtocolContext):
+    tiprack_left = protocol.load_labware(
+        load_name='opentrons_flex_96_tiprack_200ul', location='D1')
+    tiprack_right = protocol.load_labware(
+        load_name='opentrons_flex_96_tiprack_200ul', location='D2')
+    left_pipette = protocol.load_instrument(
+        instrument_name='flex_8channel_1000', mount='left')
+    right_pipette = protocol.load_instrument(
+        instrument_name='flex_8channel_1000',
+        mount='right',
+        tip_racks=[tiprack_right])
+```
+
+Let’s pick up a tip with the left pipette. We need to specify the location as an argument of `pick_up_tip()`, since we loaded the left pipette without a `tip_racks` argument.
+
+```
+left_pipette.pick_up_tip(tiprack_left['A1'])
+left_pipette.drop_tip()
+```
+
+But now you have to specify `tiprack_left` every time you call `pick_up_tip`, which means you’re doing all your own tip tracking:
+
+```
+left_pipette.pick_up_tip(tiprack_left['A2'])
+left_pipette.drop_tip()
+left_pipette.pick_up_tip(tiprack_left['A3'])
+left_pipette.drop_tip()
+```
+
+However, because you specified a tip rack location for the right pipette, the robot will automatically pick up from location `A1` of its associated tiprack:
+
+```
+right_pipette.pick_up_tip()
+right_pipette.drop_tip()
+```
+
+Additional calls to `pick_up_tip` will automatically progress through the tips in the right rack:
+
+```
+right_pipette.pick_up_tip()  # picks up from A2
+right_pipette.drop_tip()
+right_pipette.pick_up_tip()  # picks up from A3
+right_pipette.drop_tip()
+```
+
+*New in version 2.0.*
+
+See also [Building Block Commands](https://docs.opentrons.com/v2/new_atomic_commands.html#v2-atomic-commands) and [Complex Commands](https://docs.opentrons.com/v2/new_complex_commands.html#v2-complex-commands).
+
+
+

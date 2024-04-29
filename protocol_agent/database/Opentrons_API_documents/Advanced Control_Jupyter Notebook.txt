@@ -1,0 +1,48 @@
+
+The Flex and OT-2 run [Jupyter Notebook](https://jupyter.org/) servers on port 48888, which you can connect to with your web browser. This is a convenient environment for writing and debugging protocols, since you can define different parts of your protocol in different notebook cells and run a single cell at a time.
+
+Access your robot’s Jupyter Notebook by either:
+
+- Going to the **Advanced** tab of Robot Settings and clicking **Launch Jupyter Notebook**.
+- Going directly to `http://<robot-ip>:48888` in your web browser (if you know your robot’s IP address).
+
+Once you’ve launched Jupyter Notebook, you can create a notebook file or edit an existing one. These notebook files are stored on the the robot. If you want to save code from a notebook to your computer, go to **File > Download As** in the notebook interface.
+
+
+Protocol Structure
+
+Jupyter Notebook is structured around cells: discrete chunks of code that can be run individually. This is nearly the opposite of Opentrons protocols, which bundle all commands into a single `run` function. Therefore, to take full advantage of Jupyter Notebook, you have to restructure your protocol.
+
+Rather than writing a `run` function and embedding commands within it, start your notebook by importing `opentrons.execute` and calling [`opentrons.execute.get_protocol_api()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.execute.get_protocol_api). This function also replaces the `metadata` block of a standalone protocol by taking the minimum [API version](https://docs.opentrons.com/v2/versioning.html#v2-versioning) as its argument. Then you can call [`ProtocolContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext) methods in subsequent lines or cells:
+
+```python
+import opentrons.execute
+protocol = opentrons.execute.get_protocol_api('2.16')
+protocol.home()
+```
+
+The first command you execute should always be [`home()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.home). If you try to execute other commands first, you will get a `MustHomeError`. (When running protocols through the Opentrons App, the robot homes automatically.)
+
+You should use the same [`ProtocolContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext) throughout your notebook, unless you need to start over from the beginning of your protocol logic. In that case, call [`get_protocol_api()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.execute.get_protocol_api) again to get a new [`ProtocolContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext).
+
+
+Running a Previously Written Protocol
+
+You can also use Jupyter to run a protocol that you have already written. To do so, first copy the entire text of the protocol into a cell and run that cell:
+
+```python
+import opentrons.execute
+from opentrons import protocol_api
+def run(protocol: protocol_api.ProtocolContext):
+    # the contents of your previously written protocol go here
+```
+
+Since a typical protocol only defines the `run` function but doesn’t call it, this won’t immediately cause the robot to move. To begin the run, instantiate a [`ProtocolContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext) and pass it to the `run` function you just defined:
+
+```python
+protocol = opentrons.execute.get_protocol_api('2.16')
+run(protocol)  # your protocol will now run
+```
+
+
+

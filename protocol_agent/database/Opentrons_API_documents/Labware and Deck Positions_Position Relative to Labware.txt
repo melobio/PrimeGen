@@ -1,0 +1,91 @@
+
+When the robot positions itself relative to a piece of labware, where it moves is determined by the labware definition, the actions you want it to perform, and the labware offsets for a specific deck slot. This section describes how these positional components are calculated and how to change them.
+
+
+Top, Bottom, and Center
+
+Every well on every piece of labware has three addressable positions: top, bottom, and center. The position is determined by the labware definition and what the labware is loaded on top of. You can use these positions as-is or calculate other positions relative to them.
+
+
+Let’s look at the [`Well.top()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well.top) method. It returns a position level with the top of the well, centered in both horizontal directions.
+
+```
+plate['A1'].top()  # the top center of the well
+```
+
+This is a good position to use for a [blow out operation](https://docs.opentrons.com/v2/basic_commands/liquids.html#new-blow-out) or an activity where you don’t want the tip to contact the liquid. In addition, you can adjust the height of this position with the optional argument `z`, which is measured in mm. Positive `z` numbers move the position up, negative `z` numbers move it down.
+
+```python
+plate['A1'].top(z=1)  # 1 mm above the top center of the well
+plate['A1'].top(z=-1) # 1 mm below the top center of the well
+```
+
+*New in version 2.0.*
+
+
+Let’s look at the [`Well.bottom()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well.bottom) method. It returns a position level with the bottom of the well, centered in both horizontal directions.
+
+```python
+plate['A1'].bottom()  # the bottom center of the well
+```
+
+This is a good position for [aspirating liquid](https://docs.opentrons.com/v2/basic_commands/liquids.html#new-aspirate) or an activity where you want the tip to contact the liquid. Similar to the `Well.top()` method, you can adjust the height of this position with the optional argument `z`, which is measured in mm. Positive `z` numbers move the position up, negative `z` numbers move it down.
+
+```python
+plate['A1'].bottom(z=1)  # 1 mm above the bottom center of the well
+plate['A1'].bottom(z=-1) # 1 mm below the bottom center of the well
+                         # this may be dangerous!
+```
+
+Warning
+
+Negative `z` arguments to `Well.bottom()` will cause the pipette tip to collide with the bottom of the well. Collisions may bend the tip (affecting liquid handling) and the pipette may be higher than expected on the z-axis until it picks up another tip.
+
+Flex can detect collisions, and even gentle contact may trigger an overpressure error and cause the protocol to fail. Avoid `z` values less than 1, if possible.
+
+The OT-2 has no sensors to detect contact with a well bottom. The protocol will continue even after a collision.
+
+*New in version 2.0.*
+
+
+Let’s look at the [`Well.center()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well.center) method. It returns a position centered in the well both vertically and horizontally. This can be a good place to start for precise control of positions within the well for unusual or custom labware.
+
+```python
+plate['A1'].center() # the vertical and horizontal center of the well
+```
+
+*New in version 2.0.*
+
+
+
+
+Default Positions
+
+By default, your robot will aspirate and dispense 1 mm above the bottom of wells. This default clearance may not be suitable for some labware geometries, liquids, or protocols. You can change this value by using the [`Well.bottom()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well.bottom) method with the `z` argument, though it can be cumbersome to do so repeatedly.
+
+If you need to change the aspiration or dispensing height for multiple operations, specify the distance in mm from the well bottom with the [`InstrumentContext.well_bottom_clearance`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.well_bottom_clearance) object. It has two attributes: `well_bottom_clearance.aspirate` and `well_bottom_clearance.dispense`. These change the aspiration height and dispense height, respectively.
+
+Modifying these attributes will affect all subsequent aspirate and dispense actions performed by the attached pipette, even those executed as part of a [`transfer()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.transfer) operation. This snippet from a sample protocol demonstrates how to work with and change the default clearance:
+
+```python
+# aspirate 1 mm above the bottom of the well (default)
+pipette.aspirate(50, plate['A1'])
+# dispense 1 mm above the bottom of the well (default)
+pipette.dispense(50, plate['A1'])
+
+# change clearance for aspiration to 2 mm
+pipette.well_bottom_clearance.aspirate = 2
+# aspirate 2 mm above the bottom of the well
+pipette.aspirate(50, plate['A1'])
+# still dispensing 1 mm above the bottom
+pipette.dispense(50, plate['A1'])
+
+pipette.aspirate(50, plate['A1'])
+# change clearance for dispensing to 10 mm
+pipette.well_bottom_clearance.dispense = 10
+# dispense high above the well
+pipette.dispense(50, plate['A1'])
+```
+
+*New in version 2.0.*
+

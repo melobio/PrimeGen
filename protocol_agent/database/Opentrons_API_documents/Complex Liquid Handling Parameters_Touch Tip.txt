@@ -1,0 +1,25 @@
+
+The `touch_tip` parameter accepts a Boolean value. When `True`, a touch tip step occurs after every aspirate and dispense.
+
+For example, this transfer command aspirates, touches the tip at the source, dispenses, and touches the tip at the destination:
+
+```python
+pipette.transfer(
+    volume=100,
+    dest=plate["A1"],
+    source=plate["B1"],
+    touch_tip=True,
+)
+```
+
+*New in version 2.0.*
+
+Touch tip occurs after every aspiration, including when [tip refilling](https://docs.opentrons.com/v2/complex_commands/order_operations.html#complex-tip-refilling) is required.
+
+This parameter always uses default motion behavior for touch tip. Use the [touch tip building block command](https://docs.opentrons.com/v2/basic_commands/liquids.html#touch-tip) if you need to:
+
+> - Only touch the tip after aspirating or dispensing, but not both.
+> - Control the speed, radius, or height of the touch tip motion.
+
+
+

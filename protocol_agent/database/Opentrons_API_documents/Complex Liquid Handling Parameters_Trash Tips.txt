@@ -1,0 +1,15 @@
+
+The `trash` parameter controls what the pipette does with tips at the end of complex commands. When `True`, the pipette drops tips into the trash. When `False`, the pipette returns tips to their original locations in their tip rack.
+
+The default is `True`, so you only have to set `trash` when you want the tip-returning behavior:
+
+```python
+pipette.transfer(
+    volume=100,
+    source=plate["A1"],
+    dest=plate["B1"],
+    trash=False,
+)
+```
+
+*New in version 2.0.*

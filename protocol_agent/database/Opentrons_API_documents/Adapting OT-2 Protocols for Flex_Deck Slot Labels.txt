@@ -1,0 +1,5 @@
+
+It’s good practice to update numeric labels for [deck slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots) (which match the labels on an OT-2) to coordinate ones (which match the labels on Flex). This is an optional step, since the two formats are interchangeable.
+
+For example, the code in the previous section changed the location of the tip rack from `1` to `"D1"`.
+

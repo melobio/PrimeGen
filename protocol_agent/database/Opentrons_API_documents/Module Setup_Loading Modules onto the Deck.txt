@@ -1,0 +1,67 @@
+
+Similar to labware and pipettes, you must inform the API about the modules you want to use in your protocol. Even if you don’t use the module anywhere else in your protocol, the Opentrons App and the robot won’t let you start the protocol run until all loaded modules that use power are connected via USB and turned on.
+
+Use [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module) to load a module.
+
+**Flex**
+
+```python
+from opentrons import protocol_api
+
+requirements = {'robotType': 'Flex', 'apiLevel': '2.16'}
+
+def run(protocol: protocol_api.ProtocolContext):
+    # Load a Heater-Shaker Module GEN1 in deck slot D1.
+    heater_shaker = protocol.load_module(
+      module_name='heaterShakerModuleV1', location='D1')
+
+    # Load a Temperature Module GEN2 in deck slot D3.
+    temperature_module = protocol.load_module(
+      module_name='temperature module gen2', location='D3')
+```
+
+After the `load_module()` method loads the modules into your protocol, it returns the [`HeaterShakerContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.HeaterShakerContext) and [`TemperatureModuleContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.TemperatureModuleContext) objects.
+
+**OT-2**
+
+```python
+from opentrons import protocol_api
+
+metadata = {'apiLevel': '2.16'}
+
+def run(protocol: protocol_api.ProtocolContext):
+    # Load a Magnetic Module GEN2 in deck slot 1.
+    magnetic_module = protocol.load_module(
+      module_name='magnetic module gen2', location=1)
+
+    # Load a Temperature Module GEN1 in deck slot 3.
+    temperature_module = protocol.load_module(
+      module_name='temperature module', location=3)
+```
+
+After the `load_module()` method loads the modules into your protocol, it returns the [`MagneticModuleContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.MagneticModuleContext) and [`TemperatureModuleContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.TemperatureModuleContext) objects.
+
+*New in version 2.0.*
+
+
+
+
+Available Modules
+
+The first parameter of [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module) is the module’s *API load name*. The load name tells your robot which module you’re going to use in a protocol. The table below lists the API load names for the currently available modules.
+
+| Module                    | API Load Name                                        | Introduced in API Version |
+| :------------------------ | :--------------------------------------------------- | :------------------------ |
+| Temperature Module GEN1   | `temperature module` or `tempdeck`                   | 2.0                       |
+| Temperature Module GEN2   | `temperature module gen2`                            | 2.3                       |
+| Magnetic Module GEN1      | `magnetic module` or `magdeck`                       | 2.0                       |
+| Magnetic Module GEN2      | `magnetic module gen2`                               | 2.3                       |
+| Thermocycler Module GEN1  | `thermocycler module` or `thermocycler`              | 2.0                       |
+| Thermocycler Module GEN2  | `thermocycler module gen2` or `thermocyclerModuleV2` | 2.13                      |
+| Heater-Shaker Module GEN1 | `heaterShakerModuleV1`                               | 2.13                      |
+| Magnetic Block GEN1       | `magneticBlockV1`                                    | 2.15                      |
+
+Some modules were added to our Python API later than others, and others span multiple hardware generations. When writing a protocol that requires a module, make sure your `requirements` or `metadata` code block specifies an [API version](https://docs.opentrons.com/v2/versioning.html#v2-versioning) high enough to support all the module generations you want to use.
+
+
+

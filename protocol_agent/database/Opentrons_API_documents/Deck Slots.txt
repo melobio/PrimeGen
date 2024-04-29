@@ -1,0 +1,3 @@
+
+Deck slots are where you place hardware items on the deck surface of your Opentrons robot. In the API, you load the corresponding items into your protocol with methods like [`ProtocolContext.load_labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware), [`ProtocolContext.load_module`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module), or [`ProtocolContext.load_trash_bin`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_trash_bin). When you call these methods, you need to specify which slot to load the item in.
+

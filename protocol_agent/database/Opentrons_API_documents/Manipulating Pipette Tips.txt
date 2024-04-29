@@ -1,0 +1,7 @@
+
+Your robot needs to attach a disposable tip to the pipette before it can aspirate or dispense liquids. The API provides three basic functions that help the robot attach and manage pipette tips during a protocol run. These methods are [`InstrumentContext.pick_up_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.pick_up_tip), [`InstrumentContext.drop_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.drop_tip), and [`InstrumentContext.return_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.return_tip). Respectively, these methods tell the robot to pick up a tip from a tip rack, drop a tip into the trash (or another location), and return a tip to its location in the tip rack.
+
+The following sections demonstrate how to use each method and include sample code. The examples used here assume that you’ve loaded the pipettes and labware from the basic [protocol template](https://docs.opentrons.com/v2/new_examples.html#protocol-template).
+
+
+

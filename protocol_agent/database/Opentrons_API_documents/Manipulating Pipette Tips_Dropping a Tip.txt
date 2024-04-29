@@ -1,0 +1,20 @@
+
+To drop a tip in the pipette’s trash container, call the [`drop_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.drop_tip) method with no arguments:
+
+```python
+pipette.pick_up_tip()
+```
+
+You can also specify where to drop the tip by passing in a location. For example, this code drops a tip in the trash bin and returns another tip to to a previously used well in a tip rack:
+
+```python
+pipette.pick_up_tip()            # picks up tip from rack location A1
+pipette.drop_tip()               # drops tip in trash bin
+pipette.pick_up_tip()            # picks up tip from rack location B1
+pipette.drop_tip(tiprack['A1'])  # drops tip in rack location A1
+```
+
+*New in version 2.0.*
+
+
+

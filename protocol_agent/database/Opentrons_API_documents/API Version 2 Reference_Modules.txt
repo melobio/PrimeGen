@@ -1,0 +1,1046 @@
+
+*class* opentrons.protocol_api.**HeaterShakerContext**(*core: AbstractModuleCore*, *protocol_core: AbstractProtocol[AbstractInstrument[AbstractWellCore], AbstractLabware[AbstractWellCore], AbstractModuleCore]*, *core_map: LoadedCoreMap*, *api_version: APIVersion*, *broker: LegacyBroker*)
+
+An object representing a connected Heater-Shaker Module.
+
+It should not be instantiated directly; instead, it should be created through [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module).
+
+
+
+*New in version 2.13.*
+
+
+
+*property* **api_version***: APIVersion*
+
+*New in version 2.0.*
+
+**close_labware_latch**(*self*) → 'None'
+
+​	Closes the labware latch.
+
+​	The labware latch needs to be closed using this method before sending a shake command, even if the latch was manually closed before starting the protocol.
+
+​	*New in version 2.13.*
+
+*property* **current_speed***: [int](https://docs.python.org/3/library/functions.html#int)
+
+​	The current speed of the Heater-Shaker’s plate in rpm.
+
+​	*New in version 2.13.*
+
+
+
+*property* **current_temperature***: [float](https://docs.python.org/3/library/functions.html#float)
+
+The current temperature of the Heater-Shaker’s plate in °C.
+
+Returns `23` in simulation if no target temperature has been set.
+
+*New in version 2.13.*
+
+
+
+**deactivate_heater**(*self*) → 'None'
+
+Stops heating.
+
+The module will passively cool to room temperature. The Heater-Shaker does not have active cooling.
+
+*New in version 2.13.*
+
+
+
+**deactivate_shaker**(*self*) → 'None'
+
+Stops shaking.
+
+Decelerating to 0 rpm typically only takes a few seconds.
+
+*New in version 2.13.*
+
+
+
+*property* **labware***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)]*
+
+The labware (if any) present on this module.
+
+*New in version 2.0.*
+
+
+
+*property* **labware_latch_status***: [str](https://docs.python.org/3/library/stdtypes.html#str)*
+
+One of six possible latch statuses:
+
+- `opening` – The latch is currently opening (in motion).
+
+- `idle_open` – The latch is open and not moving.
+
+- `closing` – The latch is currently closing (in motion).
+
+- `idle_closed` – The latch is closed and not moving.
+
+- `idle_unknown` – The default status upon reset, regardless of physical latch position. Use [`close_labware_latch()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.HeaterShakerContext.close_labware_latch) before other commands requiring confirmation that the latch is closed.
+
+- `unknown` – The latch status can’t be determined.
+
+  
+
+*New in version 2.13.*
+
+
+
+**load_adapter**(*self*, *name: 'str'*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+Load an adapter onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_adapter`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_adapter) (which loads adapters directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded adapter object.
+
+*New in version 2.15.*
+
+
+
+**load_adapter_from_definition**(*self*, *definition: 'LabwareDefinition'*) → 'Labware'
+
+Load an adapter onto the module using an inline definition.
+
+Parameters:**definition** – The labware definition.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.15.*
+
+
+
+**load_labware**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*, *adapter: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware) (which loads labware directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.1:* The *label,* *namespace,* and *version* parameters.
+
+
+
+**load_labware_by_name**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+*Deprecated since version 2.0:* Use [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.HeaterShakerContext.load_labware) instead.
+
+*New in version 2.1.*
+
+
+
+**load_labware_from_definition**(*self*, *definition: 'LabwareDefinition'*, *label: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using an inline definition.
+
+Parameters:
+
+- **definition** – The labware definition.
+- **label** ([*str*](https://docs.python.org/3/library/stdtypes.html#str)) – An optional special name to give the labware. If specified, this is the name the labware will appear as in the run log and the calibration view in the Opentrons app.
+
+Returns:The initialized and loaded labware object.
+
+
+
+*New in version 2.0.*
+
+
+
+*property* **model***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleV1, magneticModuleV2], typing_extensions.Literal[temperatureModuleV1, temperatureModuleV2], typing_extensions.Literal[thermocyclerModuleV1, thermocyclerModuleV2], typing_extensions.Literal[heaterShakerModuleV1], typing_extensions.Literal[magneticBlockV1]]*
+
+Get the module’s model identifier.
+
+*New in version 2.14.*
+
+
+
+**open_labware_latch**(*self*) → 'None'
+
+Open the Heater-Shaker’s labware latch.
+
+The labware latch needs to be closed before:
+
+- Shaking
+- Pipetting to or from the labware on the Heater-Shaker
+- Pipetting to or from labware to the left or right of the Heater-Shaker
+
+Attempting to open the latch while the Heater-Shaker is shaking will raise an error.
+
+
+
+> **Note:**
+>
+> 
+>
+> Before opening the latch, this command will retract the pipettes upward if they are parked adjacent to the left or right of the Heater-Shaker.
+
+*New in version 2.13.*
+
+
+
+*property* **parent***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+The name of the slot the module is on.
+
+On a Flex, this will be like `"D1"`. On an OT-2, this will be like `"1"`. See [Deck Slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots).
+
+*New in version 2.14.*
+
+
+
+*property* **serial_number***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+Get the module’s unique hardware serial number.
+
+*New in version 2.14.*
+
+
+
+**set_and_wait_for_shake_speed**(*self*, *rpm: 'int'*) → 'None'
+
+Set a shake speed in rpm and block execution of further commands until the module reaches the target.
+
+Reaching a target shake speed typically only takes a few seconds.
+
+
+
+> **Note：**
+>
+> 
+>
+> Before shaking, this command will retract the pipettes upward if they are parked adjacent to the Heater-Shaker.
+
+Parameters:
+
+**rpm** – A value between 200 and 3000, representing the target shake speed in revolutions per minute.
+
+*New in version 2.13.*
+
+
+
+**set_and_wait_for_temperature**(*self*, *celsius: 'float'*) → 'None'
+
+Set a target temperature and wait until the module reaches the target.
+
+No other protocol commands will execute while waiting for the temperature.
+
+Parameters:**celsius** – A value between 27 and 95, representing the target temperature in °C. Values are automatically truncated to two decimal places, and the Heater-Shaker module has a temperature accuracy of ±0.5 °C.
+
+*New in version 2.13.*
+
+
+
+**set_target_temperature**(*self*, *celsius: 'float'*) → 'None'
+
+Set target temperature and return immediately.
+
+Sets the Heater-Shaker’s target temperature and returns immediately without waiting for the target to be reached. Does not delay the protocol until target temperature has reached. Use [`wait_for_temperature()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.HeaterShakerContext.wait_for_temperature) to delay protocol execution.
+
+
+
+Parameters:**celsius** – A value between 27 and 95, representing the target temperature in °C. Values are automatically truncated to two decimal places, and the Heater-Shaker module has a temperature accuracy of ±0.5 °C.
+
+*New in version 2.13.*
+
+
+
+*property* **speed_status***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+One of five possible shaking statuses:
+
+- `holding at target` – The module has reached its target shake speed and is actively maintaining that speed.
+- `speeding up` – The module is increasing its shake speed towards a target.
+- `slowing down` – The module was previously shaking at a faster speed and is currently reducing its speed to a lower target or to deactivate.
+- `idle` – The module is not shaking.
+- `error` – The shaking status can’t be determined.
+
+*New in version 2.13.*
+
+
+
+*property* **target_speed***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[int](https://docs.python.org/3/library/functions.html#int)]
+
+Target speed of the Heater-Shaker’s plate in rpm.
+
+*New in version 2.13.*
+
+
+
+*property* **target_temperature***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]
+
+The target temperature of the Heater-Shaker’s plate in °C.
+
+Returns `None` if no target has been set.
+
+*New in version 2.13.*
+
+
+
+*property* **temperature_status***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+One of five possible temperature statuses:
+
+- `holding at target` – The module has reached its target temperature and is actively maintaining that temperature.
+- `cooling` – The module has previously heated and is now passively cooling. The Heater-Shaker does not have active cooling.
+- `heating` – The module is heating to a target temperature.
+- `idle` – The module has not heated since the beginning of the protocol.
+- `error` – The temperature status can’t be determined.
+
+
+
+*New in version 2.13.*
+
+
+
+*property* **type***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleType], typing_extensions.Literal[temperatureModuleType], typing_extensions.Literal[thermocyclerModuleType], typing_extensions.Literal[heaterShakerModuleType], typing_extensions.Literal[magneticBlockType]]
+
+Get the module’s general type identifier.
+
+*New in version 2.14.*
+
+
+
+**wait_for_temperature**(*self*) → 'None'
+
+Delays protocol execution until the Heater-Shaker has reached its target temperature.
+
+Raises an error if no target temperature was previously set.
+
+*New in version 2.13.*
+
+
+
+*class* opentrons.protocol_api.**MagneticBlockContext**(*core: AbstractModuleCore*, *protocol_core: AbstractProtocol[AbstractInstrument[AbstractWellCore], AbstractLabware[AbstractWellCore], AbstractModuleCore]*, *core_map: LoadedCoreMap*, *api_version: APIVersion*, *broker: LegacyBroker*)
+
+An object representing a Magnetic Block.
+
+It should not be instantiated directly; instead, it should be created through [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module).
+
+*New in version 2.15.*
+
+*property* **api_version***: APIVersion*
+
+*New in version 2.0.*
+
+
+
+*property* **labware***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)]*
+
+The labware (if any) present on this module.
+
+*New in version 2.0.*
+
+
+
+**load_adapter**(*self*, *name: 'str'*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+Load an adapter onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_adapter`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_adapter) (which loads adapters directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded adapter object.
+
+*New in version 2.15.*
+
+
+
+**load_adapter_from_definition**(*self*, *definition: 'LabwareDefinition'*) → 'Labware'
+
+Load an adapter onto the module using an inline definition.
+
+Parameters:**definition** – The labware definition.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.15.*
+
+
+
+**load_labware**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*, *adapter: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware) (which loads labware directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.1:* The *label,* *namespace,* and *version* parameters.
+
+
+
+**load_labware_by_name**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+*Deprecated since version 2.0:* Use [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.MagneticBlockContext.load_labware) instead.
+
+*New in version 2.1.*
+
+
+
+**load_labware_from_definition**(*self*, *definition: 'LabwareDefinition'*, *label: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using an inline definition.
+
+Parameters:
+
+- **definition** – The labware definition.
+- **label** ([*str*](https://docs.python.org/3/library/stdtypes.html#str)) – An optional special name to give the labware. If specified, this is the name the labware will appear as in the run log and the calibration view in the Opentrons app.
+
+Returns:The initialized and loaded labware object.
+
+
+
+*New in version 2.0.*
+
+
+
+*property* **model***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleV1, magneticModuleV2], typing_extensions.Literal[temperatureModuleV1, temperatureModuleV2], typing_extensions.Literal[thermocyclerModuleV1, thermocyclerModuleV2], typing_extensions.Literal[heaterShakerModuleV1], typing_extensions.Literal[magneticBlockV1]]*
+
+
+
+Get the module’s model identifier.
+
+*New in version 2.14.*
+
+
+
+*property* **parent***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+The name of the slot the module is on.
+
+On a Flex, this will be like `"D1"`. On an OT-2, this will be like `"1"`. See [Deck Slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots).
+
+*New in version 2.14.*
+
+
+
+*property* **type***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleType], typing_extensions.Literal[temperatureModuleType], typing_extensions.Literal[thermocyclerModuleType], typing_extensions.Literal[heaterShakerModuleType], typing_extensions.Literal[magneticBlockType]]
+
+
+
+Get the module’s general type identifier.
+
+*New in version 2.14.*
+
+
+
+*class* opentrons.protocol_api.**MagneticModuleContext**(*core: AbstractModuleCore*, *protocol_core: AbstractProtocol[AbstractInstrument[AbstractWellCore], AbstractLabware[AbstractWellCore], AbstractModuleCore]*, *core_map: LoadedCoreMap*, *api_version: APIVersion*, *broker: LegacyBroker*)
+
+An object representing a connected Magnetic Module.
+
+
+
+It should not be instantiated directly; instead, it should be created through [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module).
+
+
+
+*New in version 2.0.*
+
+
+
+*property* **api_version***: APIVersion
+
+*New in version 2.0.*
+
+
+
+**disengage**(*self*) → 'None'
+
+Lower the magnets back into the Magnetic Module.
+
+*New in version 2.0.*
+
+
+
+**engage**(*self*, *height: 'Optional[float]' = None*, *offset: 'Optional[float]' = None*, *height_from_base: 'Optional[float]' = None*) → 'None'
+
+Raise the Magnetic Module’s magnets. You can specify how high the magnets should
+
+move:
+
+- No parameter: Move to the default height for the loaded labware. If the loaded labware has no default, or if no labware is loaded, this will raise an error.
+
+- `height_from_base` – Move this many millimeters above the bottom of the labware. Acceptable values are between `0` and `25`.
+
+  This is the recommended way to adjust the magnets’ height.
+
+  *New in version 2.2.*
+
+- `offset` – Move this many millimeters above (positive value) or below (negative value) the default height for the loaded labware. The sum of the default height and `offset` must be between 0 and 25.
+
+- `height` – Intended to move this many millimeters above the magnets’ home position. However, depending on the generation of module and the loaded labware, this may produce unpredictable results. You should normally use `height_from_base` instead.
+
+*Changed in version 2.14:* This parameter has been removed.
+
+
+
+You shouldn’t specify more than one of these parameters. However, if you do, their order of precedence is `height`, then `height_from_base`, then `offset`.
+
+*New in version 2.0.*
+
+
+
+*property* **labware***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)]
+
+The labware (if any) present on this module.
+
+*New in version 2.0.*
+
+
+
+**load_adapter**(*self*, *name: 'str'*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+Load an adapter onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_adapter`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_adapter) (which loads adapters directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded adapter object.
+
+*New in version 2.15.*
+
+
+
+**load_adapter_from_definition**(*self*, *definition: 'LabwareDefinition'*) → 'Labware'
+
+Load an adapter onto the module using an inline definition.
+
+Parameters:**definition** – The labware definition.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.15.*
+
+
+
+**load_labware**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*, *adapter: 'Optional[str]' = None*) → 'Labware'
+
+
+
+Load a labware onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware) (which loads labware directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.1:* The *label,* *namespace,* and *version* parameters.
+
+
+
+**load_labware_by_name**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+*Deprecated since version 2.0:* Use [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.MagneticModuleContext.load_labware) instead.
+
+*New in version 2.1.*
+
+
+
+**load_labware_from_definition**(*self*, *definition: 'LabwareDefinition'*, *label: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using an inline definition.
+
+Parameters:
+
+- **definition** – The labware definition.
+
+- **label** ([*str*](https://docs.python.org/3/library/stdtypes.html#str)) – An optional special name to give the labware. If specified, this is the name the labware will appear as in the run log and the calibration view in the Opentrons app.
+
+  Returns:The initialized and loaded labware object.
+
+*New in version 2.0.*
+
+
+
+*property* **model***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleV1, magneticModuleV2], typing_extensions.Literal[temperatureModuleV1, temperatureModuleV2], typing_extensions.Literal[thermocyclerModuleV1, thermocyclerModuleV2], typing_extensions.Literal[heaterShakerModuleV1], typing_extensions.Literal[magneticBlockV1]]
+
+Get the module’s model identifier.
+
+*New in version 2.14.*
+
+
+
+*property* **parent***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+The name of the slot the module is on.
+
+On a Flex, this will be like `"D1"`. On an OT-2, this will be like `"1"`. See [Deck Slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots).
+
+*New in version 2.14.*
+
+
+
+*property* **serial_number***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+Get the module’s unique hardware serial number.
+
+*New in version 2.14.*
+
+
+
+*property* **status***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+The status of the module, either `engaged` or `disengaged`.
+
+*New in version 2.0.*
+
+
+
+*property* **type***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleType], typing_extensions.Literal[temperatureModuleType], typing_extensions.Literal[thermocyclerModuleType], typing_extensions.Literal[heaterShakerModuleType], typing_extensions.Literal[magneticBlockType]]
+
+Get the module’s general type identifier.
+
+*New in version 2.14.*
+
+
+
+*class* opentrons.protocol_api.**TemperatureModuleContext**(*core: AbstractModuleCore*, *protocol_core: AbstractProtocol[AbstractInstrument[AbstractWellCore], AbstractLabware[AbstractWellCore], AbstractModuleCore]*, *core_map: LoadedCoreMap*, *api_version: APIVersion*, *broker: LegacyBroker*)
+
+An object representing a connected Temperature Module.
+
+It should not be instantiated directly; instead, it should be created through [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module).
+
+
+
+*New in version 2.0.*
+
+
+
+*property* **api_version***: APIVersion*
+
+*New in version 2.0.*
+
+
+
+**deactivate**(*self*) → 'None'
+
+Stop heating or cooling, and turn off the fan.
+
+*New in version 2.0.*
+
+
+
+*property* **labware***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)]
+
+The labware (if any) present on this module.
+
+*New in version 2.0.*
+
+
+
+**load_adapter**(*self*, *name: 'str'*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+Load an adapter onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_adapter`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_adapter) (which loads adapters directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded adapter object.
+
+*New in version 2.15.*
+
+
+
+**load_adapter_from_definition**(*self*, *definition: 'LabwareDefinition'*) → 'Labware'
+
+Load an adapter onto the module using an inline definition.
+
+Parameters:**definition** – The labware definition.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.15.*
+
+
+
+**load_labware**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*, *adapter: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware) (which loads labware directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.1:* The *label,* *namespace,* and *version* parameters.
+
+
+
+**load_labware_by_name**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+*Deprecated since version 2.0:* Use [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.TemperatureModuleContext.load_labware) instead.
+
+*New in version 2.1.*
+
+
+
+**load_labware_from_definition**(*self*, *definition: 'LabwareDefinition'*, *label: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using an inline definition.
+
+Parameters:
+
+- **definition** – The labware definition.
+- **label** ([*str*](https://docs.python.org/3/library/stdtypes.html#str)) – An optional special name to give the labware. If specified, this is the name the labware will appear as in the run log and the calibration view in the Opentrons app.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.0.*
+
+
+
+*property* **model***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleV1, magneticModuleV2], typing_extensions.Literal[temperatureModuleV1, temperatureModuleV2], typing_extensions.Literal[thermocyclerModuleV1, thermocyclerModuleV2], typing_extensions.Literal[heaterShakerModuleV1], typing_extensions.Literal[magneticBlockV1]]
+
+Get the module’s model identifier.
+
+*New in version 2.14.*
+
+
+
+*property* **parent***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+The name of the slot the module is on.
+
+On a Flex, this will be like `"D1"`. On an OT-2, this will be like `"1"`. See [Deck Slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots).
+
+*New in version 2.14.*
+
+
+
+*property* **serial_number***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+Get the module’s unique hardware serial number.
+
+*New in version 2.14.*
+
+
+
+**set_temperature**(*self*, *celsius: 'float'*) → 'None'
+
+Set a target temperature and wait until the module reaches the target.
+
+No other protocol commands will execute while waiting for the temperature.
+
+Parameters:**celsius** – A value between 4 and 95, representing the target temperature in °C.
+
+
+
+*New in version 2.0.*
+
+
+
+*property* **status***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+One of four possible temperature statuses:
+
+- `holding at target` – The module has reached its target temperature and is actively maintaining that temperature.
+- `cooling` – The module is cooling to a target temperature.
+- `heating` – The module is heating to a target temperature.
+- `idle` – The module has been deactivated.
+
+*New in version 2.3.*
+
+
+
+*property* **target***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]
+
+The target temperature of the Temperature Module’s deck in °C.
+
+Returns `None` if no target has been set.
+
+*New in version 2.0.*
+
+
+
+*property* **temperature***: [float](https://docs.python.org/3/library/functions.html#float)
+
+The current temperature of the Temperature Module’s deck in °C.
+
+Returns `0` in simulation if no target temperature has been set.
+
+*New in version 2.0.*
+
+
+
+*property* **type***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleType], typing_extensions.Literal[temperatureModuleType], typing_extensions.Literal[thermocyclerModuleType], typing_extensions.Literal[heaterShakerModuleType], typing_extensions.Literal[magneticBlockType]]*
+
+Get the module’s general type identifier.
+
+*New in version 2.14.*
+
+
+
+*class* opentrons.protocol_api.**ThermocyclerContext**(*core: AbstractModuleCore*, *protocol_core: AbstractProtocol[AbstractInstrument[AbstractWellCore], AbstractLabware[AbstractWellCore], AbstractModuleCore]*, *core_map: LoadedCoreMap*, *api_version: APIVersion*, *broker: LegacyBroker*)
+
+An object representing a connected Thermocycler Module.
+
+
+
+It should not be instantiated directly; instead, it should be created through [`ProtocolContext.load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module).
+
+*New in version 2.0.*
+
+
+
+*property* **api_version***: APIVersion*
+
+*New in version 2.0.*
+
+
+
+*property* **block_target_temperature***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]*
+
+The target temperature of the well block in °C.
+
+*New in version 2.0.*
+
+
+
+*property* **block_temperature***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]*
+
+The current temperature of the well block in °C.
+
+*New in version 2.0.*
+
+
+
+*property* **block_temperature_status***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+One of five possible temperature statuses:
+
+- `holding at target` – The block has reached its target temperature and is actively maintaining that temperature.
+- `cooling` – The block is cooling to a target temperature.
+- `heating` – The block is heating to a target temperature.
+- `idle` – The block is not currently heating or cooling.
+- `error` – The temperature status can’t be determined.
+
+*New in version 2.0.*
+
+
+
+**close_lid**(*self*) → 'str'
+
+Close the lid.
+
+*New in version 2.0.*
+
+
+
+**deactivate**(*self*) → 'None'
+
+Turn off both the well block temperature controller and the lid heater.
+
+*New in version 2.0.*
+
+
+
+**deactivate_block**(*self*) → 'None'
+
+Turn off the well block temperature controller.
+
+*New in version 2.0.*
+
+
+
+**deactivate_lid**(*self*) → 'None'
+
+Turn off the lid heater.
+
+*New in version 2.0.*
+
+
+
+**execute_profile**(*self*, *steps: 'List[ThermocyclerStep]'*, *repetitions: 'int'*, *block_max_volume: 'Optional[float]' = None*) → 'None'
+
+Execute a Thermocycler profile, defined as a cycle of `steps`, for a given number of `repetitions`.
+
+Parameters:
+
+- **steps** – List of unique steps that make up a single cycle. Each list item should be a dictionary that maps to the parameters of the [`set_block_temperature()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ThermocyclerContext.set_block_temperature) method with a `temperature` key, and either or both of `hold_time_seconds` and `hold_time_minutes`.
+- **repetitions** – The number of times to repeat the cycled steps.
+- **block_max_volume** – The greatest volume of liquid contained in any individual well of the loaded labware, in µL. If not specified, the default is 25 µL.
+
+*New in version 2.0.*
+
+
+
+*property* **labware***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)]
+
+The labware (if any) present on this module.
+
+*New in version 2.0.*
+
+
+
+*property* **lid_position***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[str](https://docs.python.org/3/library/stdtypes.html#str)]
+
+One of these possible lid statuses:
+
+- `closed` – The lid is closed.
+- `in_between` – The lid is neither open nor closed.
+- `open` – The lid is open.
+- `unknown` – The lid position can’t be determined.
+
+*New in version 2.0.*
+
+
+
+*property* **lid_target_temperature**: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]
+
+The target temperature of the lid in °C.
+
+*New in version 2.0.*
+
+
+
+*property* **lid_temperature**: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]
+
+The current temperature of the lid in °C.
+
+*New in version 2.0.*
+
+
+
+*property* **lid_temperature_status***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[str](https://docs.python.org/3/library/stdtypes.html#str)]
+
+One of five possible temperature statuses:
+
+- `holding at target` – The lid has reached its target temperature and is actively maintaining that temperature.
+
+- - `cooling` – The lid has previously heated and is now passively cooling.
+
+    The Thermocycler lid does not have active cooling.
+
+- `heating` – The lid is heating to a target temperature.
+
+- `idle` – The lid has not heated since the beginning of the protocol.
+
+- `error` – The temperature status can’t be determined.
+
+*New in version 2.0.*
+
+
+
+**load_adapter**(*self*, *name: 'str'*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+Load an adapter onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_adapter`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_adapter) (which loads adapters directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded adapter object.
+
+*New in version 2.15.*
+
+
+
+**load_adapter_from_definition**(*self*, *definition: 'LabwareDefinition'*) → 'Labware'
+
+Load an adapter onto the module using an inline definition.
+
+Parameters:**definition** – The labware definition.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.15.*
+
+
+
+**load_labware**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*, *adapter: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using its load parameters.
+
+The parameters of this function behave like those of [`ProtocolContext.load_labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware) (which loads labware directly onto the deck). Note that the parameter `name` here corresponds to `load_name` on the `ProtocolContext` function.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.1:* The *label,* *namespace,* and *version* parameters.
+
+**load_labware_by_name**(*self*, *name: 'str'*, *label: 'Optional[str]' = None*, *namespace: 'Optional[str]' = None*, *version: 'Optional[int]' = None*) → 'Labware'
+
+*Deprecated since version 2.0:* Use [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ThermocyclerContext.load_labware) instead.
+
+*New in version 2.1.*
+
+
+
+**load_labware_from_definition**(*self*, *definition: 'LabwareDefinition'*, *label: 'Optional[str]' = None*) → 'Labware'
+
+Load a labware onto the module using an inline definition.
+
+Parameters:
+
+- **definition** – The labware definition.
+- **label** ([*str*](https://docs.python.org/3/library/stdtypes.html#str)) – An optional special name to give the labware. If specified, this is the name the labware will appear as in the run log and the calibration view in the Opentrons app.
+
+Returns:The initialized and loaded labware object.
+
+*New in version 2.0.*
+
+
+
+*property* **model***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleV1, magneticModuleV2], typing_extensions.Literal[temperatureModuleV1, temperatureModuleV2], typing_extensions.Literal[thermocyclerModuleV1, thermocyclerModuleV2], typing_extensions.Literal[heaterShakerModuleV1], typing_extensions.Literal[magneticBlockV1]]*
+
+Get the module’s model identifier.
+
+*New in version 2.14.*
+
+
+
+**open_lid**(*self*) → 'str'
+
+Open the lid.
+
+*New in version 2.0.*
+
+
+
+*property* **parent***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+The name of the slot the module is on.
+
+On a Flex, this will be like `"D1"`. On an OT-2, this will be like `"1"`. See [Deck Slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots).
+
+*New in version 2.14.*
+
+
+
+*property* **serial_number***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+Get the module’s unique hardware serial number.
+
+*New in version 2.14.*
+
+
+
+**set_block_temperature**(*self*, *temperature: 'float'*, *hold_time_seconds: 'Optional[float]' = None*, *hold_time_minutes: 'Optional[float]' = None*, *ramp_rate: 'Optional[float]' = None*, *block_max_volume: 'Optional[float]' = None*) → 'None'
+
+Set the target temperature for the well block, in °C.
+
+Parameters:
+
+- **temperature** – A value between 4 and 99, representing the target temperature in °C.
+- **hold_time_minutes** – The number of minutes to hold, after reaching `temperature`, before proceeding to the next command. If `hold_time_seconds` is also specified, the times are added together.
+- **hold_time_seconds** – The number of seconds to hold, after reaching `temperature`, before proceeding to the next command. If `hold_time_minutes` is also specified, the times are added together.
+- **block_max_volume** – The greatest volume of liquid contained in any individual well of the loaded labware, in µL. If not specified, the default is 25 µL.
+
+*New in version 2.0.*
+
+
+
+**set_lid_temperature**(*self*, *temperature: 'float'*) → 'None'
+
+Set the target temperature for the heated lid, in °C.
+
+Parameters:**temperature** – A value between 37 and 110, representing the target temperature in °C.
+
+*New in version 2.0.*
+
+*property* **type***: [Union](https://docs.python.org/3/library/typing.html#typing.Union)[typing_extensions.Literal[magneticModuleType], typing_extensions.Literal[temperatureModuleType], typing_extensions.Literal[thermocyclerModuleType], typing_extensions.Literal[heaterShakerModuleType], typing_extensions.Literal[magneticBlockType]]*
+
+Get the module’s general type identifier.
+
+*New in version 2.14.*
+
+
+

@@ -1,0 +1,15 @@
+
+
+Default Labware
+
+Default labware is everything listed in the [Opentrons Labware Library](https://labware.opentrons.com/). When used in a protocol, your Flex or OT-2 knows how to work with default labware. However, you must first inform the API about the labware you will place on the robot’s deck. Search the library when you’re looking for the API load names of the labware you want to use. You can copy the load names from the library and pass them to the [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware) method in your protocol.
+
+
+Custom Labware
+
+Custom labware is labware that is not listed the Labware Library. If your protocol needs something that’s not in the library, you can create it with the [Opentrons Labware Creator](https://labware.opentrons.com/create/). However, before using the Labware Creator, you should take a moment to review the support article [Creating Custom Labware Definitions](https://support.opentrons.com/s/article/Creating-Custom-Labware-Definitions).
+
+After you’ve created your labware, save it as a `.json` file and add it to the Opentrons App. See [Using Labware in Your Protocols](https://support.opentrons.com/s/article/Using-labware-in-your-protocols) for instructions.
+
+If other people need to use your custom labware definition, they must also add it to their Opentrons App.
+

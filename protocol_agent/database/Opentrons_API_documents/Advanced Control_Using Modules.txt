@@ -1,0 +1,13 @@
+
+If your protocol uses [modules](https://docs.opentrons.com/v2/new_modules.html#new-modules), you need to take additional steps to make sure that Jupyter Notebook doesn’t send commands that conflict with the robot server. Sending commands to modules while the robot server is running will likely cause errors, and the module commands may not execute as expected.
+
+To disable the robot server, open a Jupyter terminal session by going to **New > Terminal** and run `systemctl stop opentrons-robot-server`. Then you can run code from cells in your notebook as usual. When you are done using Jupyter Notebook, you should restart the robot server with `systemctl start opentrons-robot-server`.
+
+
+
+> *Note：*
+>
+> 
+>
+> While the robot server is stopped, the robot will display as unavailable in the Opentrons App. If you need to control the robot or its attached modules through the app, you need to restart the robot server and wait for the robot to appear as available in the app.
+

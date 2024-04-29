@@ -1,0 +1,22 @@
+
+The [`InstrumentContext.air_gap()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.air_gap) method tells the pipette to draw in air before or after a liquid. Creating an air gap helps keep liquids from seeping out of a pipette after drawing it from a well. This method includes arguments that give you control over the amount of air to aspirate and the pipette’s height (in mm) above the well. By default, the pipette moves 5 mm above a well before aspirating air. Calling [`air_gap()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.air_gap) with no arguments uses the entire remaining volume in the pipette.
+
+This example aspirates 200 µL of air 5 mm above the current well:
+
+```python
+pipette.air_gap(volume=200)
+```
+
+This example aspirates 200 µL of air 20 mm above the the current well:
+
+```python
+pipette.air_gap(volume=200, height=20)
+```
+
+This example aspirates enough air to fill the remaining volume in a pipette:
+
+```python
+pipette.air_gap()
+```
+
+*New in version 2.0.*
