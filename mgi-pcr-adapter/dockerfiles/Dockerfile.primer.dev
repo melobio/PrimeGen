@@ -1,0 +1,28 @@
+FROM openjdk:8-alpine
+
+LABEL mabinbin="mabinbin@genomics.com"
+
+ENV SPRING_OUTPUT_ANSI_ENABLED=ALWAYS \
+    BASE_DIR="/bgi" \
+    JAVA_OPTS="" \
+    JVM_XMS="512m" \
+    JVM_XMX="1024m" \
+    JVM_XMN="256m" \
+    PORT=9516 \
+    PROFILES=dev
+
+WORKDIR $BASE_DIR
+
+COPY ./project_jar/cloud-pacs-primer.jar ${BASE_DIR}/cloud-pacs-primer.jar
+
+# set startup log dir
+RUN mkdir -p logs
+RUN apk add --no-cache bash
+# 安装 tzdata
+RUN apk add --no-cache tzdata
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Xms${JVM_XMS} -Xmx${JVM_XMX} -Xmn${JVM_XMN} -jar cloud-pacs-primer.jar"]
+
+EXPOSE $PORT

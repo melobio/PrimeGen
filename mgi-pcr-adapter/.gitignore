@@ -1,0 +1,6 @@
+/logs/
+/project_jar/
+target/
+.idea
+/*/logs/
+*.iml

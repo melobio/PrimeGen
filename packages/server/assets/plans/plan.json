@@ -1,0 +1,182 @@
+{
+  "title": "A PCR(Polymerase Chain Reaction) Experiment Targeting Tuberculosis DNA",
+  "description": "A PCR(Polymerase Chain Reaction) Experiment Targeting Tuberculosis DNA",
+  "availableStates": [
+    "idle",
+    "running",
+    "finish",
+    "error"
+  ],
+  "steps": [
+    {
+      "stepName": "Confirm the experiment type and experiment objectives",
+      "purpose": "user confirm the specific purpose of the experiment (composed of a specific type of experiment and a specific experimental subject); The experiment type only supports (Protein Mutation Analysis/ Genetic Disease Diagnosis/ Cancer Research/ Pathogen Resistance Analysis/ Pathogen Species Identification/ COVID-19 Detection Experiment); The aim of the experiment refers to the specific name; The purpose of the experiment must consist of the experiment type and the experimental subject; such as 'Protein Mutation Analysis of Luciferase/DNA Polymerase/Deaminase/Hydrolase', 'Diagnosis of Genetic Diseases like Myasthenia Gravis/Acatalasemia/Marfan Syndrome/Hyperlipoproteinemia Type III in Humans', 'Cancer Research related to Lung Cancer/Colorectal Cancer/Breast Cancer/Pancreatic Cancer', 'Pathogen Resistance Studies for E. coli/Staphylococcus/Pneumococcus/Neisseria gonorrhoeae', 'Species Identification of Mycobacterium/Branching Mycobacterium'.",
+      "state": "idle",
+      "checkWithContext":true,
+      "useAgents": [
+        "Internet Search"
+      ]
+    },
+    {
+      "stepName": "Determining DNA Sequence",
+      "purpose": "Sequence file name or Gene information;sequence file name(.fasta/.fastq/.fna/.csv,Just need the file name; no need to worry about the gene detail),gene information(including the gene's chrom/Chromosome、start、end、gene、type、HGNC);only need either the gene file name or the gene information.",
+      "state": "idle",
+      "checkWithContext":false,
+      "useAgents": [
+        "Sequence Search"
+      ]
+    },
+    {
+      "stepName": "Primer Design",
+      "purpose": "The Primer Design file('.fasta/.fastq/.fna/.csv')just need the file name",
+      "checkWithContext":false,
+      "state": "idle",
+      "useAgents": [
+        "Primer Design"
+      ]
+    },
+    {
+      "stepName": "Primer synthesis",
+      "purpose": "The user confirms receipt of the primers; no specific data or description is required.",
+      "checkWithContext":false,
+      "state": "idle",
+      "useAgents": [
+        "Internet Search"
+        ]
+    },
+    {
+      "stepName": "Protocol Design",
+      "purpose": "Python content for OT2 Protocol.",
+      "checkWithContext":false,
+      "state": "idle",
+      "useAgents": [
+        "Protocol Design"
+      ]
+    },
+    {
+      "stepName": "OT2 Execution",
+      "purpose": "Successfully executed OT2 Protocol, obtaining PCR results.",
+      "checkWithContext":false,
+      "state": "idle",
+      "useAgents": [
+        "Code Execution"
+      ]
+    },
+    {
+      "stepName": "Sequencing",
+      "purpose": "Sequence the PCR results on the machine to obtain sequencing results.",
+      "checkWithContext":false,
+      "state": "idle",
+      "useAgents": []
+    },
+    {
+      "stepName": "Result Analysis",
+      "purpose": "Analyze the sequencing results to derive experimental conclusions.",
+      "checkWithContext":false,
+      "state": "idle",
+      "useAgents": [
+        "Result Analysis"
+      ]
+    }
+  ],
+  "agents": [
+    {
+      "agentName": "Internet Search",
+      "description": "Search for PCR experiment targeting human genetic disease name",
+      "dependenceAgents": [],
+      "output": {
+        "searchResult": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Sequence Search",
+      "description": "Sequence Search by NCBI for PCR experiment targeting human genetic disease gene name",
+      "dependenceAgents": [
+        "Internet Search"
+      ],
+      "output": {
+        "sequence": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Primer Design",
+      "description": "Primer Design for PCR experiment targeting tuberculosis DNA",
+      "dependenceAgents": [
+        "Sequence Search"
+      ],
+      "output": {
+        "primer": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Experiment Design",
+      "description": "Experiment Design for PCR experiment targeting tuberculosis DNA",
+      "dependenceAgents": [
+        "Primer Design"
+      ],
+      "output": {
+        "experimentDesign": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Protocol Generation",
+      "description": "OT2 Protocol Generator for PCR experiment targeting tuberculosis DNA",
+      "dependenceAgents": [
+        "Experiment Design"
+      ],
+      "output": {
+        "protocol": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Code Execution",
+      "description": "OT2 Code Execution for PCR experiment targeting tuberculosis DNA",
+      "dependenceAgents": [
+        "Protocol Generation"
+      ],
+      "output": {
+        "result": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Fault",
+      "description": "Fault checking for execution of OT2 Protocol code",
+      "dependenceAgents": [
+        "Protocol Generation"
+      ],
+      "output": {
+        "state": {
+          "type": "boolean"
+        },
+        "fault": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "agentName": "Result Analysis",
+      "description": "Result Analysis for PCR experiment targeting tuberculosis DNA",
+      "dependenceAgents": [
+        "Code Execution",
+        "Fault"
+      ],
+      "output": {
+        "analysisResult": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

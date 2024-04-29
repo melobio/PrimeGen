@@ -1,0 +1,9 @@
+version: '3.9'
+
+services:
+  mysql:
+    ports:
+      - "33061:3306"
+  redis:
+    ports:
+      - "63791:6379"

@@ -1,0 +1,14 @@
+[
+  {
+    "userName": "admin",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "admin"
+  },
+  {
+    "userName": "admin1",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "admin1"
+  }
+]
