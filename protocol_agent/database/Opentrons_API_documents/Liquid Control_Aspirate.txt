@@ -1,0 +1,59 @@
+
+To draw liquid up into a pipette tip, call the [`InstrumentContext.aspirate()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.aspirate) method. Using this method, you can specify the aspiration volume in µL, the well location, and pipette flow rate. Other parameters let you position the pipette within a well. For example, this snippet tells the robot to aspirate 200 µL from well location A1.
+
+```python
+pipette.pick_up_tip()
+pipette.aspirate(200, plate['A1'])
+```
+
+If the pipette doesn’t move, you can specify an additional aspiration action without including a location. To demonstrate, this code snippet pauses the protocol, automatically resumes it, and aspirates a second time from `plate['A1']`).
+
+```python
+pipette.pick_up_tip()
+pipette.aspirate(200, plate['A1'])
+protocol.delay(seconds=5) # pause for 5 seconds
+pipette.aspirate(100)     # aspirate 100 µL at current position
+```
+
+Now our pipette holds 300 µL.
+
+
+Aspirate by Well or Location
+
+The [`aspirate()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.aspirate) method includes a `location` parameter that accepts either a [`Well`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well) or a [`Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location).
+
+If you specify a well, like `plate['A1']`, the pipette will aspirate from a default position 1 mm above the bottom center of that well. To change the default clearance, first set the `aspirate` attribute of [`well_bottom_clearance`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.well_bottom_clearance):
+
+```python
+pipette.pick_up_tip
+pipette.well_bottom_clearance.aspirate = 2  # tip is 2 mm above well bottom
+pipette.aspirate(200, plate['A1'])
+```
+
+You can also aspirate from a location along the center vertical axis within a well using the [`Well.top()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well.top) and [`Well.bottom()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Well.bottom) methods. These methods move the pipette to a specified distance relative to the top or bottom center of a well:
+
+```python
+pipette.pick_up_tip()
+depth = plate['A1'].bottom(z=2) # tip is 2 mm above well bottom
+pipette.aspirate(200, depth)
+```
+
+See also:
+
+- [Default Positions](https://docs.opentrons.com/v2/robot_position.html#new-default-op-positions) for information about controlling pipette height for a particular pipette.
+- [Position Relative to Labware](https://docs.opentrons.com/v2/robot_position.html#position-relative-labware) for information about controlling pipette height from within a well.
+- [Move To](https://docs.opentrons.com/v2/robot_position.html#move-to) for information about moving a pipette to any reachable deck location.
+
+
+Aspiration Flow Rates
+
+Flex and OT-2 pipettes aspirate at [default flow rates](https://docs.opentrons.com/v2/pipettes/characteristics.html#new-plunger-flow-rates) measured in µL/s. Specifying the `rate` parameter multiplies the flow rate by that value. As a best practice, don’t set the flow rate higher than 3x the default. For example, this code causes the pipette to aspirate at twice its normal rate:
+
+```python
+pipette.aspirate(200, plate['A1'], rate=2.0)
+```
+
+*New in version 2.0.*
+
+
+

@@ -1,0 +1,65 @@
+
+The [`InstrumentContext.touch_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.touch_tip) method moves the pipette so the tip touches each wall of a well. A touch tip procedure helps knock off any droplets that might cling to the pipette’s tip. This method includes optional arguments that allow you to control where the tip will touch the inner walls of a well and the touch speed. Calling [`touch_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.touch_tip) without arguments causes the pipette to touch the well walls from its current location:
+
+```python
+pipette.touch_tip()
+```
+
+
+Touch Location
+
+These optional location arguments give you control over where the tip will touch the side of a well.
+
+This example demonstrates touching the tip in a specific well:
+
+```python
+pipette.touch_tip(plate['B1'])
+```
+
+This example uses an offset to set the touch tip location 2mm below the top of the current well:
+
+```python
+pipette.touch_tip(v_offset=-2)
+```
+
+This example moves the pipette 75% of well’s total radius and 2 mm below the top of well:
+
+```python
+pipette.touch_tip(plate['B1'],
+                  radius=0.75,
+                  v_offset=-2)
+```
+
+The `touch_tip` feature allows the pipette to touch the edges of a well gently instead of crashing into them. It includes the `radius` argument. When `radius=1` the robot moves the centerline of the pipette’s plunger axis to the edge of a well. This means a pipette tip may sometimes touch the well wall too early, causing it to bend inwards. A smaller radius helps avoid premature wall collisions and a lower speed produces gentler motion. Different liquid droplets behave differently, so test out these parameters in a single well before performing a full protocol run.
+
+> Warning:
+>
+> *Do not* set the `radius` value greater than `1.0`. When `radius` is > `1.0`, the robot will forcibly move the pipette tip across a well wall or edge. This type of aggressive movement can damage the pipette tip and the pipette.
+
+
+Touch Speed
+
+Touch speed controls how fast the pipette moves in mm/s during a touch tip step. The default movement speed is 60 mm/s, the minimum is 1 mm/s, and the maximum is 80 mm/s. Calling `touch_tip` without any arguments moves a tip at the default speed in the current well:
+
+```python
+pipette.touch_tip()
+```
+
+This example specifies a well location and sets the speed to 20 mm/s:
+
+```python
+pipette.touch_tip(plate['B1'], speed=20)
+```
+
+This example uses the current well and sets the speed to 80 mm/s:
+
+```python
+pipette.touch_tip(speed=80)
+```
+
+*New in version 2.0.*
+
+*Changed in version 2.4:* Lowered minimum speed to 1 mm/s.
+
+
+

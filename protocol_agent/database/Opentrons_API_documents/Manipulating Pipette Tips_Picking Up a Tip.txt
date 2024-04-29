@@ -1,0 +1,28 @@
+
+To pick up a tip, call the [`pick_up_tip()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.pick_up_tip) method without any arguments:
+
+```python
+pipette.pick_up_tip()
+```
+
+This simple statement works because the variable `tiprack_1` in the sample protocol includes the on-deck location of the tip rack (Flex `location="D3"`, OT-2 `location=3`) *and* the `pipette` variable includes the argument `tip_racks=[tiprack_1]`. Given this information, the robot moves to the tip rack and picks up a tip from position A1 in the rack. On subsequent calls to `pick_up_tip()`, the robot will use the next available tip. For example:
+
+```python
+pipette.pick_up_tip()  # picks up tip from rack location A1
+pipette.drop_tip()     # drops tip in trash bin
+pipette.pick_up_tip()  # picks up tip from rack location B1
+pipette.drop_tip()     # drops tip in trash bin
+```
+
+If you omit the `tip_rack` argument from the `pipette` variable, the API will raise an error. You must pass in the tip rack’s location to `pick_up_tip` like this:
+
+```python
+pipette.pick_up_tip(tiprack_1['A1'])
+pipette.drop_tip()
+pipette.pick_up_tip(tiprack_1['B1'])
+```
+
+If coding the location of each tip seems inefficient or tedious, try using a `for` loop to automate a sequential tip pick up process. When using a loop, the API keeps track of tips and manages tip pickup for you. But `pick_up_tip` is still a powerful feature. It gives you direct control over tip use when that’s important in your protocol.
+
+*New in version 2.0.*
+

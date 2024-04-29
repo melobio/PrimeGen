@@ -1,0 +1,25 @@
+
+This code sample loads a Flex 1-Channel Pipette in the left mount and a Flex 8-Channel Pipette in the right mount. Both pipettes are 1000 µL. Each pipette uses its own 1000 µL tip rack.
+
+```
+from opentrons import protocol_api
+
+requirements = {'robotType': 'Flex', 'apiLevel':'2.16'}
+
+def run(protocol: protocol_api.ProtocolContext):
+    tiprack1 = protocol.load_labware(
+        load_name='opentrons_flex_96_tiprack_1000ul', location='D1')
+    tiprack2 = protocol.load_labware(
+        load_name='opentrons_flex_96_tiprack_1000ul', location='C1')
+    left = protocol.load_instrument(
+        instrument_name='flex_1channel_1000',
+        mount='left',
+        tip_racks=[tiprack1])
+    right = protocol.load_instrument(
+        instrument_name='flex_8channel_1000',
+        mount='right',
+        tip_racks=[tiprack2])
+```
+
+If you’re writing a protocol that uses the Flex Gripper, you might think that this would be the place in your protocol to declare that. However, the gripper doesn’t require `load_instrument`! Whether your gripper requires a protocol is determined by the presence of [`ProtocolContext.move_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.move_labware) commands. See [Moving Labware](https://docs.opentrons.com/v2/moving_labware.html#moving-labware) for more details.
+

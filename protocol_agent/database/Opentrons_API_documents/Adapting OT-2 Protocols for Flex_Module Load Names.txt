@@ -1,0 +1,52 @@
+
+If your OT-2 protocol uses older generations of the Temperature Module or Thermocycler Module, update the load names you pass to [`load_module()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_module) to ones compatible with Flex:
+
+- `temperature module gen2`
+- `thermocycler module gen2` or `thermocyclerModuleV2`
+
+The Heater-Shaker Module only has one generation, `heaterShakerModuleV1`, which is compatible with Flex and OT-2.
+
+The Magnetic Module is not compatible with Flex. For protocols that load `magnetic module`, `magdeck`, or `magnetic module gen2`, you will need to make further modifications to use the [Magnetic Block](https://docs.opentrons.com/v2/modules/magnetic_block.html#magnetic-block) and Flex Gripper instead. This will require reworking some of your protocol steps, and you should verify that your new protocol design achieves similar results.
+
+This simplified example, taken from a DNA extraction protocol, shows how using the Flex Gripper and the Magnetic Block can save time. Instead of pipetting an entire plate’s worth of liquid from the Heater-Shaker to the Magnetic Module and then engaging the module, the gripper moves the plate to the Magnetic Block in one step.
+
+**Original OT-2**
+
+```python
+hs_mod.set_and_wait_for_shake_speed(2000)
+protocol.delay(minutes=5)
+hs_mod.deactivate_shaker()
+
+for i in sample_plate.wells():
+    # mix, transfer, and blow-out all samples
+    pipette.pick_up_tip()
+    pipette.aspirate(100,hs_plate[i])
+    pipette.dispense(100,hs_plate[i])
+    pipette.aspirate(100,hs_plate[i])
+    pipette.air_gap(10)
+    pipette.dispense(pipette.current_volume,mag_plate[i])
+    pipette.aspirate(50,hs_plate[i])
+    pipette.air_gap(10)
+    pipette.dispense(pipette.current_volume,mag_plate[i])
+    pipette.blow_out(mag_plate[i].bottom(0.5))
+    pipette.drop_tip()
+
+mag_mod.engage()
+
+# perform elution steps
+```
+
+**codeUpdated Flex code**
+
+```python
+hs_mod.set_and_wait_for_shake_speed(2000)
+protocol.delay(minutes=5)
+hs_mod.deactivate_shaker()
+
+# move entire plate
+# no pipetting from Heater-Shaker needed
+hs_mod.open_labware_latch()
+protocol.move_labware(sample_plate, mag_block, use_gripper=True)
+
+# perform elution steps
+```

@@ -1,0 +1,166 @@
+
+*class* opentrons.protocol_api.**Well**(*parent: [Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)*, *core: WellCore*, *api_version: APIVersion*)
+
+The Well class represents a single well in a [`Labware`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware). It provides parameters and functions for three major uses:
+
+- Calculating positions relative to the well. See [Position Relative to Labware](https://docs.opentrons.com/v2/robot_position.html#position-relative-labware) for details.
+- Returning well measurements. See [Well Dimensions](https://docs.opentrons.com/v2/new_labware.html#new-labware-well-properties) for details.
+- Specifying what liquid should be in the well at the beginning of a protocol. See [Labeling Liquids in Wells](https://docs.opentrons.com/v2/new_labware.html#labeling-liquids) for details.
+
+*property* **api_version***: APIVersion
+
+
+
+*New in version 2.0.*
+
+
+
+**bottom**(*self*, *z: 'float' = 0.0*) → 'Location'
+
+Parameters:**z** – An offset on the z-axis, in mm. Positive offsets are higher and negative offsets are lower.
+
+Returns:A [`Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location) corresponding to the absolute position of the bottom-center of the well, plus the `z` offset (if specified).
+
+
+
+*New in version 2.0.*
+
+
+
+**center**(*self*) → 'Location'
+
+Returns:A [`Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location) corresponding to the absolute position of the center of the well (in all three dimensions).
+
+
+
+*New in version 2.0.*
+
+
+
+*property* **depth***: [float](https://docs.python.org/3/library/functions.html#float)
+
+The depth, in mm, of a well along the z-axis, from the very top of the well to the very bottom.
+
+*New in version 2.9.*
+
+
+
+*property* **diameter***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]
+
+The diameter, in mm, of a circular well. Returns `None` if the well is not circular.
+
+*New in version 2.0.*
+
+
+
+**from_center_cartesian**(*self*, *x: 'float'*, *y: 'float'*, *z: 'float'*) → 'Point'
+
+Specifies a [`Point`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Point) based on fractions of the distance from the center of the well to the edge along each axis.
+
+For example, `from_center_cartesian(0, 0, 0.5)` specifies a point at the well’s center on the x- and y-axis, and half of the distance from the center of the well to its top along the z-axis. To move the pipette to that location, construct a [`Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location) relative to the same well:
+
+```
+location = types.Location(
+    plate["A1"].from_center_cartesian(0, 0, 0.5), plate["A1"]
+)
+pipette.move_to(location)
+```
+
+See [Points and Locations](https://docs.opentrons.com/v2/robot_position.html#points-locations) for more information.
+
+Parameters:
+
+- **x** – The fraction of the distance from the well’s center to its edge along the x-axis. Negative values are to the left, and positive values are to the right.
+- **y** – The fraction of the distance from the well’s center to its edge along the y-axis. Negative values are to the front, and positive values are to the back.
+- **z** – The fraction of the distance from the well’s center to its edge along the x-axis. Negative values are down, and positive values are up.
+
+Returns:A [`Point`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Point) representing the specified position in absolute deck coordinates.
+
+
+
+> **Note:**
+>
+> 
+>
+> Even if the absolute values of `x`, `y`, and `z` are all less than 1, a location constructed from the well and the result of `from_center_cartesian` may be outside of the physical well. For example, `from_center_cartesian(0.9, 0.9, 0)` would be outside of a cylindrical well, but inside a square well.
+
+*New in version 2.8.*
+
+
+
+*property* **has_tip***: [bool](https://docs.python.org/3/library/functions.html#bool)
+
+Whether this well contains a tip. Always `False` if the parent labware isn’t a tip rack.
+
+*New in version 2.0.*
+
+
+
+*property* **length***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]*
+
+The length, in mm, of a rectangular well along the x-axis (left to right). Returns `None` if the well is not rectangular.
+
+*New in version 2.9.*
+
+
+
+**load_liquid**(*self*, *liquid: 'Liquid'*, *volume: 'float'*) → 'None'
+
+Load a liquid into a well.
+
+Parameters:
+
+* **liquid** ([*Liquid*](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Liquid)) – The liquid to load into the well.
+* **volume** ([*float*](https://docs.python.org/3/library/functions.html#float)) – The volume of liquid to load, in µL.
+
+*New in version 2.14.*
+
+*property* **parent***: [Labware](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.Labware)
+
+*New in version 2.0.*
+
+
+
+**top**(*self*, *z: 'float' = 0.0*) → 'Location'
+
+- Parameters:**z** – An offset on the z-axis, in mm. Positive offsets are higher and negative offsets are lower.
+- Returns:A [`Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location) corresponding to the absolute position of the top-center of the well, plus the `z` offset (if specified).
+
+*New in version 2.0.*
+
+
+
+*property* **well_name***: [str](https://docs.python.org/3/library/stdtypes.html#str)
+
+*New in version 2.7.*
+
+*property* **width***: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/library/functions.html#float)]
+
+
+
+The width, in mm, of a rectangular well along the y-axis (front to back). Returns `None` if the well is not rectangular.
+
+*New in version 2.9.*
+
+
+
+*class* opentrons.protocol_api.**Liquid**(*_id: [str](https://docs.python.org/3/library/stdtypes.html#str)*, *name: [str](https://docs.python.org/3/library/stdtypes.html#str)*, *description: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[str](https://docs.python.org/3/library/stdtypes.html#str)]*, *display_color: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[str](https://docs.python.org/3/library/stdtypes.html#str)]*)
+
+A liquid to load into a well.
+
+**name**
+
+​	A human-readable name for the liquid.Type:[str](https://docs.python.org/3/library/stdtypes.html#str)
+
+**description**
+
+​	An optional description.Type:Optional[[str](https://docs.python.org/3/library/stdtypes.html#str)]
+
+**display_color**
+
+​	An optional display color for the liquid.Type:Optional[[str](https://docs.python.org/3/library/stdtypes.html#str)]
+
+*New in version 2.14.*
+
+
+

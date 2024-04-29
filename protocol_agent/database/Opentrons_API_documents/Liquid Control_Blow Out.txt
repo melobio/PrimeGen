@@ -1,0 +1,25 @@
+
+To blow an extra amount of air through the pipette’s tip, call the [`InstrumentContext.blow_out()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.blow_out) method. You can use a specific well in a well plate or reservoir as the blowout location. If no location is specified, the pipette will blowout from its current well position:
+
+```python
+pipette.blow_out()
+```
+
+You can also specify a particular well as the blowout location:
+
+```python
+pipette.blow_out(plate['B1'])
+```
+
+Many protocols use a trash container for blowing out the pipette. You can specify the pipette’s current trash container as the blowout location by using the [`InstrumentContext.trash_container`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.trash_container) property:
+
+```python
+pipette.blow_out(pipette.trash_container)
+```
+
+*New in version 2.0.*
+
+*Changed in version 2.16:* Added support for `TrashBin` and `WasteChute` locations.
+
+
+

@@ -1,0 +1,29 @@
+
+The [`mix()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.mix) method aspirates and dispenses repeatedly in a single location. It’s designed to mix the contents of a well together using a single command rather than using multiple `aspirate()` and `dispense()` calls. This method includes arguments that let you specify the number of times to mix, the volume (in µL) of liquid, and the well that contains the liquid you want to mix.
+
+This example draws 100 µL from the current well and mixes it three times:
+
+```python
+pipette.mix(repetitions=3, volume=100)
+```
+
+This example draws 100 µL from well B1 and mixes it three times:
+
+```python
+pipette.mix(3, 100, plate['B1'])
+```
+
+This example draws an amount equal to the pipette’s maximum rated volume and mixes it three times:
+
+```python
+pipette.mix(repetitions=3)
+```
+
+> Note:
+>
+> In API versions 2.2 and earlier, during a mix, the pipette moves up and out of the target well. In API versions 2.3 and later, the pipette does not move while mixing.
+
+*New in version 2.0.*
+
+
+

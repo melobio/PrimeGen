@@ -1,0 +1,15 @@
+
+The robot’s base coordinate system is known as *deck coordinates*. Many API functions use this coordinate system, and you can also reference it directly. It is a right-handed coordinate system always specified in mm, with the origin `(0, 0, 0)` at the front left of the robot. The positive `x` direction is to the right, the positive `y` direction is to the back, and the positive `z` direction is up.
+
+You can identify a point in this coordinate system with a [`types.Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location) object, either as a standard Python [`tuple`](https://docs.python.org/3/library/stdtypes.html#tuple) of three floats, or as an instance of the [`namedtuple`](https://docs.python.org/3/library/collections.html#collections.namedtuple) [`types.Point`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Point).
+
+
+
+> **Note:**
+>
+> 
+>
+> There are technically multiple vertical axes. For example, `z` is the axis of the left pipette mount and `a` is the axis of the right pipette mount. There are also pipette plunger axes: `b` (left) and `c` (right). You usually don’t have to refer to these axes directly, since most motion commands are issued to a particular pipette and the robot automatically selects the correct axis to move. Similarly, [`types.Location`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.types.Location) only deals with `x`, `y`, and `z` values.
+
+
+

@@ -1,0 +1,7 @@
+
+When writing a protocol, you must inform the Protocol API about the pipettes you will be using on your robot. The [`ProtocolContext.load_instrument()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_instrument) function provides this information and returns an [`InstrumentContext`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext) object.
+
+As noted above, you call the [`load_instrument()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_instrument) method to load a pipette. This method also requires the [pipette’s API load name](https://docs.opentrons.com/v2/pipettes/loading.html#new-pipette-models), its left or right mount position, and (optionally) a list of associated tip racks. Even if you don’t use the pipette anywhere else in your protocol, the Opentrons App and the robot won’t let you start the protocol run until all pipettes loaded by `load_instrument()` are attached properly.
+
+
+
