@@ -795,9 +795,9 @@ async def upload_file(files: List[UploadFile] = File(...)):
 if __name__=="__main__":
     #openai api    
     openai.api_type = "azure"
-    openai.api_base = "https://xmgi-chat1.openai.azure.com/"
+    openai.api_base = 
     openai.api_version = "2023-07-01-preview"
-    openai.api_key = "42cb08b9d67747d9a60c3d4722168108"
+    openai.api_key = 
 
     os.system('rm log')
 
