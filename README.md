@@ -120,7 +120,10 @@ user: ok,yes
 
 #### 5.Fault detection of OT-2
 
+
 ![alt text](./docs/check_1.jpg)
+
+
 ![alt text](./docs/check_2.jpg)
 
 
