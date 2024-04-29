@@ -1,0 +1,11 @@
+FROM python:3.10.13-slim
+
+WORKDIR /app
+
+COPY ./seq_search/requirements.txt ./requirements.txt
+COPY ./seq_search/src ./src
+COPY ./datasets /bin/datasets
+
+RUN pip3 install -r requirements.txt
+
+CMD ["python3", "-u", "./src/app.py"]

@@ -1,0 +1,82 @@
+[
+    {
+        "vector": {
+            "x": -0.5999999999999979,
+            "y": 1.4999999999999147,
+            "z": -0.09999999999999432
+        },
+        "location": {
+            "slotName": "1",
+            "moduleModel": "magneticModuleV2"
+        },
+        "definitionUri": "opentrons/biorad_96_wellplate_200ul_pcr/1"
+    },
+    {
+        "vector": {
+            "x": -0.6000000000001364,
+            "y": 0.9999999999999432,
+            "z": 5.599999999999966
+        },
+        "location": {
+            "slotName": "3",
+            "moduleModel": "temperatureModuleV2"
+        },
+        "definitionUri": "opentrons/biorad_96_wellplate_200ul_pcr/1"
+    },
+    {
+        "vector": {
+            "x": -0.8999999999999968,
+            "y": 0.5000000000001137,
+            "z": 10.499999999999957
+        },
+        "location": {
+            "slotName": "7",
+            "moduleModel": "thermocyclerModuleV1"
+        },
+        "definitionUri": "opentrons/biorad_96_wellplate_200ul_pcr/1"
+    },
+    {
+        "vector": {
+            "x": -0.09999999999999432,
+            "y": -0.19999999999998863,
+            "z": 0.4000000000000057
+        },
+        "location": {
+            "slotName": "2"
+        },
+        "definitionUri": "opentrons/opentrons_96_filtertiprack_20ul/1"
+    },
+    {
+        "vector": {
+            "x": -0.19999999999998863,
+            "y": 0.09999999999999432,
+            "z": 1.4210854715202004e-14
+        },
+        "location": {
+            "slotName": "5"
+        },
+        "definitionUri": "opentrons/opentrons_96_filtertiprack_20ul/1"
+    },
+    {
+        "vector": {
+            "x": 0,
+            "y": 0.6999999999999602,
+            "z": 0
+        },
+        "location": {
+            "slotName": "4"
+        },
+        "definitionUri": "opentrons/nest_96_wellplate_2ml_deep/1"
+    },
+    {
+        "vector": {
+            "x": -0.6000000000001364,
+            "y": 0.5999999999999659,
+            "z": 0.10000000000000142
+        },
+        "location": {
+            "slotName": "6"
+        },
+        "definitionUri": "opentrons/biorad_96_wellplate_200ul_pcr/1"
+    }
+]

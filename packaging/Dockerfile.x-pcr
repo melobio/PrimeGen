@@ -1,0 +1,26 @@
+FROM node:20.9.0
+
+# root
+
+WORKDIR /var/x-pcr
+
+COPY packages ./packages
+COPY package.json ./package.json
+COPY .env ./.env
+COPY .yarnrc ./.yarnrc
+COPY common-tsconfig.json ./common-tsconfig.json
+COPY package.json ./package.json
+COPY package-lock.json ./package-lock.json
+COPY yarn.lock ./yarn.lock
+
+RUN yarn install
+RUN yarn build:common
+RUN yarn build:shared
+RUN yarn build:client
+RUN yarn build:server
+
+EXPOSE 3001
+
+ENV PORT 3001
+
+CMD ["yarn","start:server:prod"]

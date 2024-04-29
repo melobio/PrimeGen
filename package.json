@@ -1,0 +1,17 @@
+{
+  "name": "root",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "start:client": "yarn workspace @xpcr/client dev",
+    "start:server": "yarn workspace @xpcr/server start:debug",
+    "build:client": "yarn workspace @xpcr/client build",
+    "build:server": "yarn workspace @xpcr/server build",
+    "build:common": "yarn workspace @xpcr/common build",
+    "build:shared": "yarn workspace @xpcr/shared build",
+    "start:server:prod": "yarn workspace @xpcr/server start:prod"
+  }
+}

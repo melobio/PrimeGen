@@ -1,0 +1,206 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "coordinates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "affineTransform": {
+      "description": "A 4x4 row-major matrix describing an affine transform to apply to the labwareOffset and calibrationPoint coordinates of the module (in certain circumstances, e.g. per slot)",
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "array",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "svgsonNode": {
+      "type": "object",
+      "description": "An svgson node that corresponds to a single svg tag",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Element name, like svg, circle, line…"
+        },
+        "type": {
+          "type": "string",
+          "description": "Element type like element, text…"
+        },
+        "value": {
+          "type": "string",
+          "description": "Element value, used in text nodes."
+        },
+        "children": {
+          "type": "array",
+          "description": "List of element children",
+          "items": { "$ref": "#" }
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Attributes for the element"
+        }
+      }
+    }
+  },
+  "description": "Module specification",
+  "type": "object",
+  "required": [
+    "$otSharedSchema",
+    "moduleType",
+    "model",
+    "labwareOffset",
+    "cornerOffsetFromSlot",
+    "dimensions",
+    "calibrationPoint",
+    "displayName",
+    "quirks",
+    "slotTransforms",
+    "compatibleWith",
+    "twoDimensionalRendering"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$otSharedSchema": {
+      "type": "string",
+      "description": "The path to a valid Opentrons shared schema relative to the shared-data directory, without its extension. For instance, #/module/schemas/3 is a reference to this schema."
+    },
+    "moduleType": {
+      "enum": [
+        "temperatureModuleType",
+        "magneticModuleType",
+        "thermocyclerModuleType",
+        "heaterShakerModuleType",
+        "magneticBlockType"
+      ],
+      "type": "string"
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^(temperatureModule|magneticModule|thermocyclerModule|heaterShakerModule|magneticBlock)V[0-9]+$"
+    },
+    "labwareOffset": { "$ref": "#/definitions/coordinates" },
+    "dimensions": {
+      "type": "object",
+      "required": [
+        "bareOverallHeight",
+        "overLabwareHeight",
+        "xDimension",
+        "yDimension"
+      ],
+      "properties": {
+        "bareOverallHeight": { "type": "number" },
+        "overLabwareHeight": { "type": "number" },
+        "lidHeight": { "type": "number" },
+        "xDimension": { "type": "number" },
+        "yDimension": { "type": "number" },
+        "footprintXDimension": { "type": "number" },
+        "footprintYDimension": { "type": "number" },
+        "labwareInterfaceXDimension": { "type": "number" },
+        "labwareInterfaceYDimension": { "type": "number" }
+      }
+    },
+    "cornerOffsetFromSlot": {
+      "$ref": "#/definitions/coordinates",
+      "description": "Position of left-front-bottom corner of entire module chassis to slot footprint origin (left-front-bottom)"
+    },
+    "calibrationPoint": {
+      "$ref": "#/definitions/coordinates",
+      "description": "A point on the module's interaction plane (where labware is placed) used for calibrating the module. Slated for future use (as of 2022-05-20)."
+    },
+    "config": {
+      "type": "object",
+      "description": "Module's hardware-defined constraints",
+      "properties": {
+        "minPlateTemperature": { "type": "number" },
+        "maxPlateTemperature": { "type": "number" },
+        "minShakeSpeed": { "type": "number" },
+        "maxShakeSpeed": { "type": "number" },
+        "maxEngageHeight": { "type": "number" },
+        "minTemperature": { "type": "number" },
+        "maxTemperature": { "type": "number" },
+        "minBlockTemperature": { "type": "number" },
+        "maxBlockTemperature": { "type": "number" },
+        "minLidTemperature": { "type": "number" },
+        "maxLidTemperature": { "type": "number" },
+        "minBlockVolume": { "type": "number" },
+        "maxBlockVolume": { "type": "number" }
+      }
+    },
+    "gripperOffsets": {
+      "type": "object",
+      "description": "Offsets to be added when calculating the coordinates a gripper should go to when picking up or dropping a labware on a module.",
+      "properties": {
+        "default": {
+          "type": "object",
+          "properties": {
+            "pickUpOffset": {
+              "$ref": "#/definitions/coordinates",
+              "description": "Offset added to calculate pick-up coordinates of a labware placed on this module."
+            },
+            "dropOffset": {
+              "$ref": "#/definitions/coordinates",
+              "description": "Offset added to calculate drop coordinates of a labware placed on this module."
+            }
+          },
+          "required": ["pickUpOffset", "dropOffset"]
+        }
+      },
+      "required": ["default"]
+    },
+    "displayName": { "type": "string" },
+    "quirks": {
+      "type": "array",
+      "description": "List of quirks for a given module",
+      "items": {
+        "type": "string"
+      }
+    },
+    "slotTransforms": {
+      "type": "object",
+      "description": "Per-deckmap sets of per-slot transforms, properties should be ids of decks such as \"ot2_standard\". Transforms for a deck not explicitly listed are the identity.",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "patternProperties:": {
+            "^([1-9]|10|11)$": {
+              "type": "object",
+              "description": "Holds 2-D affine transforms that should be applied to top level keys plus the special property $image for applying to images images. If any top level key has no corresponding entry, it is an identity transform. If the transform applies to an entity specifying a 3D position, it should be applied only to the x and y.",
+              "patternProperties": {
+                ".*": {
+                  "type": "object",
+                  "description": "The keys identify transforms that apply to different sections of the module definition. Most will be top level keys of the module def (for instance, \"labwareOffset\") but there may also be additional meta keys for values that are not in the def",
+                  "patternProperties": {
+                    ".*": { "$ref": "#/definitions/affineTransform" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "compatibleWith": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "A compatible module model (e.g. temperatureModuleV1)"
+      }
+    },
+    "twoDimensionalRendering": {
+      "type": "object",
+      "description": "SVG rendering of the module represented as svgson",
+      "items": { "$ref": "#/definitions/svgsonNode" }
+    }
+  }
+}
