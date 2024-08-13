@@ -1,5 +1,0 @@
-
-A deck conflict check occurs when preparing to run a Python protocol on a Flex running robot system version 7.1.0 or higher. The Opentrons App and touchscreen will prevent you from starting the protocol run until any conflicts are resolved. You can resolve them one of two ways:
-
-- Physically move hardware around the deck, and update the deck configuration.
-- Alter your protocol to work with the current deck configuration, and resend the protocol to your Flex.

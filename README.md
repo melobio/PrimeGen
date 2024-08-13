@@ -29,9 +29,6 @@ The versions listed are all versions used during development. It may be okay to 
 
 
 
-
-
-
 ### 2. deploy
 
 ### 2.1 nginx config
@@ -92,31 +89,27 @@ password: admin
 
 #### 4.Conversation flow example
 
-4.1 Experiment of Protein Mutation Analysis of Luciferase
+4.1 The dialog example for protein mutation analysis.
 
-user: I want to do a PCR experiment for luciferase protein mutation detection.
+![alt text](./docs/protein_mutation_analysis.jpg)
 
-![alt text](./docs/1.jpg)
+4.2 The dialog example for pathogen detection.
 
-user: i have no gene name
+![alt text](./docs/pathogen_detection.jpg)
 
-![alt text](./docs/2.jpg)
+4.3 The dialog example for genetic disorder.
 
-user choose the gene he wants(I have submitted)
+![alt text](./docs/genetic_disorder.jpg)
 
-![alt text](./docs/3.jpg)
+4.4 The dialog example for SNP with reference.
 
-user upload plasmid-modified files (I have submitted)
+![alt text](./docs/SNP_with_reference.jpg)
 
-![alt text](./docs/4.jpg)
+4.5 The dialog example for cancer target.
 
-user: yes ，start primer design
-...
-user: all params use default value
-...
-user: ok,yes
+![alt text](./docs/cancer_drug_target.jpg)
 
-![alt text](./docs/5.jpg)
+
 
 #### 5.Fault detection of OT-2
 

@@ -1,0 +1,21 @@
+代码块名称：MGIEasy_RNA方向性_RNA片段化_2
+
+描述：进行RNA片段化实验
+
+所需溶液：
+    (1)RNA_samples：用于富集处理的总RNA样品
+    (2)RT_Master_Mix：将RNA进反转录的溶液，由4μL RT buffer1，1μL RT buffer2和1μL RT Enzyme Mix混合组成，每个样本需要6μL。
+    (3)Fragment_buffer：将富集后RNA进行片段化的缓冲液，每个样本需要4μL。
+    (4)Second_strand_Master_Mix：用于生成cDNA的第二链并进行末端修复，由26μL Second Strand Buffer和4μL Second Strand  Enzyme Mix混合组成，每个样本需要30μL。
+
+版位布局：
+    (1)将20μL吸头架放在2,6号槽位上,300μL吸头架放在1号槽位上。
+    (2)把温控模块放在3号槽位，在温控模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (3)把热循环模块放在7号槽位，在温热循环模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (4)使用P300多通道移液器，装在右侧，并使用1号槽位的吸头架。
+    (5)使用P20多通道移液器，装在左侧，并使用2，6号槽位的吸头架。
+液体加载：    
+    (1)将RNA_samples溶液放在热循环模块的PCR孔板中，孔数与样本数相等，每孔10μL。
+    (2)将Fragment_buffer溶液放在温控模块的PCR孔板的前8个孔位（A1到H1）。
+    (3)将RT_Master_Mix溶液放在温控模块的PCR孔板的第二列。
+    (4)将Second_strand_Master_Mix溶液放在温控模块的PCR孔板的第三列，样本数超过48，则放在第三四列。

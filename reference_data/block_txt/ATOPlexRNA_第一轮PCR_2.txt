@@ -1,0 +1,20 @@
+代码块名称：ATOPlexRNA_第一轮PCR
+
+描述：进行第一轮PCR实验
+
+所需溶液：
+    (1)DNA_samples：样本DNA溶液,每个样本需要10μL。
+    (2)1st_PCR_mix：由12.5μL PCR Enzyme Mix，0.5μL PCR Clean Enzyme和2μL Custom Panel PCR Primer Pool混合而成，每个样本需要15μL。
+
+版位布局：
+    (1)将20μL吸头架放在2号，4号槽位。
+    (2)把温控模块放在3号槽位，在温控模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (3)把一个200μL的Bio-Rad 96孔PCR板放在1号槽位。
+    (4)把热循环仪模块放在7，8，10，11号槽位，在热循环仪模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (5)使用P20多通道移液器，装在左侧，并使用2号和4号槽位的吸头架。
+
+液体加载：    
+    (1)将DNA_samples溶液放在1号槽位的PCR孔板中，孔数与样本数相等，每孔20μL。
+    (2)将1st_PCR_mix溶液放在温控模块中96孔PCR板的前8个孔位（A1到H1）。
+
+

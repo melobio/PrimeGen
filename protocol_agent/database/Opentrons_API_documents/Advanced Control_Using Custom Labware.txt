@@ -1,3 +1,0 @@
-
-If you have custom labware definitions you want to use with Jupyter, make a new directory called `labware` in Jupyter and put the definitions there. These definitions will be available when you call [`load_labware()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.ProtocolContext.load_labware).
-

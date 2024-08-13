@@ -1,0 +1,26 @@
+代码块名称：游离DNA_PCR扩增
+
+描述：进行PCR扩增实验
+
+所需溶液：
+    (1)DNA_samples：样本DNA溶液。
+    (2)Cell_lysis_master_mix溶液：由4.8μL Cell Lysis Buffer和0.2μL Cell Lyase混合而成，每个样本需要5μL。
+    (3)Pre_PCR_master_mix溶液：由4.8μL Pre-amplification Buffer和0.2μL Pre-amplification Enzyme混合而成，每个样本需要5μL。
+    (4)Post_PCR_master_mix溶液：由25μL Post-amplification Buffer和0.8μL Post-amplification Enzyme混合而成，每个样本需要25.8μL。
+    (5)Nuclease_free_water溶液：无核酸酶水，每个样本需要34.2μL。
+
+版位布局：
+    (1)将20μL吸头架放在1号和2号槽位，300μL吸头架放在4号和5号槽位。
+    (2)把温控模块放在3号槽位，在温控模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (3)把热循环模块放在7，8，10，11号槽位，在热循环模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (4)使用P300多通道移液器，装在右侧，并使用4号和5号槽位的吸头架。
+    (5)使用P20多通道移液器，装在左侧，并使用1号和2号槽位的吸头架。
+    
+液体加载：    
+    (1)将DNA_samples溶液放在热循环模块的PCR孔板中，孔数与样本数相等，每孔4μL。
+    (2)将Cell_lysis_master_mix溶液放在温控模块中96孔PCR板的前8个孔位（A1到H1）。
+    (3)将Pre_PCR_master_mix溶液放在温控模块中96孔PCR板的第2列（A2到H2）。
+    (4)将Post_PCR_master_mix溶液放在温控模块中96孔PCR板的第3列，样本数超过48，溶液放在第3，4列 。
+    (5)将Nuclease_free_water溶液放在温控模块中96孔PCR板的第5，6，7列。
+
+

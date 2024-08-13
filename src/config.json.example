@@ -1,0 +1,7 @@
+{
+    "LOG_PATH": "../logs",
+    "OPENAI_API_TYPE": "",
+    "OPENAI_API_BASE": "",
+    "OPENAI_API_VERSION": "",
+    "OPENAI_API_KEY": "",
+}

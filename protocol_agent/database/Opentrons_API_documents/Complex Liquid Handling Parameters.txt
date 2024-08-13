@@ -1,9 +1,0 @@
-
-Complex commands accept a number of optional parameters that give you greater control over the exact steps they perform.
-
-This page describes the accepted values and behavior of each parameter. The parameters are organized in the order that they first add a step. Some parameters, such as `touch_tip`, add multiple steps. See [Order of Operations](https://docs.opentrons.com/v2/complex_commands/order_operations.html#complex-command-order) for more details on the sequence of steps performed by complex commands.
-
-The API reference entry for [`InstrumentContext.transfer()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.InstrumentContext.transfer) also lists the parameters and has more information on their implementation as keyword arguments.
-
-
-

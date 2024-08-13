@@ -1,0 +1,19 @@
+代码块名称：MGIEasy_RNA方向性_末端修复
+
+描述：进行末修加A实验
+
+所需溶液：
+    (1)Purified_Second_strand_product：经过纯化后的cDNA产物。
+    (2)ERAT_mix：由7.1μL ERAT_Buffer和2.9μL ERAT_Enzyme_Mix混合而成，每个样本需要10μL。
+
+版位布局：
+    (1)将20μL吸头架放在2号槽位。
+    (2)把温控模块放在3号槽位，在温控模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (3)把热循环模块放在7，8，10，11号槽位，在热循环模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (4)使用P20多通道移液器，装在左侧，并使用4号槽位的吸头架。
+    
+液体加载：    
+    (1)将Purified_Second_strand_product溶液放在热循环模块的PCR孔板中，按列放置，孔数与样本数相等，每孔40μL。
+    (2)将ERAT_mix溶液放在温控模块中96孔PCR板的前8个孔位（A1到H1）。
+
+

@@ -1,0 +1,23 @@
+代码块名称：ATOPlexHIV_接头连接反应
+
+描述：进行接头连接反应
+
+所需溶液：
+    (1)Fast_Ligation_Master_Mix溶液：由23μL Fast Ligation Buffer, 5μL Ad Ligase和2μL Ligation Enhancer混合而成，每个样本需要30μL。
+    (2)Purified_enzymatic_fragmentation_product溶液：纯化后的溶液。
+    (3)UDB_adapter溶液：接头溶液，用于连接至DNA片段并做标签标记，每个样本需要5μL。
+    
+版位布局：
+    (1)将20μL吸头架放在6号槽位,300μL吸头架放在2号,4号和5号槽位。
+    (2)把温控模块放在3号槽位，在温控模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (3)把一个200μL的Bio-Rad 96孔PCR板放在1号槽位。
+    (4)把热循环仪模块放在7，8，10，11号槽位，在热循环仪模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (5)使用P20多通道移液器，装在左侧，并使用6号槽位的吸头架。
+    (6)使用P300多通道移液器，装在右侧，并使用2号,4号和5号槽位的吸头架。
+    
+液体加载：
+    (1)将Purified_enzymatic_fragmentation_product溶液放在热循环上的96孔PCR板中，按列放置，孔数与样本量相等，每孔45μL。
+    (2)将UDB_adapter溶液放在1号槽位的PCR孔板中，按列放置，孔数与样本量相等，每孔30μL。
+    (3)将Fast_Ligation_Master_Mix溶液放在温控版位的前8个孔位（A1到H1）样本数超过48可将溶液放置在前两列。
+
+

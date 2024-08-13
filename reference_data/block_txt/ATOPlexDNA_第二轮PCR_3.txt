@@ -1,0 +1,22 @@
+代码块名称：ATOPlexDNA_第二轮PCR
+
+描述：进行第二轮PCR实验
+
+所需溶液：
+    (1)Purified_1st_PCR_product：第一轮PCR产物纯化后得到的溶液。
+    (2)2nd_PCR_mix：由12.5μL PCR Enzyme Mix，0.5μL PCR Clean Enzyme，0.5μL PCR Additive和1μLCustom Panel PCR Block混合而成，每个样本需要14.5μL。
+    (3)PCR_Barcode：PCR 引物标签，每个样本需要4μL。
+
+版位布局：
+    (1)将20μL吸头架放在2号，4号槽位。
+    (2)把温控模块放在3号槽位，在温控模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (3)把一个200μL的Bio-Rad 96孔PCR板放在1号槽位。
+    (4)把热循环模块放在7，8，10，11号槽位，在热循环模块上放一个200μL的Bio-Rad 96孔PCR板。
+    (5)使用P20多通道移液器，装在左侧，并使用2号和4号槽位的吸头架。
+    
+液体加载：
+    (1)将Purified_1st_PCR_product溶液放在热循环模块的96孔PCR孔板中，按列放置，孔数与样本数相等，每孔6.5μL。
+    (2)将PCR_Barcode溶液放在1号槽位的96孔PCR板中，按列放置，孔数与样本数相等，每孔30μL。
+    (3)将2nd_PCR_mix溶液放在温控模块中96孔PCR板的前8个孔位中（A1到H1）。
+
+
