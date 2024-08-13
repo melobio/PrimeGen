@@ -1,6 +1,0 @@
-
-Deactivating the heater and shaker are done separately using the [`deactivate_heater()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.HeaterShakerContext.deactivate_heater) and [`deactivate_shaker()`](https://docs.opentrons.com/v2/new_protocol_api.html#opentrons.protocol_api.HeaterShakerContext.deactivate_shaker) methods, respectively. There is no method to deactivate both simultaneously. Call the two methods in sequence if you need to stop both heating and shaking.
-
-> Note
->
-> The robot will not automatically deactivate the Heater-Shaker at the end of a protocol. If you need to deactivate the module after a protocol is completed or canceled, use the Heater-Shaker module controls on the device detail page in the Opentrons App or run these methods in Jupyter notebook.

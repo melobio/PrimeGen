@@ -1,7 +1,0 @@
-
-Labware are the durable or consumable items that you work with, reuse, or discard while running a protocol on a Flex or OT-2. Items such as pipette tips, well plates, tubes, and reservoirs are all examples of labware. This section provides a brief overview of default labware, custom labware, and how to use basic labware API methods when creating a protocol for your robot.
-
-> **Note:**
->
-> Code snippets use coordinate deck slot locations (e.g. `'D1'`, `'D2'`), like those found on Flex. If you have an OT-2 and are using API version 2.14 or earlier, replace the coordinate with its numeric OT-2 equivalent. For example, slot D1 on Flex corresponds to slot 1 on an OT-2. See [Deck Slots](https://docs.opentrons.com/v2/deck_slots.html#deck-slots) for more information.
-

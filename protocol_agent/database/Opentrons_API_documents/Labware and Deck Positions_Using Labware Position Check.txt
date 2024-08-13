@@ -1,7 +1,0 @@
-
-All positions relative to labware are adjusted automatically based on labware offset data. Calculate labware offsets by running Labware Position Check during protocol setup, either in the Opentrons App or on the Flex touchscreen. Version 6.0.0 and later of the robot software can apply previously calculated offsets on the same robot for the same labware type and deck slot, even across different protocols.
-
-You should only adjust labware offsets in your Python code if you plan to run your protocol in Jupyter Notebook or from the command line. See [Setting Labware Offsets](https://docs.opentrons.com/v2/new_advanced_running.html#using-lpc) in the Advanced Control article for information.
-
-
-

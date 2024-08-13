@@ -1,9 +1,0 @@
-
-**New to Python protocols?** Check out the [Tutorial](https://docs.opentrons.com/v2/tutorial.html#tutorial) to learn about the different parts of a protocol file and build a working protocol from scratch.
-
-If you want to **dive right into code**, take a look at our [Protocol Examples](https://docs.opentrons.com/v2/new_examples.html#new-examples) and the comprehensive [API Version 2 Reference](https://docs.opentrons.com/v2/new_protocol_api.html#protocol-api-reference).
-
-When you’re ready to **try out a protocol**, download the [Opentrons App](https://www.opentrons.com/ot-app), import the protocol file, and run it on your robot.
-
-
-
