@@ -90,9 +90,7 @@ password: admin
 #### 4.Conversation flow example
 
 Profile picture:
-Pink: controller
-Blue: The Search Agent
-White: The Primer Agent
+Pink: controller; Blue: The Search Agent; White: The Primer Agent;
 The user is on the right.
 
 4.1 The dialog example for protein mutation analysis.
