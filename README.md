@@ -51,7 +51,7 @@ make local_data_up
 ```bash
 make local_client
 ```  
-![ Frontend-Console ](frontend-console.png)
+![alt text](frontend-console.png)
 
 4. Start backend service   
 ```bash
