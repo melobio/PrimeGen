@@ -51,7 +51,7 @@ make local_data_up
 ```bash
 make local_client
 ```  
-![alt text](frontend-console.png)
+![alt text](./docs/frontend-console.png)
 
 4. Start backend service   
 ```bash
@@ -107,14 +107,14 @@ password: admin
 
 
 ### 2. Conversation flow example video of Search Agent
-More process instructions can be found in the './example'
+More process instructions can be found in the dir  './example'
 
 
 ![alt text](./docs/search.gif)
 
 
 ### 3. Conversation flow example video of Primer Agent
-More process instructions can be found in the './example'
+More process instructions can be found in the dir './example'
 
 
 ![alt text](./docs/primer.gif)
@@ -122,6 +122,8 @@ More process instructions can be found in the './example'
 
 
 ### 4. Conversation flow example video of Protocol Agent
+More process instructions can be found in the dir './example'
+
 
 ![alt text](./docs/protocol.gif)
 
