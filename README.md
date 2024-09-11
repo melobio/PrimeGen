@@ -1,7 +1,65 @@
 # PrimeGen
 This repository contains code and tutorials for Multiplex  PCR experiment from MGI-X.
 
-## 1. Requirement
+
+## Installation
+
+### Environments
+
+1. Copy example environment file `.env.example` to `.env`  
+```bash
+cp .env.example .env
+```
+
+2. Change environment variable as you need. 
+  - DATA: set `DATA_PATH` which used to store the project files, include static, db files and upload files.
+  - IMAGE: mysql and redis use official image from docker hub. mgi-x/x-pcr:latest and mgi-x/x-search:latest is used for build.
+  - MYSQL: Database setting, storage information for chat message and conversation, user ect.
+  - REDIS: Redis setting, store the steps and info during the chat.
+  - JWT: Set the random secret for frontend.
+  - **OPENAI_API**: Currently use azure openai deployment, set up `OPENAI_API_BASE`, `OPENAI_API_KEY`, `OPENAI_API_ENGINE` to use LLM. *Necessary*, Cannot use if these parameters not setup.
+  - GOOGLE_SEARCH_API: Use google API to search web api, ignore if these parameters are not set.
+  - XPCR_FILES: Static file path to route.
+  - PROXY: Use proxy if cannot connect openai server
+  - NCBI/PRIMER/PROTOCOL: Agent url, default is xsearch application
+  - CODE EXECUTION: OT2 server to control the machine.
+  - AZURE WHISPER: Voice to text server
+
+### Docker(Recommended)
+
+1. Build docker image  
+```bash
+make build
+```
+2. After setting the environment file, Run command  
+```bash
+docker compose up
+```
+
+### Local Run
+
+1. Install modules
+
+`make install` which actually is `yarn Install`
+
+
+2. Start Mysql and Redis services, use local or start docker container  
+```bash
+make local_data_up
+```
+3. Start frontend service  
+```bash
+make local_client
+```  
+![ Frontend-Console ](frontend-console.png)
+
+4. Start backend service   
+```bash
+make local_server 
+ ```
+
+5. Install python requirements and Start agent service   
+5.1 Requirement
 
 - `docker` >= 23.0.5
 - `docker-compose` >= 2.17.3
@@ -12,71 +70,32 @@ This repository contains code and tutorials for Multiplex  PCR experiment from M
 - `nginx` >= 1.18.0 (Ubuntu)
 
 The versions listed are all versions used during development. It may be okay to be lower than this version, but it has not been verified
-
-
-### 2. primer design demo
-
-
-### 2.1 design primer for protein mutation experiment
-
-    python /code/x-multiplex-pcr/seq_search/src/plasmid.py --fasta_path /data/protein_data/Luc.fa  --out_path /data/output/ --gene_name Luc
-### 2.2 design primer for pathogen analysis experiment
-
-    python /code/x-multiplex-pcr/seq_search/src/MTB_primer_design.py --fasta_path /data/protein_data/MTB.fa --snp_path /data/protein_data/MTB_target_snp.csv  --out_path /data/output/ --gene_name MTB
-
-
-
-
-
-
-### 2. deploy
-
-### 2.1 nginx config
-```
-server {
-        listen 4433;
-        server_name 172.16.47.11;
-		location / {
-			proxy_pass http://127.0.0.1:3001/;
-					proxy_connect_timeout 300s;
-					proxy_send_timeout 300s;
-					proxy_read_timeout 300s;
-		}	
-
-		location /search/ {
-			proxy_pass http://127.0.0.1:8082/;
-			proxy_connect_timeout 300s;
-			proxy_send_timeout 300s;
-			proxy_read_timeout 300s;
-		}	
-}
-
-```
-
-#### 2.2. build
-
 ```bash
-make build
-```
+pip install -r seq_search/requirements.text
+``` 
 
-#### 2.3. start
-
+5.2 Start agent service
 ```bash
-sudo bash run.sh
+python seq_search/src/app_dev.py
 ```
 
-if you want stop project, you can run:
-```bash
-sudo bash stop.sh
-```
+## primer design demo
+
+### 1 design primer for protein mutation experiment
+
+    python /code/src/plasmid.py --fasta_path /data/protein_data/Luc.fa  --out_path /results/ --gene_name Luc --min_amp_len 210 --max_amp_len 270 --temperature 60 --min_GC 40 --max_GC 60 --max_len 23 --start_pos 100 --end_pos 1200 
 
 
-#### 3. visit
+
+
+##deploy
+
+### 1. visit
 
 ```
 web: http://localhost:4433
 ```
-#### 3.1 Login 
+#### 1.1 Login 
 Login account:
 
 ```
@@ -85,43 +104,35 @@ password: admin
 ```
 ![alt text](./docs/login.jpg)
 
-#### 
 
-#### 4.Conversation flow example
 
-Profile picture:
-Pink: controller; Blue: The Search Agent; White: The Primer Agent;
-The user is on the right.
+### 2. Conversation flow example video of Search Agent
+More process instructions can be found in the './example'
 
-4.1 The dialog example for protein mutation analysis.
 
-![alt text](./docs/protein_mutation_analysis.jpg)
+![alt text](./docs/search.gif)
 
-4.2 The dialog example for pathogen detection.
 
-![alt text](./docs/pathogen_detection.jpg)
+### 3. Conversation flow example video of Primer Agent
+More process instructions can be found in the './example'
 
-4.3 The dialog example for genetic disorder.
 
-![alt text](./docs/genetic_disorder.jpg)
-
-4.4 The dialog example for SNP with reference.
-
-![alt text](./docs/SNP_with_reference.jpg)
-
-4.5 The dialog example for cancer target.
-
-![alt text](./docs/cancer_drug_target.jpg)
+![alt text](./docs/primer.gif)
 
 
 
-#### 5.Fault detection of OT-2
+### 4. Conversation flow example video of Protocol Agent
+
+![alt text](./docs/protocol.gif)
 
 
-![alt text](./docs/check_1.jpg)
+
+### 5. The generated code running on OT-2 machine
+
+![alt text](./docs/anomaly.gif)
 
 
-![alt text](./docs/check_2.jpg)
+
 
 
 
