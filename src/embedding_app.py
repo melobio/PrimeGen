@@ -12,10 +12,14 @@ import openai
 import json
 import traceback
 import os
+
+from llm_utils.utils import get_llm_chat_completion
+
+
 class Retrieval_():
     def __init__(self, embedding_path, reranking_path, txt_library_path, vector_library_path):
         self.LoadEmbeddingModel(embedding_path)
-        self.LoadRerankingModel(reranking_path)
+        # self.LoadRerankingModel(reranking_path)
         self.LoadingVectorBase(txt_library_path, vector_library_path)
 
     # 加载Embedding模型
@@ -25,10 +29,10 @@ class Retrieval_():
         self.EM_model = BGEM3FlagModel(embedding_path)
     
     # 加载Rerank模型
-    def LoadRerankingModel(self, reranking_path):
-        #暂时只支持bge-m3模型
-        from FlagEmbedding import FlagReranker
-        self.reranker_model = FlagReranker(reranking_path)
+    # def LoadRerankingModel(self, reranking_path):
+    #     #暂时只支持bge-m3模型
+    #     from FlagEmbedding import FlagReranker
+    #     self.reranker_model = FlagReranker(reranking_path)
     
     # 定义加载向量和文本
     def LoadingVectorBase(self, txt_library_path, vector_library_path):
@@ -82,18 +86,23 @@ class Retrieval_():
         print("Embedding耗时：",time.time()-start_time)
         
         return embedding_results
-
+#         #再进行Rerank排序
+#         start_time=time.time()
+#         reranked_results = self.ComputeRerankScore(query, top_r)
+#         print('reranked_results',reranked_results)
+#         print("Reranking耗时：",time.time()-start_time)
+#         return reranked_results
     def retrieval_pipeline2(self, query, top_k=50, top_r=10, score_threshold=0.5):
         #先进行Embedding检索
         start_time=time.time()
         embedding_results = self.ComputeEmbeddingSimilarityScore(query, top_k, score_threshold)
 #         print('embedding_results',embedding_results)
-#         print("Embedding耗时：",time.time()-start_time)
+        print("Embedding耗时：",time.time()-start_time)
 #         #再进行Rerank排序
         start_time=time.time()
         reranked_results = self.ComputeRerankScore(query, top_r)
-        # print('reranked_results',reranked_results)
-        # print("Reranking耗时：",time.time()-start_time)
+        print('reranked_results',reranked_results)
+        print("Reranking耗时：",time.time()-start_time)
         return reranked_results
 
 #定义入参解析格式
@@ -103,11 +112,29 @@ class Query(BaseModel):
     top_r: int
     score_threshold: float
 
+# # 全局变量存储模型和数据
+# retrieval_instance = None
+# # 启动服务先加载内容
+# @app.on_event("startup")
+# def load_models():
+#     global retrieval_instance
+#     # 预设定Embedding模型
+#     embedding_path = "./bge-m3"
+#     # 预设定Rerank模型
+#     reranking_path = "./bge-reranker-v2-m3/"
+#     # 文本地址
+#     txt_library_path = "./code_block_description.csv"#alil_txt_library.npy"
+#     # 向量地址
+#     vector_library_path = "./data/all_m3_vector_library.pickle"#all_m3_vector_library.pickle"
+    
+#     # 构建检索方法
+#     retrieval_instance = Retrieval_(embedding_path, reranking_path, txt_library_path, vector_library_path)
+
 if __name__=="__main__":
-    openai.api_type = ""
-    openai.api_base = ""
-    openai.api_version = ""
-    openai.api_key = ""
+    openai.api_type = "azure"
+    openai.api_base = "https://xmgi-chat8.openai.azure.com/"
+    openai.api_version = "2024-02-15-preview"
+    openai.api_key = "2d4b3509a9904372be2a75f45a12203f"
     
     parser = argparse.ArgumentParser(description='text embedding ')
     parser.add_argument("--query_file_path", type=str, help="input file")
@@ -116,15 +143,15 @@ if __name__=="__main__":
     
     
     # 预设定Embedding模型
-    embedding_path = "./bge-m3"
+    embedding_path = "/reference_data/bge-m3"
     # 预设定Rerank模型
-    reranking_path = "./bge-reranker-v2-m3/"
+    reranking_path = "/reference_data/bge-reranker-v2-m3/"
     # 文本地址
-    txt_library_path_1 = "./data/block_description_filter.csv"#alil_txt_library.npy"
-    txt_library_path_2 = "./data/block_name_description.csv"
+    txt_library_path_1 = "/reference_data/block_description_filter.csv"#alil_txt_library.npy"
+    txt_library_path_2 = "/reference_data/block_name_description.csv"
     # 向量地址
-    vector_library_path_1 = "./data/all_code_block_vector_library.pickle"#all_m3_vector_library.pickle"
-    vector_library_path_2 = "./data/all_name_vector_library.pickle"#all_m3_vector_library.pickle"
+    vector_library_path_1 = "/reference_data/all_code_block_vector_library.pickle"#all_m3_vector_library.pickle"
+    vector_library_path_2 = "/reference_data/all_name_vector_library.pickle"#all_m3_vector_library.pickle"
     # 构建检索方法
      
     retrieval_2 = Retrieval_(embedding_path, reranking_path, txt_library_path_2, vector_library_path_2)
@@ -142,7 +169,8 @@ if __name__=="__main__":
         if '(' in nn:
             nn = nn.split('(')[0]
         temp_res = retrieval_2.retrieval_pipeline(nn, 10, 10, 0.1)
-
+        print('nn',nn)
+        print('temp_res',temp_res)
         temp_list =[]
         temp_n =[]
         temp_dict_list = []
@@ -164,6 +192,8 @@ if __name__=="__main__":
         query_dict['描述'] = text_list[ii]
         target_dict_list = dict_list[ii]
         txt_file = 'query字典为：'+str(query_dict)+'  target字典库为: '+', '.join([str(d) for d in target_dict_list])
+        print('query字典',query_dict)
+        print('target字典库',target_dict_list)
 
         #通过GPT4来选择描述最相近的代码块
         experiment_type_prompt = (f"""
@@ -171,6 +201,9 @@ if __name__=="__main__":
         名称是同类型的判断标准为："连接产物纯化"与"连接产物纯化2"是同类型的，另外打断后磁珠双选和打断产物纯化是同类型,多重扩增产物纯化和PCR产物纯化是同类型，打断末端修复与酶切打断是同类型。
         描述最相近的的判断标准为：
         1. 所配置的反应液要是同一种；
+        2. 移液的次数和所使用到的溶液数量要相同，DNA Clean Beads与En-Beads是同一种溶液，En-TE与TE Buffer是同一种溶液；
+        3. 当名称是接头连接反应时，如果在他的描述中，吸取接头连接反应液之后没有再加入TE_buffer ，则他是与接头连接反应2相同； 
+        4.当名称是连接产物纯化时,如果在他的描述中，出现了两次加入160μL 80%乙醇则他是与连接产物纯化2相同；
        
         以下是一个具体的例子：
         query字典为 {{"名称": "接头连接反应", "描述": "在冰上配制接头连接反应混合液：24μL Ligation Buffer Mix和1μL Ligation Enzyme。在末端修复产物的PCR管中加入5μL对应的Adapters Mix，涡旋震荡3次，每次3秒，瞬时离心。用移液器缓慢吸取25μL配制好的接头连接反应混合液加入样本管中，涡旋震荡6次，每次3秒，瞬时离心。将PCR管置于PCR仪上，按照以下条件进行反应：23℃ 20 min，4℃ Hold。"}}
@@ -184,24 +217,26 @@ if __name__=="__main__":
             "描述": "首先，将UDB Adapters和Fast Ligation Buffer从储存中取出至常温，使其解冻后充分涡旋。彻底摇动Ad Ligase 5-10次以混合均匀，瞬间离心后放置于低温环境。在冷环境中根据需求配制接头连接反应液：混合Fast Ligation Buffer 23μL、Ad Ligase 5μL和Ligation Enhancer 2μL至总体积30μL。先于PCR管中加入5μL UDB Adapters，随后缓慢注入30μL预配的反应液，六次涡旋，每次3秒，快速离心后集中管底液体。置于PCR仪进行设定的反应程序：在25℃下反应10分钟，之后保持在4℃。"
         }}
         """)
-        experiment_info_response = openai.ChatCompletion.create(
-           messages=[{"role": "system", "content": experiment_type_prompt},
-                     {"role": "user", "content": txt_file}
-                     ],response_format={"type": "json_object"},temperature=0.2,
-           deployment_id="gpt-4o"
+        experiment_info_response = get_llm_chat_completion(
+            messages=[
+                {"role": "system", "content": experiment_type_prompt},
+                {"role": "user", "content": txt_file}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.2,
         )
+        
+
+
+        print('experiment_info_response', experiment_info_response.choices[0].message.content)
         # experiment_process = json.load(experiment_info_response['choices'][0]['message']['content'])
-        experiment_process = experiment_info_response['choices'][0]['message']['content']
-        experiment_process = json.loads(experiment_process)
-        find_name_list.append(experiment_process['名称'])
+        experiment_process = experiment_info_response.choices[0].message.content
+        if experiment_process:
+            experiment_process = json.loads(experiment_process)
+            find_name_list.append(experiment_process['名称'])
 
 
     max_name_list = [list(df_all['code_block'])[list(df_all['new_name']).index(na)]for na in find_name_list]    
-
+    print('max_name_list',max_name_list)
     query_df.insert(1,'code_block',max_name_list)
     query_df.to_csv(query_file_path,index=False)
-    
-    
-    
-
-

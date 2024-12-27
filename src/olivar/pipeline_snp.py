@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+
 '''
 Main workflow of Olivar tiling.
 Architecture:
@@ -15,6 +17,9 @@ main.py
     visualize()
     validate()
 '''
+
+
+__author__ = 'Michael X. Wang'
 
 
 import os
@@ -197,6 +202,7 @@ def generate_context(SOI):
         clu = snp_clu(var_ar)  # snp cluster
         print("handling snps")
 
+
     all_context_seq = [] # coordinates of all context sequences
     all_risk = []
     clu_mun = 1
@@ -205,6 +211,8 @@ def generate_context(SOI):
         start = sub_clu[0]
         stop = sub_clu[-1]
         # cellecting context seq according to snp clustering result
+
+
         # generate the first pair of primer design region
         fp_start, fp_stop, fp_risk = find_min_loc(risk_arr, start, start+3*PRIMER_DESIGN_LEN-1, rng)
         rp_stop, rp_start, rp_risk = find_min_loc(risk_arr, fp_start+min_amp_len-PRIMER_DESIGN_LEN, fp_start+max_amp_len-1, rng)
@@ -327,6 +335,16 @@ def design_context_seq(config):
     #N = 500*len(risk_arr)//max_amp_len # number of primer sets to generate
     N = 100
     rand_int = rng_parent.integers(2**32, size=N) # random seeds for each iteration
+
+    # single thread
+    # design = [generate_context((risk_arr, start, stop, max_amp_len, min_amp_len, rand_int[i])) for i in tqdm(range(N))]
+
+    # multi threads
+    print('reference sequence length: %d' % len(seq_raw))
+    print('design region: %d:%d' % (start, stop))
+    print('region length: %d' % (stop-start+1))
+    print('number of iterations: %d' % N)
+    print('designing context sequences...')
     tik = time()
     with multiprocessing.Pool(processes=n_cpu) as pool:
         batch = [(start, stop, risk_arr, max_amp_len, min_amp_len, var_arr, rand_int[i]) for i in range(N)] #start, stop,
@@ -350,6 +368,12 @@ def design_context_seq(config):
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
     print('PDR optimization figure saved as %s' % save_path)
+
+    # plt.hist(all_risk.flatten(), log=True)
+    # #plt.xlim(right=32)
+    # plt.xlabel('Risk of primer design regions', size=12)
+    # plt.ylabel('# primer design regions', size=12)
+    # plt.show()
     
     # prepare output
     all_plex_info = {}
@@ -372,6 +396,8 @@ def design_context_seq(config):
     #print('total amplicons: %d' % (len(all_risk) + 1))
     cover_start = all_context_seq[0][1]+1
     cover_stop = all_context_seq[-1][2]-1
+    print('covered region: %d:%d' % (cover_start, cover_stop))
+    print('coverage of reference sequence: %.3f%%' % (100*(cover_stop-cover_start+1)/len(seq_raw)))
     #return seq_raw, risk_arr, all_context_seq, all_risk, all_plex_info
     return all_plex_info, risk_arr, gc_arr, comp_arr, hits_arr, var_arr, all_loss, seq_raw
 
@@ -454,6 +480,9 @@ def get_primer(all_plex_info, config):
             rP, fail = rP_generator.get(rP_design, rP_prefix, check_BLAST=check_BLAST, **rP_setting)
         plex_info['rP_candidate'] = rP
         plex_info['rP_setting'] = rP_setting
+        
+    # with open('all_plex_info_primer.pkl', 'wb') as f:
+    #     pickle.dump(all_plex_info, f)
     print('Done\n')
     return all_plex_info
 
@@ -479,7 +508,12 @@ def optimize(all_plex_info, config):
     NUMSTEPS = 10 + int(pool_size/10)
     ZEROSTEPS = NUMSTEPS
     TimePerStep = 1000
+    # InitSATemp = config['InitSATemp']
+    # NUMSTEPS = config['NumSteps']
+    # ZEROSTEPS = config['ZeroSteps']
+    # TimePerStep = config['TimePerStep']
 
+    # generate primer pair candidates (fP-rP)
     n_pair = []
     for plex_id, plex_info in all_plex_info.items():
         optimize = []
@@ -493,6 +527,8 @@ def optimize(all_plex_info, config):
                 optimize.append([fp, rp])
         plex_info['optimize'] = optimize
         n_pair.append(len(optimize))
+    print('total primer pairs %d' % sum(n_pair))
+    print('average pairs per plex %.2f' % (sum(n_pair)/len(n_pair)))
     
     # optimize each tube
     all_lc = []
@@ -694,6 +730,11 @@ def save(all_plex_info, config):
         fp_bad[tube-1].append(plex_info['fP_badness'])
         rp_bad[tube-1].append(plex_info['rP_badness'])
 
+        # fp_blast[tube-1].append(curr_fp['BLAST_hits'])
+        # rp_blast[tube-1].append(curr_rp['BLAST_hits'])
+
+        # amplicon_blast[tube-1].append(plex_info['BLAST_count'])
+
     # save to file
     df = []
     for n in range(n_tube):
@@ -715,7 +756,10 @@ def save(all_plex_info, config):
             # 'rP_BLAST': rp_blast[n], 
             # 'amplicon_BLAST': amplicon_blast[n]
         }))
-
+    # with pd.ExcelWriter(os.path.join(config['out_path'], '%s.xlsx' % config['title'])) as writer:
+    #     for n, d in enumerate(df):
+    #         d.to_excel(writer, sheet_name='pool_%d' % (n+1), index=True)
+    # print('Primers output to %s.xlsx' % config['title'])
     for n, d in enumerate(df):
         save_path = os.path.join(config['out_path'], '%s_pool-%d.csv' % (config['title'], n+1))
         d.to_csv(save_path, index=False)

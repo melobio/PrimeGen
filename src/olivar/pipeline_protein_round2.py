@@ -180,6 +180,12 @@ def find_min_loc(risk_arr, start, stop, rng):
         k = int(len(loc)*CHOICE_RATE)
         if k == 0:
             k = 1
+        # idx_k_lowest_0 = np.where(np.array(score)<25)[0]  # np.where(np.array(score)==0)[0] 30
+        # idx_k_lowest_k = np.argpartition(score, k)[:k]
+        # if len(idx_k_lowest_0) > len(idx_k_lowest_k):
+        #     idx_k_lowest = idx_k_lowest_0
+        # else:
+        #     idx_k_lowest = idx_k_lowest_k
 
         idx_k_lowest = np.argpartition(score, k)[:k]   # better for mtb
 
@@ -213,10 +219,16 @@ def generate_context(SOI):
     clu_mun = 1
     # cellecting context seq according to snp clustering result
     for sub_clu in clu:
+        # mtb task
+        # start = sub_clu[0] - 3 * PRIMER_DESIGN_LEN
+        # stop = sub_clu[-1] + 2 * PRIMER_DESIGN_LEN
 
         # protein task
         start = sub_clu[0]
         stop = sub_clu[-1]
+        # cellecting context seq according to snp clustering result
+
+
         # generate the first pair of primer design region
         fp_start, fp_stop, fp_risk = find_min_loc(risk_arr, start, start+3*PRIMER_DESIGN_LEN-1, rng)
         rp_stop, rp_start, rp_risk = find_min_loc(risk_arr, fp_start+min_amp_len-PRIMER_DESIGN_LEN, fp_start+max_amp_len-1, rng)
@@ -393,6 +405,12 @@ def design_context_seq(config, exclude_d):
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
     print('PDR optimization figure saved as %s' % save_path)
+
+    # plt.hist(all_risk.flatten(), log=True)
+    # #plt.xlim(right=32)
+    # plt.xlabel('Risk of primer design regions', size=12)
+    # plt.ylabel('# primer design regions', size=12)
+    # plt.show()
     
     # prepare output
     all_plex_info = {}
@@ -532,6 +550,11 @@ def optimize(all_plex_info, config, species_candidates):
     NUMSTEPS = 10 + int(pool_size/10)
     ZEROSTEPS = NUMSTEPS
     TimePerStep = 1000
+    # InitSATemp = config['InitSATemp']
+    # NUMSTEPS = config['NumSteps']
+    # ZEROSTEPS = config['ZeroSteps']
+    # TimePerStep = config['TimePerStep']
+
     # species name list
     species_name_list = list(species_candidates.keys())
     # species name list
@@ -749,7 +772,12 @@ def save(all_plex_info, config, species_candidates):
 
     # amplicon BLAST result
     amplicon_blast = [[] for _ in range(n_tube)]
+
+    # assign plexes to tubes and fill out informations
+    #print('amplicons containing SNPs or iSNVs in primers:')
+
     species_name_list = list(species_candidates.keys())
+
     for plex_id, plex_info in all_plex_info.items():
         # for species
         if plex_id not in species_name_list:
@@ -768,6 +796,9 @@ def save(all_plex_info, config, species_candidates):
 
         curr_fp_seq = curr_fp['seq'][l_fP_adp:]
         curr_rp_seq = curr_rp['seq'][l_rP_adp:]
+        # if curr_fp_seq != curr_fp_seq.lower() or curr_rp_seq != curr_rp_seq.lower():
+        #     print(plex_id)
+
         fp[tube-1].append(curr_fp['seq'][l_fP_adp:])
         rp[tube-1].append(curr_rp['seq'][l_rP_adp:])
 
@@ -797,6 +828,15 @@ def save(all_plex_info, config, species_candidates):
 
         fp_full[tube-1].append(curr_fp['seq'])
         rp_full[tube-1].append(curr_rp['seq'])
+
+        # fp_bad[tube-1].append(plex_info['fP_badness'])
+        # rp_bad[tube-1].append(plex_info['rP_badness'])
+
+        # fp_blast[tube-1].append(curr_fp['BLAST_hits'])
+        # rp_blast[tube-1].append(curr_rp['BLAST_hits'])
+
+        # amplicon_blast[tube-1].append(plex_info['BLAST_count'])
+
     # save to file
     df = []
     for n in range(n_tube):

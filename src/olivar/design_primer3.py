@@ -11,6 +11,10 @@ design.py
     PrimerSetBadnessFast()
 '''
 
+
+__author__ = 'Michael X. Wang'
+
+
 import os
 CURRENT_DIR = os.path.dirname(__file__)
 

@@ -5,12 +5,14 @@ import os
 from Bio import Entrez
 import json
 import re
+import traceback
 
 def download_files(instruction,stage):
     download_system_prompt = ''
     if stage == 1:
         stage += 1
         protein_name = instruction
+        print('name', protein_name)
         protein_info, data_list = search_uniprot_one(protein_name)
         if data_list ==[]:
             response = f'No {instruction} relevant sequence was found on the NCBI website. Sorry for the inconvenience, you can change the name to get the information you want.'
@@ -32,6 +34,7 @@ def download_files(instruction,stage):
         # user_select_protien_ncbi_download=""
         aa_dna_content, download_path = user_select_protein_ncbi_download(data_list)
         response = f"Protein gene selection has been completed as needed, the details are as follows: {aa_dna_content} "
+        print('结果',download_path)
         return {"response": response, "operations":[], "protein_gene_seq_path": download_path,
                 "search_type": "download_type", "search_system_prompt": download_system_prompt, "stage": stage,
                 "state": 'stop'}

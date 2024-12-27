@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+
 '''
 Main workflow of Olivar tiling.
 Architecture:
@@ -15,6 +17,10 @@ main.py
     visualize()
     validate()
 '''
+
+
+__author__ = 'Michael X. Wang'
+
 
 import os
 CURRENT_DIR = os.path.dirname(__file__)
@@ -73,6 +79,8 @@ def generate_new_combination(d,mu,dd):
     mutant = []
     for k,v in d.items():
         if random.random() < mu * (dd[k]/m):
+            #vv = dd[k]
+            #mutant.append(random.randint(0,dd[k]-1))
             mutant.append(floor(rand() * dd[k]))
         else:
             mutant.append(v)
@@ -168,6 +176,8 @@ def _recombine_population_c(gen, recomb_rate):
                 strB.append(gen[i][ind])
                 strA.append(gen[i + 1][ind])
 
+        # ret.append("".join(strA))
+        # ret.append("".join(strB))
         #
         ret.append("".join(index_to_seq(strA)))
         ret.append("".join(index_to_seq(strB)))
@@ -327,6 +337,8 @@ def generate_context(SOI):
         start = sub_clu[0]
         stop = sub_clu[-1]
         # cellecting context seq according to snp clustering result
+
+
         # generate the first pair of primer design region
         fp_start, fp_stop, fp_risk = find_min_loc(risk_arr, start, start+3*PRIMER_DESIGN_LEN-1, rng)
         rp_stop, rp_start, rp_risk = find_min_loc(risk_arr, fp_start+min_amp_len-PRIMER_DESIGN_LEN, fp_start+max_amp_len-1, rng)
@@ -451,7 +463,14 @@ def design_context_seq(config):
     rand_int = rng_parent.integers(2**32, size=N) # random seeds for each iteration
 
     # single thread
+    # design = [generate_context((risk_arr, start, stop, max_amp_len, min_amp_len, rand_int[i])) for i in tqdm(range(N))]
 
+    # multi threads
+    print('reference sequence length: %d' % len(seq_raw))
+    print('design region: %d:%d' % (start, stop))
+    print('region length: %d' % (stop-start+1))
+    print('number of iterations: %d' % N)
+    print('designing context sequences...')
     tik = time()
     with multiprocessing.Pool(processes=n_cpu) as pool:
         batch = [(start, stop, risk_arr, max_amp_len, min_amp_len, var_arr, rand_int[i]) for i in range(N)] #start, stop,
@@ -475,6 +494,13 @@ def design_context_seq(config):
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
     print('PDR optimization figure saved as %s' % save_path)
+
+    # plt.hist(all_risk.flatten(), log=True)
+    # #plt.xlim(right=32)
+    # plt.xlabel('Risk of primer design regions', size=12)
+    # plt.ylabel('# primer design regions', size=12)
+    # plt.show()
+    
     # prepare output
     all_plex_info = {}
     for i, (context_seq, risk) in enumerate(zip(all_context_seq, all_risk)):
@@ -797,6 +823,60 @@ def optimize(all_plex_info, config):
                         "badness": pred_badness[sorted_order],
                     }
             )], ignore_index=True)
+
+            #############################
+
+            # for t in range(TimePerStep):
+            #     # pick a plex to change primer pair
+            #     mutplex = random.choice(curr_tube) # randomly select a plex_id in current tube
+            #     n_pair = len(all_plex_info[mutplex]['optimize'])
+            #     if n_pair == 1:
+            #         continue
+            #     mutindex = floor(rand() * n_pair) # index of new primer pair
+            #
+            #     # copy current design
+            #     new_index = deepcopy(curr_index)
+            #     new_fp = deepcopy(curr_fp)
+            #     new_rp = deepcopy(curr_rp)
+            #
+            #     # calculate new badness
+            #     new_index[mutplex] = mutindex
+            #     new_fp[mutplex] = all_plex_info[mutplex]['optimize'][mutindex][0]['seq']
+            #     new_rp[mutplex] = all_plex_info[mutplex]['optimize'][mutindex][1]['seq']
+            #     new_badness = 0
+            #     for plex_id, i in new_index.items():
+            #         fp = all_plex_info[plex_id]['optimize'][i][0]
+            #         rp = all_plex_info[plex_id]['optimize'][i][1]
+            #         new_badness += fp['badness'] + rp['badness']
+            #     inter_badness, new_comp_badness = PrimerSetBadnessFast(list(new_fp.values()), list(new_rp.values()), existing_primer)
+            #     new_badness += inter_badness
+            #
+            #     # calculate probability of accepting mutation
+            #     if new_badness < curr_badness:
+            #         accept = True
+            #     else:
+            #         if SATemp == 0:
+            #             accept = False
+            #         elif rand() < 2**((curr_badness - new_badness)/SATemp):
+            #             accept = True
+            #         else:
+            #             accept = False
+            #
+            #     # implement acceptance
+            #     if accept:
+            #         curr_index[mutplex] = new_index[mutplex]
+            #         curr_fp[mutplex] = new_fp[mutplex]
+            #         curr_rp[mutplex] = new_rp[mutplex]
+            #         curr_badness = new_badness
+            #         comp_badness = new_comp_badness
+            #
+            #     # if t % 100 == 0:
+            #     #     print('\ttime = %d, current loss = %.3f' % (t, curr_badness))
+            #     learning_curve.append(curr_badness)
+            # # reduce SATemp
+            # SATemp = max(0, (SATemp - InitSATemp/NUMSTEPS))
+
+            #cost += 1
             
         # save optimization result
         for n, (plex_id, i) in enumerate(curr_index.items()):
@@ -913,6 +993,10 @@ def save(all_plex_info, config):
         fp_bad[tube-1].append(plex_info['fP_badness'])
         rp_bad[tube-1].append(plex_info['rP_badness'])
 
+        # fp_blast[tube-1].append(curr_fp['BLAST_hits'])
+        # rp_blast[tube-1].append(curr_rp['BLAST_hits'])
+
+        # amplicon_blast[tube-1].append(plex_info['BLAST_count'])
 
     # save to file
     df = []
@@ -929,9 +1013,16 @@ def save(all_plex_info, config):
             'insert': insert[n], 
             'fP_full': fp_full[n], 
             'rP_full': rp_full[n], 
-
+            # 'fP_inter_badness': fp_bad[n], 
+            # 'rP_inter_badness': rp_bad[n], 
+            # 'fP_BLAST': fp_blast[n], 
+            # 'rP_BLAST': rp_blast[n], 
+            # 'amplicon_BLAST': amplicon_blast[n]
         }))
-
+    # with pd.ExcelWriter(os.path.join(config['out_path'], '%s.xlsx' % config['title'])) as writer:
+    #     for n, d in enumerate(df):
+    #         d.to_excel(writer, sheet_name='pool_%d' % (n+1), index=True)
+    # print('Primers output to %s.xlsx' % config['title'])
     for n, d in enumerate(df):
         save_path = os.path.join(config['out_path'], '%s_pool-%d.csv' % (config['title'], n+1))
         d.to_csv(save_path, index=False)

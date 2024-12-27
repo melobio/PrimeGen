@@ -19,6 +19,9 @@ main.py
 '''
 
 
+__author__ = 'Michael X. Wang'
+
+
 import os
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -339,6 +342,16 @@ def design_context_seq(config):
     #N = 500*len(risk_arr)//max_amp_len # number of primer sets to generate
     N = 100
     rand_int = rng_parent.integers(2**32, size=N) # random seeds for each iteration
+
+    # single thread
+    # design = [generate_context((risk_arr, start, stop, max_amp_len, min_amp_len, rand_int[i])) for i in tqdm(range(N))]
+
+    # multi threads
+    print('reference sequence length: %d' % len(seq_raw))
+    print('design region: %d:%d' % (start, stop))
+    print('region length: %d' % (stop-start+1))
+    print('number of iterations: %d' % N)
+    print('designing context sequences...')
     tik = time()
     with multiprocessing.Pool(processes=n_cpu) as pool:
         batch = [(start, stop, risk_arr, max_amp_len, min_amp_len, var_arr, rand_int[i]) for i in range(N)] #start, stop,
@@ -362,6 +375,14 @@ def design_context_seq(config):
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
     print('PDR optimization figure saved as %s' % save_path)
+
+    # plt.hist(all_risk.flatten(), log=True)
+    # #plt.xlim(right=32)
+    # plt.xlabel('Risk of primer design regions', size=12)
+    # plt.ylabel('# primer design regions', size=12)
+    # plt.show()
+    
+    # prepare output
     all_plex_info = {}
     for i, (context_seq, risk) in enumerate(zip(all_context_seq, all_risk)):
         cs = seq_raw[context_seq[0]-1:context_seq[3]] # actual context sequence
@@ -382,6 +403,8 @@ def design_context_seq(config):
     #print('total amplicons: %d' % (len(all_risk) + 1))
     cover_start = all_context_seq[0][1]+1
     cover_stop = all_context_seq[-1][2]-1
+    print('covered region: %d:%d' % (cover_start, cover_stop))
+    print('coverage of reference sequence: %.3f%%' % (100*(cover_stop-cover_start+1)/len(seq_raw)))
     #return seq_raw, risk_arr, all_context_seq, all_risk, all_plex_info
     return all_plex_info, risk_arr, gc_arr, comp_arr, hits_arr, var_arr, all_loss, seq_raw
 
@@ -464,7 +487,9 @@ def get_primer(all_plex_info, config):
             rP, fail = rP_generator.get(rP_design, rP_prefix, check_BLAST=check_BLAST, **rP_setting)
         plex_info['rP_candidate'] = rP
         plex_info['rP_setting'] = rP_setting
-
+        
+    # with open('all_plex_info_primer.pkl', 'wb') as f:
+    #     pickle.dump(all_plex_info, f)
     print('Done\n')
     return all_plex_info
 
@@ -478,6 +503,10 @@ def optimize(all_plex_info, config, species_candidates):
     Output:
         all_plex_info and corresponding 'all_plex_info_optimize.pkl': add optimized fP and rP to each plex of input all_plex_info
     '''
+    print('Optimizing primer dimers...')
+    # set random seed
+    # np.random.seed(config['seed'])
+    # random.seed(config['seed'])
 
     #n_tube = 2
     n_tube = 1
@@ -486,9 +515,16 @@ def optimize(all_plex_info, config, species_candidates):
     NUMSTEPS = 10 + int(pool_size/10)
     ZEROSTEPS = NUMSTEPS
     TimePerStep = 1000
+    # InitSATemp = config['InitSATemp']
+    # NUMSTEPS = config['NumSteps']
+    # ZEROSTEPS = config['ZeroSteps']
+    # TimePerStep = config['TimePerStep']
 
     # species name list
     species_name_list = list(species_candidates.keys())
+    # species name list
+
+    # generate primer pair candidates (fP-rP)
     n_pair = []
     for plex_id, plex_info in all_plex_info.items():
         optimize = []
@@ -523,6 +559,9 @@ def optimize(all_plex_info, config, species_candidates):
         print('\npool %d, simulated annealing...' % i_tube)
         # plex_id of current tube
         curr_tube = [plex_id for plex_id, plex_info in all_plex_info.items() if plex_info['tube'] == i_tube]
+
+        # load existing primers
+        #existing_primer = config['existing_primer']
         existing_primer = []
 
         # randomly select one primer set (one pair each plex)
@@ -697,6 +736,9 @@ def save(all_plex_info, config, species_candidates):
     # amplicon BLAST result
     amplicon_blast = [[] for _ in range(n_tube)]
 
+    # assign plexes to tubes and fill out informations
+    #print('amplicons containing SNPs or iSNVs in primers:')
+
     species_name_list = list(species_candidates.keys())
 
     for plex_id, plex_info in all_plex_info.items():
@@ -711,6 +753,7 @@ def save(all_plex_info, config, species_candidates):
             tube = n_tube
         # for species
         plex_name[tube-1].append(plex_id)
+        
         curr_fp = plex_info['fP']
         curr_rp = plex_info['rP']
 
@@ -749,6 +792,14 @@ def save(all_plex_info, config, species_candidates):
         fp_full[tube-1].append(curr_fp['seq'])
         rp_full[tube-1].append(curr_rp['seq'])
 
+        # fp_bad[tube-1].append(plex_info['fP_badness'])
+        # rp_bad[tube-1].append(plex_info['rP_badness'])
+
+        # fp_blast[tube-1].append(curr_fp['BLAST_hits'])
+        # rp_blast[tube-1].append(curr_rp['BLAST_hits'])
+
+        # amplicon_blast[tube-1].append(plex_info['BLAST_count'])
+
     # save to file
     df = []
     for n in range(n_tube):
@@ -770,7 +821,10 @@ def save(all_plex_info, config, species_candidates):
             # 'rP_BLAST': rp_blast[n], 
             # 'amplicon_BLAST': amplicon_blast[n]
         }))
-
+    # with pd.ExcelWriter(os.path.join(config['out_path'], '%s.xlsx' % config['title'])) as writer:
+    #     for n, d in enumerate(df):
+    #         d.to_excel(writer, sheet_name='pool_%d' % (n+1), index=True)
+    # print('Primers output to %s.xlsx' % config['title'])
     for n, d in enumerate(df):
         save_path = os.path.join(config['out_path'], '%s_pool-%d.csv' % (config['title'], n+1))
         d.to_csv(save_path, index=False)

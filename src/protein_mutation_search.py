@@ -6,10 +6,15 @@ import requests
 import openai
 import json
 import re
+import logging
+import traceback
 
-Entrez.email = ""
-Entrez.api_key = ""
+from llm_utils.utils import get_llm_chat_completion
 
+
+Entrez.email = "912837656@qq.com"
+Entrez.api_key = "24e5b06635f7b32dbd9b89c178a3caf3f009"#"db4b31edb00e220c3dd378908403eddbc308"
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 # protein engineering search tool
 def protein_mutation_search(instruction, stage):
     # description protein engineering search tool
@@ -45,80 +50,94 @@ Example is shown below:
 """
         conversation = instruction['conversation']
         conversation_str = "\n\n".join([i["role"] + ':\n' + i['content'] for i in conversation])
-        experiment_info_response = openai.ChatCompletion.create(
-            messages=[{"role": "system", "content": experiment_type_prompt},
-                      {"role": "user", "content": conversation_str}
-                      ],response_format={"type": "json_object"},
-            deployment_id="gpt-4o"#"XMGI-Chat1-GPT4"
+        experiment_info_response = get_llm_chat_completion(
+            messages=[
+                {"role": "system", "content": experiment_type_prompt},
+                {"role": "user", "content": conversation_str}
+            ],
+            response_format={"type": "json_object"},
         )
         experiment_info_json_data = extract_json_response(experiment_info_response)
         protein_mutation_dict["protein_name"] = experiment_info_json_data["protein_name"]
-        
+        option_list = [
+                {"title": 'Organism', "options": [], "type": ["single", "input"], "key":'Organism',
+                 "value": [None]},
+                {"title": 'Gene_name', "options": [], "type": ["single", "input"], "key": 'Gene_name',
+                 "value": [None]},
+                {"title": 'Protein_length', "options": [], "type": ["single", "input"], "key": 'Protein_length',
+                 "value": [None]}]
         protein_name = protein_mutation_dict["protein_name"]
-        response = f'In order to search more accurately, if you know the Organism, Gene Names, Length and other information related to the protein {protein_name}, please provide it to us.'
-        return {"response": response, "operations":[],
+        print('protein_name',protein_mutation_dict["protein_name"])
+        response = f'In order to search more accurately, if you know the Organism, Gene Names, Length and other information related to the protein {protein_name}, please provide it to us,If you do not know the relevant information, you can click submit directly and we will return the search results to you.'
+        return {"response": response, "operations":option_list,
                     "stage": stage, "search_type": "protein_mutation_type",
-                    "protein_mutation_dict": protein_mutation_dict, "state": 'continue'} 
-
+                   "data":{"protein_mutation_dict": protein_mutation_dict},  "state": 'continue'}
     elif stage == 2:
     
         stage+=1
-        protein_mutation_dict = instruction['instruction']['protein_mutation_dict']
+        protein_mutation_dict = instruction['instruction']['data']['protein_mutation_dict']
         protein_name = protein_mutation_dict["protein_name"]
-        
-        experiment_type_prompt = """Based on the user's contextual dialogue, you need to perform information extraction. If the user provides an abbreviation, please restore it to the full name. The information to be extracted includes:  
-1.Organism (the Species information or Organism information mentioned by users,Return null if it was not mentioned in the user conversation)
-2.Gene_Names (the gene name. Return null if it was not mentioned in the user conversation)
-3.Length (the protein length. Return null if it was not mentioned in the user conversation)
+#
+#         experiment_type_prompt = """Based on the user's contextual dialogue, you need to perform information extraction. If the user provides an abbreviation, please restore it to the full name. The information to be extracted includes:
+# 1.Organism (the Species information or Organism information mentioned by users,Return null if it was not mentioned in the user conversation)
+# 2.Gene_Names (the gene name. Return null if it was not mentioned in the user conversation)
+# 3.Length (the protein length. Return null if it was not mentioned in the user conversation)
+#
+# The results should be returned to me in JSON format.
+# Example is shown below:
+# '''json
+# {
+#   "Organism": 'Escherichia coli',
+#   "Gene_Names": 'ssuD',
+#   "Length": 384,
+# }
+# '''
+# """
+#         conversation = instruction['conversation']
+#         conversation_str = "\n\n".join([i["role"] + ':\n' + i['content'] for i in conversation])
+#         experiment_info_response = openai.ChatCompletion.create(
+#             messages=[{"role": "system", "content": experiment_type_prompt},
+#                       {"role": "user", "content": conversation_str}
+#                       ], response_format={"type": "json_object"},
+#             deployment_id="gpt-4o",#"XMGI-Chat1-GPT4"
+#         )
+#
+#         experiment_info_json_data = extract_json_response(experiment_info_response)
+        protein_mutation_dict["Organism"] = instruction['instruction']["Organism"]
+        protein_mutation_dict["Gene_Names"] = instruction['instruction']["Gene_name"]
+        protein_mutation_dict["Length"] = instruction['instruction']["Protein_length"]
+        logging.info(f'protein_mutation_dict：{protein_mutation_dict}')
 
-The results should be returned to me in JSON format.  
-Example is shown below:
-'''json
-{  
-  "Organism": 'Escherichia coli',
-  "Gene_Names": 'ssuD', 
-  "Length": 384,   
-}
-'''
-"""
-        conversation = instruction['conversation']
-        conversation_str = "\n\n".join([i["role"] + ':\n' + i['content'] for i in conversation])
-        experiment_info_response = openai.ChatCompletion.create(
-            messages=[{"role": "system", "content": experiment_type_prompt},
-                      {"role": "user", "content": conversation_str}
-                      ],
-            deployment_id="gpt-4o",#"XMGI-Chat1-GPT4"
-        )
+        temp_O = protein_mutation_dict["Organism"][0]
+        temp_n = protein_mutation_dict["Gene_Names"][0]
+        temp_l = protein_mutation_dict["Length"][0]
+        print('protein_name',protein_name)
         
-        
-        experiment_info_json_data = extract_json_response(experiment_info_response)
-        protein_mutation_dict["Organism"] = experiment_info_json_data["Organism"]
-        protein_mutation_dict["Gene_Names"] = experiment_info_json_data["Gene_Names"]
-        protein_mutation_dict["Length"] = experiment_info_json_data["Length"]
-        temp_O = protein_mutation_dict["Organism"]
-        temp_n = protein_mutation_dict["Gene_Names"]
-        temp_l = protein_mutation_dict["Length"]
         protein_info, data_list = search_uniprot_one(protein_name,temp_O,temp_n)
+        logging.info(f'搜索结果数量 {len(data_list)}')
         
         if len(data_list) == 0:
             response = f'Sorry, the current search results for the protein {protein_name} on uniprot are empty. You can manually upload the plasmid-modified gene file related to the protein {protein_name} or adjust the name and search again.'
             return {"response": response, "operations":[{"title":"upload gene file", "options":[], "type":["file"], "key":"gene_path", "value":[]}], "stage": stage,
                      "search_type": "protein_mutation_type",
-                    "protein_mutation_dict": protein_mutation_dict, "state": 'continue'}
+                    "data":{"protein_mutation_dict": protein_mutation_dict}, "state": 'continue'}
 
         else:
+
             response = f'I will provide the protein information related to {protein_name}'
-            return {"response": response, "operations":[{"title":"protein information","options":data_list[:50],"type":["single","input"],"key":"protein_select","value":[]}],
+            return {"response": response, "operations":[{"title":"protein information","options":data_list[:60],"type":["single","input"],"key":"protein_select","value":[]}],
                     "stage": stage, "search_type": "protein_mutation_type",
-                    "protein_mutation_dict": protein_mutation_dict, "state": 'continue'}     
+                    "data":{"protein_mutation_dict": protein_mutation_dict}, "state": 'continue'}
     # user select proetin number --> gene sequence --> continue primer design
     elif stage == 3:
         stage+=1
-        protein_mutation_dict = instruction['instruction']['protein_mutation_dict']
+        protein_mutation_dict = instruction['instruction']['data']['protein_mutation_dict']
         operation_temp = instruction['instruction']['operations'][0]['options']
         if 'protein_select' in instruction['instruction']:
         
             data_list = instruction['instruction']['protein_select'] # user select
+            #gene_path = instruction['instruction']['gene_path']
+            # user_select_protien_ncbi_download=""
             try:
                 aa_dna_content, download_path = user_select_protein_ncbi_download(data_list)
             except Exception as e:
@@ -128,31 +147,30 @@ Example is shown below:
             if download_path == []:
                 return {"response": 'Sorry, the gene sequence corresponding to the protein you selected was not found.You can manually upload the plasmid-modified gene file or select other protein.',
                 "operations":[{"title":"protein information","options":operation_temp,"type":["single","input"],"key":"protein_select","value":[]},{"title":"upload file", "options":[], "type":["file"], "key":"gene_path", "value":[]}],
-                        "protein_gene_seq_path": '',
+
                         "search_type": "protein_mutation_type", 
-                        "protein_mutation_dict": protein_mutation_dict,"stage": stage-1,
+                        "data":{"protein_mutation_dict": protein_mutation_dict,"protein_gene_seq_path": ''},"stage": stage-2,
                         "state": 'continue'}
             else:
                 response+=" In order to consider the full length of the gene sequence when designing primers, please click the upload button below to upload your plasmid-modified files, and keep the number of file uploads and file downloads equal."
-                return {"response": response, "protein_gene_seq_path": download_path,
-                "operations":[{"title":"upload file", 
-                "options":[], "type":["file"], "key":"gene_path", "value":[]}],
+                return {"response": response,
+                "operations":[{"title":"upload file", "options":[], "type":["file"], "key":"gene_path", "value":[]}],
                         "search_type": "protein_mutation_type", "stage": stage,
-                        "protein_mutation_dict": protein_mutation_dict, "state": 'continue'}
+                        "data":{"protein_mutation_dict": protein_mutation_dict,"protein_gene_seq_path": download_path}, "state": 'continue'}
                         
         elif 'gene_path' in instruction['instruction']:
         
             response = 'Sequence file retrieval completed'
             new_file_list = instruction['instruction']['gene_path']
-            return {"response": response, "protein_gene_seq_path": new_file_list, "operations":[],"stage": stage,
+            return {"response": response,  "operations":[],"stage": stage,
                 "search_type": "protein_mutation_type",
-                "protein_mutation_dict": protein_mutation_dict, "state": 'stop'}
+                "data":{"protein_mutation_dict": protein_mutation_dict,"protein_gene_seq_path": new_file_list}, "state": 'stop'}
         
         
     elif stage == 4:
         stage += 1
         new_file_list = instruction['instruction']['gene_path']
-        protein_mutation_dict = instruction['instruction']['protein_mutation_dict']
+        protein_mutation_dict = instruction['instruction']['data']['protein_mutation_dict']
         seqs = ''
         with open(new_file_list[0],'r') as f:
             lines = f.readlines()
@@ -162,24 +180,25 @@ Example is shown below:
                 seqs += ll.replace('\n','').strip()
         seq_len = len(seqs)
         response = f'The length of the gene sequence ranges from 1 to {seq_len}. Please further provide the target region for the designed primers, and we will design primers for this region.'
-        return {"response": response, "protein_gene_seq_path": new_file_list, 
+        return {"response": response,
                 "operations": [
                     {"title":"start","options":[],"type":["input"],"key":"start_pos","value":[]},
                     {"title": "end","options": [],"type": ["input"],"key": "end_pos","value": []}
-                ],
-                "stage": stage,
-                "search_type": "protein_mutation_type","max_length": seq_len,
-                "protein_mutation_dict": protein_mutation_dict, "state": 'continue'}
+                ],"stage": stage,
+                "search_type": "protein_mutation_type",
+                "data":{"protein_mutation_dict": protein_mutation_dict,"protein_gene_seq_path": new_file_list,"max_length": seq_len},
+                "state": 'continue'}
     else:
         response = 'The step of determining the DNA sequence is complete.'
         stage+=1
-        new_file_list = instruction['instruction']['protein_gene_seq_path']
-        protein_mutation_dict = instruction['instruction']['protein_mutation_dict']
-        protein_mutation_dict['start_pos'] = instruction['instruction']['start_pos']
-        protein_mutation_dict['end_pos'] = instruction['instruction']['end_pos']
-        return {"response": response, "protein_gene_seq_path": new_file_list, "operations":[],"stage": stage,
+        new_file_list = instruction['instruction']['data']['protein_gene_seq_path']
+        protein_mutation_dict = instruction['instruction']['data']['protein_mutation_dict']
+        protein_mutation_dict['start_pos'] = instruction['instruction']['start_pos'][0]
+        protein_mutation_dict['end_pos'] = instruction['instruction']['end_pos'][0]
+        return {"response": response,  "operations":[],"stage": stage,
                 "search_type": "protein_mutation_type",
-                "protein_mutation_dict": protein_mutation_dict, "state": 'stop'}
+                "data":{"protein_mutation_dict": protein_mutation_dict,"protein_gene_seq_path": new_file_list},
+                "state": 'stop'}
 
 # Protein secondary search: User specifies the protein, and NCBI downloads its reference gene sequence
 def user_select_protein_ncbi_download(data_list):
@@ -200,6 +219,9 @@ def user_select_protein_ncbi_download(data_list):
     aa_dna_content = 'Based on your final choice, I give the following DNA sequence and amino acid sequence information:\n'
     download_path = []
     for idx, aa_dna_info in enumerate(aa_dna_list):
+        # aa_dna_content += f"[{idx + 1}] {aa_dna_info[0]}protein({aa_dna_info[1]})：\n"
+        # aa_dna_content += f"\>sp|{aa_dna_info[-3]}|{aa_dna_info[-2]}\n{aa_dna_info[-1]}\n\n"
+        # aa_dna_content += f"\>{aa_dna_info[2]} {aa_dna_info[3]}\n{aa_dna_info[4]}\n\n"
         to_path = '/reference_data/dna_file'
         ss = aa_dna_info[0].strip().replace(' ', '_').replace('(', '').replace(')', '').replace('/','')
         print('ss',ss)
@@ -213,7 +235,7 @@ def user_select_protein_ncbi_download(data_list):
     
 def extract_json_response(response):
     # 从response中提取JSON内容
-    experiment_info_dict = response["choices"][0]["message"]['content']
+    experiment_info_dict = response.choices[0].message.content
     try:
         #if json.loads(experiment_info_dict):
         return json.loads(experiment_info_dict)
@@ -227,7 +249,7 @@ def extract_json_response(response):
             exit()
         return experiment_info_json_data
 
-    
+
 def get_nucleotide_info(name, aa_seq):
     # 搜索nucleotide数据库
     query = f"{name}"
@@ -235,6 +257,8 @@ def get_nucleotide_info(name, aa_seq):
     record = Entrez.read(handle)
     handle.close()
     nucleotide_ids = record["IdList"]
+    print('nucleotide_ids', nucleotide_ids)
+
     # 根据uniport提供的序列和名称来判断，取出真正的DNA序列
     for nucleotide_id in nucleotide_ids:
         handle = Entrez.efetch(db="nucleotide", id=nucleotide_id, retmode="xml")
@@ -286,15 +310,21 @@ def get_nucleotide_info(name, aa_seq):
 def search_uniprot_one(protein_name,Organism,Gene_Names):
     if Organism ==None and Gene_Names == None:
         get_info_url = f"http://rest.uniprot.org/uniprotkb/search?query=%28protein_name%3A{protein_name}%29+AND+%28reviewed%3Atrue%29&format=json"
+    
     elif Organism == None and Gene_Names != None:
+    
+        #get_info_url = f"http://rest.uniprot.org/uniprotkb/search?query={term}%28reviewed%3Atrue%29&format=json"
         get_info_url = f"http://rest.uniprot.org/uniprotkb/search?query=%28protein_name%3A{protein_name}%29+AND+%28gene%3A{Gene_Names}%29&format=json"
+        #http://rest.uniprot.org/uniprotkb/search?query=%28protein_name%3Aluciferase%29+AND+%28gene%3AssuD%29&format=json
     elif Organism!= None:
+        
         get_info_url = f"http://rest.uniprot.org/uniprotkb/search?query=%28protein_name%3A{protein_name}%29+AND+%28organism_name%3A%22{Organism}%22%29&format=json"
     
     response = requests.get(get_info_url)
     search_info_list = []
     data_list = []
     if response.status_code != 200:
+        print("Error:", response.status_code)
         return search_info_list, data_list
         exit()
 
@@ -344,6 +374,8 @@ def search_uniprot_one(protein_name,Organism,Gene_Names):
         organism_name = data_info["organism"]["scientificName"]
         protein_len = data_info["sequence"]["length"]
         if data_dict["Function information"] == "No further information provided":
+            print(data_dict["Function information"])
+
             search_info['Protein_name'] = protein_name
             search_info['Organism'] = organism_name
             search_info['Protein_length'] = protein_len
@@ -361,4 +393,5 @@ def search_uniprot_one(protein_name,Organism,Gene_Names):
         data_dict["Organism"] = organism_name
         data_dict["Length"] = protein_len
         data_list.append(data_dict)
+    print("Extracted functional information", len(data_list))
     return search_info_list, data_list

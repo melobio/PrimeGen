@@ -11,6 +11,10 @@ design.py
     PrimerSetBadnessFast()
 '''
 
+
+__author__ = 'Michael X. Wang'
+
+
 import os
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -27,7 +31,7 @@ from . import basic#import basic
 from .basic import seq2num
 from .basic import num2seq
 from .basic import revcomp
-
+from .specificity import *
 
 GC_LETTER = ['C', 'G', 'c', 'g']
 
@@ -105,6 +109,21 @@ def WAlignScore(seq1, seq2=None):
     return max_score
 
 
+def check_repeat(seq, rp_num=3):
+    '''
+    根据赛默飞的说明，一般单碱基或双碱基的串联重复<4。因此用上述的集合，如果还要其他模式，比如3碱基的串联重复，增加即可。
+    这部分没有办法确保（赛默飞的说明）repeat < 4, 因为PDR如果存在大于阈值的repeat，则要满足多个条件的可能性越低，所以一定会有所牺牲。除非在PDR那里就加入risk进行约束
+    '''
+    one_cp = {x * int(rp_num+1) for x in ['a', 't', 'c', 'g']}
+    two_cp = {x * int(rp_num) for x in ['at', 'ac', 'ag', 'ta', 'tc', 'tg', 'ca', 'cg', 'ct', 'ga', 'gc', 'gt']}
+    three_cp = {x * int(rp_num) for x in ['aat','aac','aag','ata','att','atc','atg','aca','act','acc','acg','aga','agt','agc','agg','taa','tat','tac','tag','tta','ttc','ttg','tca','tct','tcc','tcg','tga','tgt','tgc','tgg','caa','cat','cac','cag','cta','ctt','ctc','ctg','cca','cct','ccg','cga','cgt','cgc','cgg','gaa','gat','gac','gag','gta','gtt','gtc','gtg','gca','gct','gcc','gcg','gga','ggt','ggc']}
+    mod = (one_cp | two_cp | three_cp)
+    for x in mod:
+        if x in seq.lower():         ## 如果指定数目的repeat出现
+            return True
+    return False
+    
+
 class primer_generator(object):
     '''
     Usage:
@@ -160,8 +179,8 @@ class primer_generator(object):
             dG_stacks += self.paraG[rep[i]][rep[i+1]]
         return dG_stacks
     
-    def get(self, seq, prefix='', dG_max=-11.8, min_GC=0.2, max_GC=0.75, 
-            min_complexity=0.4, min_len=15, max_len=36, check_SNP=True, check_BLAST=False):
+    def get(self, seq, prefix='', dG_max=-11.8, min_GC=0.2, max_GC=0.75, min_atcg = 0.1, max_atcg = 0.4, repeat_num=4, BLAST_db=None,
+             min_len=19, max_len=36, check_SNP=True,min_complexity=0.4, check_BLAST=False):  #min_len=15  #min_complexity=0.4,
         '''
         Input:
             Sequence to generate primers from; restrictions (dG, GC, etc.)
@@ -173,6 +192,9 @@ class primer_generator(object):
         # input should be lowercase
         if seq == seq.upper(): # all uppercase
             print('input sequence should be in lowercase, with SNPs in uppercase. ')
+            #
+            print(f'show upper case seq: {seq}')
+            #
             seq = seq.lower()
             if check_SNP:
                 print('ignore check_SNP')
@@ -189,6 +211,7 @@ class primer_generator(object):
         SNP_fail = 0 # number of primers failed SNP check
         GC_fail = 0 # number of primers failed GC ratio check
         complexity_fail = 0 # number of primers failed complexity check
+        repeat_fail = 0
         for end_pos in range(len(seq)-1, 8, -1): # end_pos is 0-based
             # check end
             if self.check_end:
@@ -211,29 +234,34 @@ class primer_generator(object):
                 start_pos -= 1
                 curr_dG += self.StacksDG(seq[start_pos:(start_pos+2)])
             # check restrictions
-            if (curr_dG <= dG_max) or (end_pos - start_pos + 1 == max_len):
+            if (curr_dG <= dG_max) or (end_pos - start_pos + 1 == max_len): # dG_max
+            #if (curr_dG >= dG_min) or (end_pos - start_pos + 1 == max_len): # dG_min
                 GC_ratio = basic.get_GC(seq[start_pos:end_pos+1])
                 if min_GC <= GC_ratio <= max_GC:
-                    complexity = basic.get_complexity(seq[start_pos:end_pos+1])
-                    if complexity >= min_complexity:
-                        s_raw = seq[start_pos:end_pos+1]
-                        s = prefix + s_raw
-                        primer_seq.append(s)
-                        primer_arr.append(basic.seq2arr(s))
-                        primer_len.append(end_pos - start_pos + 1)
-                        primer_dist.append(len(seq) - end_pos - 1)
-                        primer_dG.append(curr_dG)
-                        if check_BLAST:
-                            #count = BLAST_seq(s_raw, **BLAST_config)
-                            if count > 0:
-                                b = INTR_SCORE * WAlignScore(s) + 1000 * np.log10(count)**4
+                    complexity = basic.get_ATGC_content_loss_2(min_atcg,max_atcg, seq[start_pos:end_pos+1])
+                    #if complexity >= min_atcg and complexity <=max_atcg:
+                    if complexity < 0.05:   ## 越小越严格
+                        if not check_repeat(seq[start_pos:end_pos+1], repeat_num):  ## repeat 返回 True
+                            s_raw = seq[start_pos:end_pos+1]
+                            s = prefix + s_raw
+                            primer_seq.append(s)
+                            primer_arr.append(basic.seq2arr(s))
+                            primer_len.append(end_pos - start_pos + 1)
+                            primer_dist.append(len(seq) - end_pos - 1)
+                            primer_dG.append(curr_dG)
+                            if check_BLAST:
+                                count = BLAST_seq(s_raw, BLAST_db, mode='rough', thread=30, minus=True)
+                                if count > 0:
+                                    b = INTR_SCORE * WAlignScore(s) + 1000 * np.log10(count)**4
+                                else:
+                                    b = INTR_SCORE * WAlignScore(s)
                             else:
+                                count = -1
                                 b = INTR_SCORE * WAlignScore(s)
+                            BLAST_hits.append(count)
+                            badness.append(b)
                         else:
-                            count = -1
-                            b = INTR_SCORE * WAlignScore(s)
-                        BLAST_hits.append(count)
-                        badness.append(b)
+                            repeat_fail += 1
                     else:
                         complexity_fail += 1
                 else:
@@ -246,7 +274,7 @@ class primer_generator(object):
                                 'dG': primer_dG, 
                                 'BLAST_hits': BLAST_hits})
         return primers, {'end_fail': end_fail, 'SNP_fail': SNP_fail, 
-        'GC_fail': GC_fail, 'complexity_fail': complexity_fail}
+        'GC_fail': GC_fail, 'complexity_fail': complexity_fail, 'repeat_fail': repeat_fail}
 
 
 def PrimerSetBadnessFast(all_fP: list, all_rP=[], existing=[]):

@@ -473,7 +473,7 @@ def design_context_seq(config, exclude_d):
             'risk': tuple(risk)
         }
         all_plex_info['amp_%d' % (i + 1)] = plex_info
-    print('total amplicons: %d' % (i + 1))
+    # print('total amplicons: %d' % (i + 1))
     # print('total amplicons: %d' % (len(all_risk) + 1))
     cover_start = all_context_seq[0][1] + 1
     cover_stop = all_context_seq[-1][2] - 1

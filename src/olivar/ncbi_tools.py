@@ -11,6 +11,9 @@ ncbi_tools.py
 '''
 
 
+__author__ = 'Michael X. Wang'
+
+
 import os
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -159,6 +162,7 @@ def BLAST_batch_short(seq_list: list, db: str, n_cpu=1, seq_names=None, mode='ro
         #return all_count_batch, None
 
     print('finished in %.2fs' % (time()-tik))
+    # print(all_count_batch)
     return all_count_batch, all_loc_batch
 
 

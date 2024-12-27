@@ -107,16 +107,17 @@ def get_beads_volume(Barcode_type,panel_amp_length):
     return beads_volume_1st,beads_volume_2nd
 
 def calculating_solution_volume(param_dict,protocol_name):
+
     
     if protocol_name =='ATOPlex RNA建库试剂盒':
         AtoplexRNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         AtoplexRNA_param_dict['input_sample_nums_1'] = sample_nums        
-        AtoplexRNA_param_dict['input_Spike_in_Control_PCR_block_2'] = param_dict['Spike_in_Control_PCR_block']
+        AtoplexRNA_param_dict['input_Spike_in_Control_PCR_block_2'] = param_dict['spike_in_control_pcr_block']
         AtoplexRNA_param_dict['input_amplicon_multiplicity_2'] = param_dict['amplicon_multiplicity']
         AtoplexRNA_param_dict['input_panel_amp_length_3'] = param_dict['panel_amp_length']
-        AtoplexRNA_param_dict['input_Barcode_type_3'] = param_dict['Barcode_type']
-        beads_volume_1st,beads_volume_2nd = get_beads_volume(param_dict['Barcode_type'],param_dict['panel_amp_length'])
+        AtoplexRNA_param_dict['input_Barcode_type_3'] = param_dict['barcode_type']
+        beads_volume_1st,beads_volume_2nd = get_beads_volume(param_dict['barcode_type'],param_dict['panel_amp_length'])
         AtoplexRNA_param_dict['input_RT_Master_MIX_volume_1'] = 10*(sample_nums+8)
         AtoplexRNA_param_dict['input_DNA_Beads_volume_3'] = beads_volume_1st*(sample_nums+8)
         AtoplexRNA_param_dict['input_TE_Buffer_volume_3'] = 6.5*(sample_nums+8)
@@ -124,7 +125,7 @@ def calculating_solution_volume(param_dict,protocol_name):
         AtoplexRNA_param_dict['input_DNA_Beads_volume_5'] = beads_volume_2nd*(sample_nums+8)
         AtoplexRNA_param_dict['input_TE_Buffer_volume_5'] = 25*(sample_nums+8)
         AtoplexRNA_param_dict['input_Ethanol_80_volume_5'] = 160*(sample_nums+8)*2
-        if param_dict['Spike_in_Control_PCR_block']:
+        if param_dict['spike_in_control_pcr_block']:
             AtoplexRNA_param_dict['input_PCR_MIX_volume_2'] = 16*(sample_nums+8)
             AtoplexRNA_param_dict['input_PCR_MIX_volume_4'] = 15.5*(sample_nums+8)
         else:
@@ -134,13 +135,13 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='ATOPlex DNA建库试剂盒':
         AtoplexDNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
-        AtoplexDNA_param_dict['input_sample_nums_1'] = sample_nums        
-        AtoplexDNA_param_dict['input_Spike_in_Control_PCR_block_1'] = param_dict['Spike_in_Control_PCR_block']
+        sample_nums = int(param_dict['sample_nums'])
+        AtoplexDNA_param_dict['input_sample_nums_1'] = sample_nums
+        AtoplexDNA_param_dict['input_Spike_in_Control_PCR_block_1'] = param_dict['spike_in_control_pcr_block']
         AtoplexDNA_param_dict['input_amplicon_multiplicity_1'] = param_dict['amplicon_multiplicity']
         AtoplexDNA_param_dict['input_panel_amp_length_2'] = param_dict['panel_amp_length']
-        AtoplexDNA_param_dict['input_Barcode_type_2'] = param_dict['Barcode_type']
-        beads_volume_1st,beads_volume_2nd = get_beads_volume(param_dict['Barcode_type'],param_dict['panel_amp_length'])
+        AtoplexDNA_param_dict['input_Barcode_type_2'] = param_dict['barcode_type']
+        beads_volume_1st,beads_volume_2nd = get_beads_volume(param_dict['barcode_type'],param_dict['panel_amp_length'])
 
         AtoplexDNA_param_dict['input_DNA_Beads_volume_2'] = beads_volume_1st*(sample_nums+8)
         AtoplexDNA_param_dict['input_TE_Buffer_volume_2'] = 6.5*(sample_nums+8)
@@ -149,7 +150,7 @@ def calculating_solution_volume(param_dict,protocol_name):
         AtoplexDNA_param_dict['input_DNA_Beads_volume_4'] = beads_volume_2nd*(sample_nums+8)
         AtoplexDNA_param_dict['input_TE_Buffer_volume_4'] = 25*(sample_nums+8)
         AtoplexDNA_param_dict['input_Ethanol_80_volume_4'] = 160*(sample_nums+8)*2
-        if param_dict['Spike_in_Control_PCR_block']:
+        if param_dict['spike_in_control_pcr_block']:
             AtoplexDNA_param_dict['input_PCR_MIX_1st_volume_1'] = 16*(sample_nums+8)
             AtoplexDNA_param_dict['input_PCR_MIX_2nd_volume_3'] = 15.5*(sample_nums+8)
         else:
@@ -159,7 +160,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='ATOPlex HIV建库试剂盒':
         AtoplexHIV_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         AtoplexHIV_param_dict['input_sample_nums_1'] = sample_nums        
         AtoplexHIV_param_dict['input_PCR_MIX_volume_1'] = 30*(sample_nums+8)       
         AtoplexHIV_param_dict['input_DNA_Beads_volume_2'] =35*(sample_nums+8)
@@ -180,7 +181,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='ATOPlex MPXV建库试剂盒':
         AtoplexMPVX_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         AtoplexMPVX_param_dict['input_sample_nums_1'] = sample_nums        
         AtoplexMPVX_param_dict['input_PCR_MIX_volume_1'] = 15*(sample_nums+8)       
         AtoplexMPVX_param_dict['input_PCR_MIX_volume_2'] =15*(sample_nums+8)
@@ -198,7 +199,7 @@ def calculating_solution_volume(param_dict,protocol_name):
         return AtoplexMPVX_param_dict
     elif protocol_name =='MGIEasy 游离DNA文库制备试剂盒':         
         FreeDNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         FreeDNA_param_dict['input_sample_nums_1'] = sample_nums        
         FreeDNA_param_dict['input_A_MIX_volume_1'] = 10*(sample_nums+8)       
         FreeDNA_param_dict['input_Adapter_ligation_volume_2'] =25*(sample_nums+8)
@@ -212,7 +213,7 @@ def calculating_solution_volume(param_dict,protocol_name):
         return FreeDNA_param_dict
     elif protocol_name =='MGIEasy外显子组酶切文库制备试剂盒':         
         Exome_digestion_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         Exome_digestion_param_dict['input_sample_nums_1'] = sample_nums        
         Exome_digestion_param_dict['input_Frag_Master_Mix_volume_1'] = 15*(sample_nums+8)       
         Exome_digestion_param_dict['input_DNA_Beads_volume_2'] = 48*(sample_nums+8)
@@ -232,7 +233,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGIEasy酶切DNA文库制备试剂盒':         
         Enzyme_digestion_DNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         Enzyme_digestion_DNA_param_dict['input_sample_nums_1'] = sample_nums        
         Enzyme_digestion_DNA_param_dict['input_Enzyme_Mix_volume_1'] = 15*(sample_nums+8)       
         Enzyme_digestion_DNA_param_dict['input_DNA_Beads_volume_2'] = 48*(sample_nums+8)
@@ -252,7 +253,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGIEasy RNA方向性文库制备试剂盒':         
         MGIEasy_RNA_directionality_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         MGIEasy_RNA_directionality_param_dict['input_sample_nums_1'] = sample_nums        
         MGIEasy_RNA_directionality_param_dict['input_RT_MIX_volume_1'] = 6*(sample_nums+8)         
         MGIEasy_RNA_directionality_param_dict['input_second_strand_MIX_volume_1'] = 30*(sample_nums+8)
@@ -273,7 +274,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGIEasy Fast RNA文库制备试剂盒':         
         MGIEasy_fastRNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         MGIEasy_fastRNA_param_dict['input_sample_nums_1'] = sample_nums
         MGIEasy_fastRNA_param_dict['input_Washing_Buffer_volume_1'] = 50*(sample_nums+8)
         MGIEasy_fastRNA_param_dict['input_Beads_volume_1'] = 25*(sample_nums+8)
@@ -292,7 +293,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGIEasy Fast PCR-FREE酶切文库制备试剂盒':         
         MGIEasy_PRCfree_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         MGIEasy_PRCfree_param_dict['input_sample_nums_1'] = sample_nums
         MGIEasy_PRCfree_param_dict['input_FS_Enzyme_MIX_volume_1'] = 15*(sample_nums+8)                                       
         MGIEasy_PRCfree_param_dict['input_DNA_Beads_volume_2'] = 48*(sample_nums+8)
@@ -306,7 +307,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGICare染色体拷贝数变异检测试剂盒':         
         Chromosome_copy_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         Chromosome_copy_param_dict['input_sample_nums_1'] = sample_nums
         Chromosome_copy_param_dict['input_frament_end_repair_volume_1'] = 10*(sample_nums+8)
         Chromosome_copy_param_dict['input_Ligation_Master_Mix_volume_2'] = 35*(sample_nums+8)                                
@@ -321,7 +322,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGICare单细胞染色体拷贝数变异检测试剂盒':         
         Single_cell_chromosome_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         Single_cell_chromosome_param_dict['input_sample_nums_1'] = sample_nums
         Single_cell_chromosome_param_dict['input_Cell_lysis_master_mix_volume_1'] = 5*(sample_nums+8)
         Single_cell_chromosome_param_dict['input_Pre_PCR_master_mix_volume_1'] = 5*(sample_nums+8)
@@ -345,7 +346,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGIEasy通用DNA文库制备试剂盒':         
         General_DNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         General_DNA_param_dict['input_sample_nums_1'] = sample_nums        
         General_DNA_param_dict['input_A_MIX_volume_1'] = 10*(sample_nums+8)  
         General_DNA_param_dict['input_Adapter_ligation_volume_2'] = 25*(sample_nums+8) 
@@ -361,7 +362,7 @@ def calculating_solution_volume(param_dict,protocol_name):
     
     elif protocol_name =='MGIEasy 游离DNA文库制备试剂盒':         
         FreeDNA_param_dict = get_protocol_param_dict(protocol_name)
-        sample_nums = param_dict['sample_nums']
+        sample_nums = int(param_dict['sample_nums'])
         FreeDNA_param_dict['input_sample_nums_1'] = sample_nums        
         FreeDNA_param_dict['input_A_MIX_volume_1'] = 10*(sample_nums+8)  
         FreeDNA_param_dict['input_Adapter_ligation_volume_2'] = 25*(sample_nums+8)    
@@ -605,6 +606,15 @@ def get_protocol_param_dict(protocol_name):
     return protocol_dict[protocol_name]
 
 
+
+
+
+
+
+
+
+
+
 def pdf_to_txt(pdf_path):
     
     target_folder = os.path.dirname(pdf_path)
@@ -652,6 +662,12 @@ def calculate_liquid(sample_num,liquid_volume):
             else:
                 liquid_list.append((count1+1)*per_sample_liquid)
         return liquid_list
+    
+    
+if __name__ == "__main__":
+    
+    pdf_path = './data/MGIEasy_Fast_酶切⽂库制备试剂套装使用说明书3.0-套装版本号v2.0.pdf'
+    pdf_to_txt(pdf_path)
     
     
     

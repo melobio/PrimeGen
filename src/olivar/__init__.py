@@ -10,6 +10,10 @@ Olivar also optimize for primer dimers with the SADDLE algorithm (https://www.na
 '''
 
 
+__author__ = 'Michael X. Wang'
+__version__ = '1.0.2'
+
+
 import os
 import sys
 # CURRENT_DIR = os.path.dirname(__file__)

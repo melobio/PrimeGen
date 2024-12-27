@@ -19,6 +19,9 @@ main.py
 '''
 
 
+__author__ = 'Michael X. Wang'
+
+
 import os
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -287,6 +290,9 @@ def design_context_seq(config):
     #N = 100
     rand_int = rng_parent.integers(2**32, size=N) # random seeds for each iteration
 
+    # single thread
+    # design = [generate_context((risk_arr, start, stop, max_amp_len, min_amp_len, rand_int[i])) for i in tqdm(range(N))]
+
     # multi threads
     print('reference sequence length: %d' % len(seq_raw))
     print('design region: %d:%d' % (start, stop))
@@ -315,6 +321,13 @@ def design_context_seq(config):
     save_path = os.path.join(config['out_path'], '%s.png' % config['title'])
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
+    print('PDR optimization figure saved as %s' % save_path)
+
+    # plt.hist(all_risk.flatten(), log=True)
+    # #plt.xlim(right=32)
+    # plt.xlabel('Risk of primer design regions', size=12)
+    # plt.ylabel('# primer design regions', size=12)
+    # plt.show()
     
     # prepare output
     all_plex_info = {}
@@ -446,7 +459,12 @@ def optimize(all_plex_info, config):
     NUMSTEPS = 10 + int(pool_size/10)
     ZEROSTEPS = NUMSTEPS
     TimePerStep = 1000
+    # InitSATemp = config['InitSATemp']
+    # NUMSTEPS = config['NumSteps']
+    # ZEROSTEPS = config['ZeroSteps']
+    # TimePerStep = config['TimePerStep']
 
+    # generate primer pair candidates (fP-rP)
     n_pair = []
     for plex_id, plex_info in all_plex_info.items():
         optimize = []
@@ -460,6 +478,8 @@ def optimize(all_plex_info, config):
                 optimize.append([fp, rp])
         plex_info['optimize'] = optimize
         n_pair.append(len(optimize))
+    print('total primer pairs %d' % sum(n_pair))
+    print('average pairs per plex %.2f' % (sum(n_pair)/len(n_pair)))
     
     # optimize each tube
     all_lc = []
@@ -565,7 +585,11 @@ def optimize(all_plex_info, config):
         print('Pool %d primer dimer optimization saved as %s' % (i_tube, save_path))
 
         all_lc.append(learning_curve)
-
+    
+    print('primer dimer optimization finished in %.3fs' % (time()-tik))
+    # with open('all_plex_info_optimize.pkl', 'wb') as f:
+    #     pickle.dump(all_plex_info, f)
+    print('Done\n')
     return all_plex_info, all_lc
 
 
@@ -656,6 +680,11 @@ def save(all_plex_info, config):
         fp_bad[tube-1].append(plex_info['fP_badness'])
         rp_bad[tube-1].append(plex_info['rP_badness'])
 
+        # fp_blast[tube-1].append(curr_fp['BLAST_hits'])
+        # rp_blast[tube-1].append(curr_rp['BLAST_hits'])
+
+        # amplicon_blast[tube-1].append(plex_info['BLAST_count'])
+
     # save to file
     df = []
     for n in range(n_tube):
@@ -677,7 +706,10 @@ def save(all_plex_info, config):
             # 'rP_BLAST': rp_blast[n], 
             # 'amplicon_BLAST': amplicon_blast[n]
         }))
-
+    # with pd.ExcelWriter(os.path.join(config['out_path'], '%s.xlsx' % config['title'])) as writer:
+    #     for n, d in enumerate(df):
+    #         d.to_excel(writer, sheet_name='pool_%d' % (n+1), index=True)
+    # print('Primers output to %s.xlsx' % config['title'])
     for n, d in enumerate(df):
         save_path = os.path.join(config['out_path'], '%s_pool-%d.csv' % (config['title'], n+1))
         d.to_csv(save_path, index=False)
