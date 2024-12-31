@@ -4,13 +4,23 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vuetify from 'vite-plugin-vuetify'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/xpcr',
   plugins: [
     vue(),
     vueJsx(),
-    vuetify({ autoImport: true })
+    vuetify({ autoImport: true }),
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+    }),
   ],
   resolve: {
     alias: {
@@ -19,7 +29,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": {
+      "/xpcr-api": {
         target: "http://localhost:3001",
         changeOrigin: true,
         rewrite: (path: string) => {
@@ -27,7 +37,7 @@ export default defineConfig({
           return path
         },
       },
-      "/pcr-ws": {
+      "/xpcr-ws": {
         target: "ws://localhost:3001",
         changeOrigin: true,
         ws: true,
@@ -37,7 +47,8 @@ export default defineConfig({
         },
       },
       "/v1/files": {
-        target: "http://localhost:3001",
+        // target: "http://localhost:3001",
+        target: "http://10.49.60.23:8080",
         changeOrigin: true,
         rewrite: (path: string) => {
           // console.log(path)
@@ -52,12 +63,19 @@ export default defineConfig({
           return path
         }
       },
-      "/search": {
-        target: "http://172.16.47.11:8081",
+      "/xpcr-search-api": {
+        target: "http://10.49.60.23:8081",
         changeOrigin: true,
         rewrite: (path) =>{
-          const newPath =  path.replace(/^\/search/, '');
+          const newPath =  path.replace(/^\/xpcr-search-api/, '');
           return newPath
+        }
+      },
+      "/xpcr-search-dev": {
+        target: "https://chat.mgi-tech.com/",
+        changeOrigin: true,
+        rewrite: (path) =>{
+          return path
         }
       }
     }

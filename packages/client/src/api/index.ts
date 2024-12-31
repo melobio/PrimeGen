@@ -1,9 +1,11 @@
 import axios from 'axios'
 import Cookies from 'js-cookie'
-import { XResponse, type AdapterRes } from '@/api/response'
+import { XResponse, type AdapterRes, CODES } from '@/api/response'
 import type { ToolsName } from '@/pages/main/tools/ToolItem'
 import type { AgentNode } from "@xpcr/common/src/agent";
 import type {DeviceNode, InputNode, LLMNode, PromptNode, Node, ToolNode} from "@xpcr/common";
+import { useSnackBarStore } from '@/stores/snackbar';
+import router  from '@/router';
 
 const client = axios.create({
   timeout: 10000,
@@ -26,10 +28,20 @@ client.interceptors.request.use((request) => {
   }
   return request
 })
-client.interceptors.response.use((response) => {
+client.interceptors.response.use( (response):any => {
+  if(response.data.code !== CODES.SUCCESS){
+    const snackBarStore = useSnackBarStore();
+    snackBarStore.openSnackbar({
+      msg: response.data.message,
+      color: 'red'
+    })
+    if(response.data.code == CODES.AUTH.LOGIN_INVALID){
+       router.push({ path: '/login', replace: true })
+    }
+  }
   return response.data;
 }, () => {
-  return new XResponse(0, '未知错误', false, null);
+  return new XResponse(0, 'Unknown error', false, null);
 })
 
 client_adpater.interceptors.response.use((response): any => {
@@ -40,7 +52,7 @@ client_adpater.interceptors.response.use((response): any => {
   }
   return new XResponse(adapterRes.code, adapterRes.msg, false, null);
 }, () => {
-  return new XResponse(0, '未知错误', false, null);
+  return new XResponse(0, 'Unknown error', false, null);
 })
 
 export function hello() {
@@ -57,6 +69,17 @@ export function login<T>(
   },
 ): Promise<XResponse<T>>{
   return client.post('/auth/login', data);
+}
+
+export function register<T>(
+  data: {
+    loginType: 'userName';
+    userName?: string;
+    password?: string;
+    confirmPassword?: string;
+  },
+): Promise<XResponse<T>>{
+  return client.post('/auth/register', data);
 }
 
 export function experiments<T>(
@@ -90,6 +113,14 @@ export function deleteConversationByUUID<T>(
   conversationUUID: string,
 ): Promise<XResponse<T>> {
   return client.post(`conversations/${conversationUUID}/del`);
+}
+
+
+export function reNameConversationByUUID<T>(
+  conversationUUID: string,
+  name:string
+): Promise<XResponse<T>> {
+  return client.post(`conversations/${conversationUUID}/rename`,{name});
 }
 
 export function toolsAgents<T>(

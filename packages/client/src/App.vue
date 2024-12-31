@@ -2,7 +2,7 @@
 import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
 import { hello } from '@/api'
-
+import Snackbar from './components/SnackBar.vue'
 </script>
 
 <template>
@@ -20,6 +20,7 @@ import { hello } from '@/api'
 <!--  </header>-->
 
   <RouterView />
+  <Snackbar />
 </template>
 
 <style scoped>

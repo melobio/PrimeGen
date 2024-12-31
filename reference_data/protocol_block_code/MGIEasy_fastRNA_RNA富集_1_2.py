@@ -8,16 +8,16 @@ metadata = {
 }
 
 
-# 移液函数
+# Liquid transfer function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info, mix_flag=0, mix_value=[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette used
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: A list containing transfer information, where each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information, which is a list [number of times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -67,7 +67,7 @@ def run(protocol: protocol_api.ProtocolContext):
     if Sample_nums % 8 != 0:
         use_col_nums = use_col_nums + 1
 
-    # 加载200ul吸头架
+    # Load 200ul tip rack
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '5')
     tips200_2 = protocol.load_labware('opentrons_96_tiprack_300ul', '7')
     tips200_3 = protocol.load_labware('opentrons_96_tiprack_300ul', '8')
@@ -77,7 +77,7 @@ def run(protocol: protocol_api.ProtocolContext):
     temp_shaker = protocol.load_module('temperature module gen2', '1')
     temp_plate = temp_shaker.load_labware('biorad_96_wellplate_200ul_pcr')
 
-    # 加载磁性模块和在磁性模块上加载PCR板
+    # Load magnetic module and PCR plate on magnetic module
     mag_module = protocol.load_module('magnetic module', '3')
     #mag_plate = mag_module.load_labware('biorad_96_wellplate_200ul_pcr')
     deep_plate = protocol.load_labware('nest_96_wellplate_2ml_deep', '9')
@@ -86,7 +86,7 @@ def run(protocol: protocol_api.ProtocolContext):
     right_pipette = protocol.load_instrument('p300_multi_gen2', mount='right', tip_racks=[tips200_1,tips200_2,tips200_3,tips200_4,tips200_5])
     right_pipette.flow_rate.aspirate = 46.43  # Set aspirate speed to 50 μL/s
     right_pipette.flow_rate.dispense = 92.86
-    # 定义液体
+    # Define liquids
     # labeling liquids in wells
     RNA_sample = protocol.define_liquid(
         name="RNA_sample",
@@ -109,7 +109,7 @@ def run(protocol: protocol_api.ProtocolContext):
         display_color="#00FF00",
     )
 
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     liquid_list_1 = calculate_liquid(Sample_nums, TRIS_HCL_buffer_volume)
     liquid_list_2 = calculate_liquid(Sample_nums, Binding_buffer_volume)
@@ -123,14 +123,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well:
         temp_plate.wells_by_name()[well_name].load_liquid(liquid=RNA_sample, volume=0.1)
 
-        # 执行指令
-    # 设置温度和震荡参数
-    temp_shaker.set_temperature(80)  # 设置温度为37摄氏度
+        # Execute commands
+    # Set temperature and shaking parameters
+    temp_shaker.set_temperature(80)  # Set temperature to 37 degrees Celsius
     temp_shaker.deactivate()
     temp_shaker.close_labware_latch()
     protocol.delay(minutes=2)
 
-    # 移液
+    # Liquid transfer
     transfer_times = use_col_nums
     transfer_info_right1 = []
     for ii in range(transfer_times):

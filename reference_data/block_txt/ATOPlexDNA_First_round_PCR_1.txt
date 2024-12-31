@@ -1,0 +1,26 @@
+Code block name: ATOPlexDNA_First round PCR
+
+Description: Perform the first round of PCR experiment
+
+Required solutions:
+
+(1)DNA_samples: Sample DNA solution.
+
+(2)1st_PCR_mix: A mixture of 12.5μL PCR Enzyme Mix, 0.5μL PCR Clean Enzyme and 2μL Custom Panel PCR Primer Pool. Each sample requires 15μL.
+
+Layout:
+
+(1) Place the 20μL tip rack in slots 2 and 4.
+
+(2) Place the temperature control module in slot 3 and place a 200μL Bio-Rad 96-well PCR plate on the temperature control module.
+
+(3) Place a 200μL Bio-Rad 96-well PCR plate in slot 1.
+
+(4) Place the thermal cycler module in slots 7, 8, 10, and 11 and place a 200μL Bio-Rad 96-well PCR plate on the thermal cycler module.
+(5) Use a P20 multichannel pipette, mounted on the left side, and use the tip racks in slots 2 and 4.
+
+Liquid loading:
+(1) Place the DNA_samples solution in slot 1 of the PCR well plate, with the number of wells equal to the number of samples, 12μL per well.
+(2) Place the 1st_PCR_mix solution in the first 8 wells (A1 to H1) of the 96-well PCR plate in the temperature control module.
+
+

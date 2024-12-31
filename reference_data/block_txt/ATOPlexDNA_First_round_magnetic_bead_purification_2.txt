@@ -1,0 +1,28 @@
+Code block name: ATOPlexDNA_First round of magnetic bead purification
+
+Description: Perform the first round of magnetic bead purification experiment
+
+Required solutions:
+
+(1)PCR_1st: The solution obtained after the first round of PCR.
+
+(2)DNA_Clean_Beads: Magnetic bead solution, used to adsorb DNA fragments, 25μL is required for each sample.
+
+(3)80%_Ethanol: Used to wash the magnetic beads, which needs to be washed twice, 160μL is required for each sample.
+
+(4)TE_buffer: Used to dissolve the DNA adsorbed in the magnetic beads, 6.5μL is required for each sample.
+
+Layout:
+
+(1) Place the 20μL tip rack in slot 10, and the 300μL tip rack in slots 4, 5, 7, 8, 9, and 11.
+
+(2) Place the magnetic module in slot 1 and place a 200μL Bio-Rad 96-well PCR plate on the magnetic module.
+(3) Place a USA Scientific 12-well 22 ml reservoir plate in slot 2.
+(4) Use a P20 multichannel pipette, mounted on the left, and use the tip rack in slot 10.
+(5) Use a P300 multichannel pipette, mounted on the right, and use the tip racks in slots 4, 5, 7, 8, 9, and 11.
+
+Liquid loading:
+(1) Place the PCR_1st solution in the PCR well plate of the magnetic module No. 1, and place them in columns, with the number of wells equal to the number of samples.
+(2) Place the DNA_Clean_Beads solution in column A1 of the reservoir plate in slot 2.
+(3) Place the TE_buffer solution in column A2 of the reservoir plate in slot 2.
+(4) Divide the 80%_Ethanol solution into two equal portions and place them in columns A3 and A4 of the reservoir plate in slot 2.

@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi import FastAPI, File, UploadFile, HTTPException, WebSocketDisconnect
-# API请求有频率限制，TODO：多账号混合、时延机制
+# API requests have rate limits, TODO: Multiple account mixing, delay mechanism
 from protocol_agent import modify_code_file,template_protocol_design,get_param_name
 from primer_design import snp_primer_design,redesign_primer
 from SNP_Genotyping_search import SNP_Genotyping_search
@@ -54,7 +54,7 @@ def parse_llm_response(response: ChatCompletion) -> ChatCompletionMessage:
 
 primer_functions= [
 {
-        "name": "download_files",  # 基因分型检索
+        "name": "download_files",  # Gene typing search
         "description": " If you are downloading files now, this tool can help you download the relevant files.",
         "parameters": {
             "type": "object",
@@ -101,14 +101,14 @@ primer_functions= [
 ]
 functions= [  
     {
-        "name": "protein_mutation_search",#蛋白质突变检索
+        "name": "protein_mutation_search",# Protein mutation search
         "description": "If you want to use multiplex PCR methods for tNGS library construction and sequencing on various enzyme mutant libraries obtained through protein engineering, you can use this tool to obtain protein and gene information.",
         "parameters": {
             "type": "object",
             "properties":{
                 "term":{
                     "type":"string",
-                    "description":"The search query or terms. When the user has multiple information terms(like species name and protein name), “AND” should be used for splicing. For example, if you get “luciferase and Gaussia”, you need to extract “luciferase AND Gaussia”.",
+                    "description":"The search query or terms. When the user has multiple information terms(like species name and protein name), "AND" should be used for splicing. For example, if you get "luciferase and Gaussia", you need to extract "luciferase AND Gaussia".",
                 },
                 
             },
@@ -116,7 +116,7 @@ functions= [
         }
     },
     {
-        "name": "whole_genome_search",  # 全基因组检索
+        "name": "whole_genome_search",  # Whole genome search
         "description": "If you want to use multiplex PCR methods for tNGS library construction and sequencing on whole genome detection of viruses, you can use this tool to obtain gene information.",
         "parameters": {
             "type": "object",
@@ -131,7 +131,7 @@ functions= [
         }
     },
 	{
-        "name": "genetic_disorder_search",#遗传病检索
+        "name": "genetic_disorder_search",# Genetic disorder search
         "description": "If the ongoing experiment is a multiplex PCR experiment for genetic disorder analysis, this tool can be used to obtain target gene sequence and snp information. ",
         "parameters": {
             "type": "object",
@@ -146,7 +146,7 @@ functions= [
         }
     },
     {
-        "name":"cancer_search", #肿瘤检索
+        "name":"cancer_search", # Cancer search
         "description":"If the ongoing experiment is a multiplex PCR experiment for cancer analysis, this tool can be used to obtain target gene sequence and snp information. ",
         "parameters":{
             "type":"object",
@@ -160,7 +160,7 @@ functions= [
         }
     },
     {
-        "name":"pathogen_drug_resistance_search", #病原耐药性检索
+        "name":"pathogen_drug_resistance_search", # Pathogen drug resistance search
         "description":"If the ongoing experiment is a multiplex PCR experiment for pathogen drug resistance analysis, this tool can be used to obtain target gene sequence and snp information. ",
         "parameters":{
             "type":"object",
@@ -174,7 +174,7 @@ functions= [
             }
     },
     {
-        "name":"species_identification_search", #物种鉴定检索 Species Identification
+        "name":"species_identification_search", # Species identification search
         "description":"If the ongoing experiment is a multiplex PCR experiment for Species Identification analysis, this tool can be used to obtain target gene sequence and snp information. ",
         "parameters": {
             "type": "object",
@@ -189,7 +189,7 @@ functions= [
             }
     },
     {
-        "name": "SNP_Genotyping_search",  # 基因分型检索
+        "name": "SNP_Genotyping_search",  # Gene typing search
         "description": "If the ongoing experiment is a multiplex PCR experiment for SNP typing, you can use this tool to obtain the target gene sequence and SNP information. ",
         "parameters": {
             "type": "object",
@@ -204,7 +204,7 @@ functions= [
         }
     },
     {
-        "name": "download_files",  # 基因分型检索
+        "name": "download_files",  # Gene typing search
         "description": " If you are downloading files now, this tool can help you download the relevant files.",
         "parameters": {
             "type": "object",
@@ -255,7 +255,7 @@ functions= [
 ]
 
 
-#定义X-chat的对话逻辑
+# Define X-chat conversation logic
 def predict(input_data, stage=1, search_type=None, search_prompt=""):
     history_conversation = input_data["conversation"]
     window_history = history_conversation[-50:]
@@ -333,7 +333,7 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                        #             }
                        #         )
                         
-                        #Modify user query in multiple rounds of self-reflection
+                        # Modify user query in multiple rounds of self-reflection
                        # if data_info_dict["data_list"]==[]:
                            # i=1
                             #query_now = function_args["term"]
@@ -393,7 +393,7 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                     return responses_dict
     
                 elif search_response.function_call.name == "snp_primer_design":
-                    print('成功调用primer design')
+                    print('Successfully called primer design')
                     function_args = json.loads(search_response.function_call.arguments)
                     print('xxx',history_conversation[-1]['content'])
                     instruction = ast.literal_eval(history_conversation[-1]['content'])
@@ -443,7 +443,7 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
             else:
                 responses = search_response.content
                 history_conversation.append({'role':'assistant','content':responses})
-                responses_dict={'responses': '没有调用函数', 'history_conversation': history_conversation}
+                responses_dict={'responses': 'No function called', 'history_conversation': history_conversation}
                 return responses_dict
 
         else:
@@ -481,7 +481,7 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                 return responses_dict
 
             elif search_type == "download_type":
-                print('开始正式下载文件')
+                print('Start downloading files')
                 #instruction = json.loads(history_conversation[-1]['content'])
                 #instruction = instruction['selected_options']
                 responses = download_files(input_data,stage)
@@ -511,10 +511,10 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
     except Exception as e:
         print("Exception:"+str(e))
         print("Traceback:")
-        traceback.print_exc()  # 打印异常调用堆栈
+        traceback.print_exc()  # Print exception call stack
         return "Exception:"+str(e)
 
-# 定义X-chat的对话逻辑
+# Define X-chat conversation logic
 def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
     history_conversation = input_data["conversation"]
     window_history = history_conversation[-50:]
@@ -542,7 +542,7 @@ def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
                 print("Function input: ", search_response.function_call.arguments)
     
                 if search_response.function_call.name == "snp_primer_design":
-                    print('成功调用primer design')
+                    print('Successfully called primer design')
 
 
                     responses = snp_primer_design(input_data,stage=stage)
@@ -550,7 +550,7 @@ def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
                 elif search_response.function_call.name == "redesign_primer":
-                    print('成功调用redesign')
+                    print('Successfully called redesign')
                     responses = redesign_primer(input_data, stage=stage)
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
@@ -566,13 +566,13 @@ def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
                 return responses_dict
 
         elif primer_type == 'redesign_primer_type':
-              print('进入函数')
+              print('Enter function')
               responses = redesign_primer(input_data,stage)
               history_conversation.append({'role': 'assistant', 'content': responses})
               responses_dict = {'responses': responses, 'history_conversation': history_conversation}
               return responses_dict
         else:
-              print('进入函数')   
+              print('Enter function')   
               responses = snp_primer_design(input_data,stage)
               history_conversation.append({'role': 'assistant', 'content': responses})
               responses_dict = {'responses': responses, 'history_conversation': history_conversation}
@@ -582,18 +582,18 @@ def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
 
         print("Exception:"+str(e))
         print("Traceback:")
-        traceback.print_exc()  # 打印异常调用堆栈
+        traceback.print_exc()  # Print exception call stack
         return "Exception:"+str(e)
 
 app = FastAPI()
 
 
-# 解析输入数据
+# Parse input data
 class InputModel(BaseModel):
-    instruction: str #用户输入
-    conversation: list #上下文对话
+    instruction: str # User input
+    conversation: list # Context conversation
     type: int
-    stage: int #对话轮次
+    stage: int # Conversation round
     upload_file_flag: bool
     species_identification_dict: dict
     experiment_select_strain: list
@@ -602,7 +602,7 @@ class InputModel(BaseModel):
     strain_select: list
 
 
-#心跳测试，保证服务器连接状态
+# Heartbeat test to ensure server connection status
 async def heartbeat(websocket: WebSocket):
     while True:
         await asyncio.sleep(30)
@@ -616,7 +616,7 @@ async def heartbeat(websocket: WebSocket):
 executor = ProcessPoolExecutor(max_workers=50)#ThreadPoolExecutor()
 
 
-# WebSocket 路由
+# WebSocket route
 @app.websocket("/ncbi")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -625,21 +625,21 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            #解析为JSON
+            # Parse as JSON
             input_data = json.loads(data)
-            logger.info(f"Endpoint: '/ncbi' 接收到数据：{input_data}")
+            logger.info(f"Endpoint: '/ncbi' received data：{input_data}")
             input_data["instruction"] = json.loads(input_data["instruction"])
             all_history_conversation = input_data["instruction"]["conversation"]
             stage = input_data["instruction"].get("stage") or 1
 
 
-            #第一轮对话
+            # First round conversation
             if stage == 1:
                 loop = asyncio.get_event_loop()
                 input_data["conversation"] = all_history_conversation
                 responses_dict = await loop.run_in_executor(executor, predict, input_data, stage)
 
-            #多轮对话
+            # Multiple round conversation
             else:
 
                 input_data["conversation"] = all_history_conversation
@@ -651,7 +651,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 loop = asyncio.get_event_loop()
                 if temp_flag:
-                    logger.info(f"Endpoint: '/ncbi' 进行第二次回复：{input_data}")
+                    logger.info(f"Endpoint: '/ncbi' making second reply：{input_data}")
                     print('xxxxx')
                     responses_dict = await loop.run_in_executor(executor, predict, input_data, stage, search_type,'')
                 else:
@@ -672,22 +672,22 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            #print("接收到数据：",data)
-            input_data = json.loads(data) #解析为JSON
-            logger.info(f"Endpoint: '/primer' 接收到数据：{input_data}")
+            #print("Received data：",data)
+            input_data = json.loads(data) # Parse as JSON
+            logger.info(f"Endpoint: '/primer' received data：{input_data}")
             input_data["instruction"] = json.loads(input_data["instruction"])
             all_history_conversation = input_data["instruction"]["conversation"]
             stage = input_data["instruction"].get("stage") or 1
 
-            # 第一轮对话
+            # First round conversation
             if stage == 1:
                 all_history_conversation = input_data["instruction"]["conversation"]
                 loop = asyncio.get_event_loop()
                 input_data["conversation"] = all_history_conversation
                 responses_dict = await loop.run_in_executor(executor, primer_predict, input_data)
-            # 多轮对话
+            # Multiple round conversation
             else:
-                print('进入第二轮对话')
+                print('Enter second round conversation')
                 input_data["conversation"] = all_history_conversation
                 primer_type = input_data["instruction"]["primer_type"]
                 
@@ -698,18 +698,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 loop = asyncio.get_event_loop()
                 if temp_flag:
-                    print('xxxxx进行第二次回复')
+                    print('xxxxx making second reply')
                     responses_dict = await loop.run_in_executor(executor, primer_predict, input_data, primer_type,stage)
                 else:
                     responses_dict = await loop.run_in_executor(executor, primer_predict, input_data)
-                #print("当前多轮对话用户输入：", input_)
-                #history_conversation = [{'role': his_['role'], 'content': his_['content']} for his_ in history]
-                # history_conversation.append({'role': 'user', 'content': f'{input_}'})
-                #history_conversation.append({'role': 'user', 'content': f'{data}'})
-                # print("当前用户输入：", input_)
-                #print("当前多轮对话历史：", history_conversation)
-                #loop = asyncio.get_event_loop()
-                #responses_dict = await loop.run_in_executor(executor, primer_predict, history_conversation)
+
 
             await websocket.send_text(
                 json.dumps({'content': responses_dict, 'state': 'stop'}, ensure_ascii=False))
@@ -726,9 +719,9 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            #解析为JSON
+            # Parse as JSON
             input_data = json.loads(data)
-            logger.info(f"Endpoint: '/protocol_design' 接收到数据：{input_data}")
+            logger.info(f"Endpoint: '/protocol_design' received data：{input_data}")
             input_data["instruction"] = json.loads(input_data["instruction"])
             # all_history_conversation = input_data["instruction"]["conversation"]
             responses_dict = template_protocol_design(
@@ -743,15 +736,15 @@ async def websocket_endpoint(websocket: WebSocket):
         try:
             await websocket.close()
         except RuntimeError:
-            # 如果连接已经关闭，忽略这个异常
+            # Ignore this exception if connection is already closed
             pass
 
-#上传文件功能：
-UPLOAD_FOLDER = '/reference_data/upload_file' # 设置上传文件的保存目录
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'fasta', 'fa', 'csv'}  # 允许上传的文件类型
+# File upload functionality:
+UPLOAD_FOLDER = '/reference_data/upload_file' # Set directory for uploaded files
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'fasta', 'fa', 'csv'}  # Allowed file types
 
 
-# # 检查文件类型是否允许上传
+# Check if file type is allowed
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -761,7 +754,7 @@ async def upload_file(files: List[UploadFile] = File(...)):
     uploaded_filenames = []
     for file in files:
         try:
-            print('开始上传')
+            print('Start uploading')
             contents = await file.read()
             file_path = os.path.join(UPLOAD_FOLDER, file.filename)
             with open(file_path, 'wb') as f:
@@ -779,7 +772,7 @@ async def download_reference_data(file_path:str):
     #return FileResponse(file_path)
     print('/reference_data/' + file_path)
     # pd_ = pd.read_csv('/reference_data/' + file_path)
-    # print('已读取pd',pd_)
+    # print('pd read',pd_)
     # response = FileResponse('/reference_data/' + file_path)
     response = FileResponse(file_path)
     # response.headers["Content-Disposition"] = f'attachment; filename="{file_path.split("/")[-1]}"'
@@ -794,7 +787,7 @@ async def download_reference_data(file_path:str):
 
 class ConversationExperimentModel(BaseModel):
     conversation_uuid: str
-    # protocol design 产生的结果, txt文件列表, 用LLM解析板位信息
+    # Protocol design results, txt file list, use LLM to parse panel information
     panel_list: List[str]
     protocol_path: List[str]
 
@@ -813,7 +806,7 @@ class ExperimentResponse(BaseModel):
 async def get_experiment(
     conversation_experiment: ConversationExperimentModel
 ) -> ExperimentResponse:
-    """根据对话id获取实验信息"""
+    """Get experiment info based on conversation id"""
     # create or get experiment
     from logic.alphatool_checks import tips_test, get_panel_list_from_txt
 
@@ -837,7 +830,7 @@ async def get_experiment(
         json.loads(load_protocol_file(protocol_file))
         for protocol_file in conversation_experiment.protocol_path
     ]
-    # FIXME: 删除测试代码
+    # FIXME: Remove test code
     # protocols = [
     #     load_protocol_file(protocol_file)
     #     for protocol_file in [
@@ -860,7 +853,7 @@ async def get_experiment(
                 get_panel_list_from_txt(panel_content)
             )
 
-    # FIXME: 删除测试代码
+    # FIXME: Remove test code
     # for panel_file in ['/Users/gala/work/Genomics/code/pcr-agent/tests/test_panel.txt']:
     #     with open(panel_file, 'r') as panel_file:
     #         panel_content = panel_file.read()
@@ -874,14 +867,14 @@ async def get_experiment(
     experiment.current_run = {}
     experiment.current_protocol_index = 0
     experiment_manager.save_experiment(experiment)
-    # protocol 列表
+    # Protocol list
     for position_list, protocol in zip(experiment.panel_list, protocols):
-        # 检查各个板位吸头的protocol
+        # Check protocols for tips at each position
         pre_check_protocols = [
             tips_test(position)
             for position in position_list
         ]
-        # 该protocol加上检查的protocols 得到总的要运行的protocol列表
+        # Add check protocols to main protocol to get complete protocol list
         one_complete_protocol = pre_check_protocols + [protocol]
         experiment.protocols.append(one_complete_protocol)
         experiment_manager.save_experiment(experiment)
@@ -998,6 +991,6 @@ async def ws_experiment(
 
 
 if __name__ == "__main__":
-    # 开启服务
+    # Start service
     init_everything(app)
     uvicorn.run(app, host="0.0.0.0", port=8081, timeout_keep_alive=300)

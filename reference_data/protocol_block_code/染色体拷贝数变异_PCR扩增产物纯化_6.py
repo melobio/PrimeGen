@@ -1,23 +1,23 @@
 from opentrons import protocol_api
 
 metadata = {
-    'protocolName': '染色体拷贝数变异_PCR扩增产物纯化_6',
+    'protocolName': 'Chromosome Copy Number Variation PCR Product Purification 6',
     'author': 'MGIX',
     'description': 'Protocol for DNA fragmentation and recovery',
     'apiLevel': '2.14'
 }
 
 
-#移液函数
+# Transfer function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info,mix_flag = 0,mix_value =[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette to use
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: List containing transfer information, each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information as a list [number of times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -39,7 +39,7 @@ def run(protocol: protocol_api.ProtocolContext):
     use_col_nums = int(Sample_nums/8)
     if Sample_nums%8 !=0:
         use_col_nums = use_col_nums+1
-    # 加载200ul滤芯吸头架
+    # Load 200ul filtered tip racks
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '4')
     tips200_2 = protocol.load_labware('opentrons_96_tiprack_300ul', '5')
     tips200_3 = protocol.load_labware('opentrons_96_tiprack_300ul', '6')
@@ -49,7 +49,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tips200_7 = protocol.load_labware('opentrons_96_tiprack_300ul', '10')
 
     plate1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '3')
-    # 加载磁性模块和在磁性模块上加载PCR板
+    # Load magnetic module and PCR plate on magnetic module
     mag_module = protocol.load_module('magnetic module', '1')
     mag_plate = mag_module.load_labware('biorad_96_wellplate_200ul_pcr')
 
@@ -59,7 +59,7 @@ def run(protocol: protocol_api.ProtocolContext):
     right_pipette = protocol.load_instrument('p300_multi_gen2', mount='right', tip_racks=[tips200_1,tips200_2,tips200_3,tips200_4,tips200_5,tips200_6,tips200_7])
     right_pipette.flow_rate.aspirate = 46.43  # Set aspirate speed to 50 μL/s
     right_pipette.flow_rate.dispense = 92.86
-    # 定义液体
+    # Define liquids
     # labeling liquids in wells
     connect_products = protocol.define_liquid(
         name="Connect products",
@@ -81,7 +81,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="Ethanol_80",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     reservoir_plate.wells_by_name()['A2'].load_liquid(liquid=TE_Buffer, volume=TE_Buffer_volume)
     reservoir_plate.wells_by_name()['A3'].load_liquid(liquid=Ethanol_80, volume=Ethanol_80_volume/2)
@@ -91,10 +91,10 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well:
         mag_plate.wells_by_name()[well_name].load_liquid(liquid=connect_products, volume=100)
 
-    #执行指令
+    # Execute commands
     mag_module.engage(height_from_base=5)
     protocol.delay(minutes=5)
-    # 移液
+    # Transfer
     transfer_times = use_col_nums
     transfer_info_right1 = []
     for ii in range(transfer_times):
@@ -120,7 +120,7 @@ def run(protocol: protocol_api.ProtocolContext):
         transfer_info_right4.append(('4', str(ii + 1), 200))
 
     transfer_all(right_pipette, reservoir_plate, mag_plate, transfer_info_right4)
-    # 暂停30秒
+    # Delay 30 seconds
     protocol.delay(seconds=30)
 
     transfer_info_right5 = []
@@ -129,9 +129,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     transfer_all(right_pipette, mag_plate, reservoir_plate, transfer_info_right5)
     protocol.delay(minutes=5)
-    # 磁力模块Disengage
+    # Disengage magnetic module
     mag_module.disengage()
-    # 移液
+    # Transfer
     transfer_info_right6 = []
     for ii in range(transfer_times):
         transfer_info_right6.append(('2', str(ii + 1), 25))
@@ -140,7 +140,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.delay(minutes=5)
     mag_module.engage(height_from_base=5)
     protocol.delay(minutes=5)
-    # 移液
+    # Transfer
     transfer_info_right7 = []
     for ii in range(transfer_times):
         transfer_info_right7.append((str(ii + 1), str(ii + 1), 23))

@@ -8,7 +8,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { RunCommandSummary } from '../devices/opentrons/ot-types';
 import { CompletedProtocolAnalysis } from '@xpcr/shared';
-import { NCBIFunctionType } from '../agents/ext/ncbi-search';
+import { NCBIFunctionType, PrimerDesignFunctionType } from '../agents/ext/ncbi-search';
 
 export enum Role {
   User = 'user',
@@ -21,7 +21,7 @@ export enum Role {
   OTCurrentCommand = 'current_command',
   JetsonFaultCheck = 'jetson_fault_check',
 
-  None = 'none', // 中间消息
+  None = 'none',
 }
 export enum MiddleMessageType {
   OTAnalysis = 'ot_analysis',
@@ -50,12 +50,12 @@ export class MessageEntity {
   role: Role;
 
   @Column('text', {
-    default: '',
+    // default: '',
   })
   header: string;
 
   @Column('text', {
-    default: '',
+    // default: '',
   })
   agentType: string;
 
@@ -79,14 +79,18 @@ export class MessageEntity {
     state: string;
     search_type?: NCBIFunctionType;
     species_name?: string;
-    optionRes?: Record<any, any>;
-    strain_path?: string;
+    submitted?: boolean;
+    strain_path?: string[];
+    non_target_path?: string[];
+    target_gene_path?: string[];
     upload_file?: boolean;
     choice_type?: string;
     species_identification_dict?: Record<string, string>;
     protein_mutation_dict?: Record<string, string>;
     primer_design_prompt?: string;
     primer_design_dict?: Record<string, string>;
+    primer_type?: PrimerDesignFunctionType | string;
+    data?: any;
     operations?: {
       title: string;
       key: string;

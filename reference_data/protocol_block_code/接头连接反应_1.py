@@ -1,25 +1,25 @@
 from opentrons import protocol_api
 ##
-##本代码块适用于外显子组酶切,通用DNA,酶切DNA等protocol的接头连接反应。
+## This code block is suitable for adapter ligation reactions in protocols such as exome digestion, general DNA, and enzyme-digested DNA.
 ##
 metadata = {
-    'protocolName': '酶切DNA_接头连接_4',
+    'protocolName': 'Enzyme DNA Adapter Ligation 4',
     'author': 'MGIX',
     'description': 'Protocol for DNA fragmentation and recovery',
     'apiLevel': '2.14'
 }
 
 
-# 移液函数
+# Transfer function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info, mix_flag=0, mix_value=[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette to use
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: List containing transfer information, each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information as a list [number of times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -84,20 +84,20 @@ def run(protocol: protocol_api.ProtocolContext):
     use_col_nums = int(Sample_nums / 8)
     if Sample_nums % 8 != 0:
         use_col_nums = use_col_nums + 1
-    # 加载20ul吸头架
+    # Load 20ul tip rack
     tips20 = protocol.load_labware('opentrons_96_tiprack_20ul', '6')
 
-    # 加载200ul滤芯吸头架
+    # Load 200ul filtered tip rack
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
     tips200_2 = protocol.load_labware('opentrons_96_tiprack_300ul', '4')
     tips200_3 = protocol.load_labware('opentrons_96_tiprack_300ul', '5')
     
     plate1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '1')
-    # 加载温度模块和在温度模块上加载
+    # Load temperature module and labware on temperature module
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
 
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure to specify the correct position number
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
 
@@ -109,7 +109,7 @@ def run(protocol: protocol_api.ProtocolContext):
     left_pipette.flow_rate.dispense = 7.56
     right_pipette.flow_rate.aspirate = 46.43  # Set aspirate speed to 50 μL/s
     right_pipette.flow_rate.dispense = 92.86
-    # 定义液体
+    # Define liquids
     Enzyme_digestion_solution_after = protocol.define_liquid(
         name="Enzyme digestion reaction solution",
         description="Enzyme digestion reaction solution",
@@ -130,7 +130,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="TE_buffer",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     if use_col_nums>6:
         for ii in range(8):
@@ -154,14 +154,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well:
         thermocycler_plate.wells_by_name()[well_name].load_liquid(liquid=Enzyme_digestion_solution_after, volume=Single_Enzyme_digestion_volume)
         plate1.wells_by_name()[well_name].load_liquid(liquid=UDB_adapter, volume=30)
-    # 执行指令
-    # 1. 将温控模块设置为4度并暂停等待达到设定温度
+    # Execute instructions
+    # 1. Set temperature module to 4°C and wait until target temperature is reached
     temp_module.set_temperature(4)
     temp_module.await_temperature(4)
 
     thermocycler_module.open_lid()
     thermocycler_module.set_block_temperature(4)
-    # 移液
+    # Transfer
     transfer_times = use_col_nums
     transfer_info_right1 = []
     for ii in range(transfer_times):

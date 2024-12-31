@@ -8,16 +8,16 @@ metadata = {
 }
 
 
-#移液函数
+# Transfer function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info,mix_flag = 0,mix_value =[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette to use
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: List containing transfer information, each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information as a list [number of times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -100,17 +100,17 @@ def run(protocol: protocol_api.ProtocolContext):
         mix_per_sample = mix_per_sample +1
     annealing_time,repet_times = get_annealing_time(Amplicon_multiplicity)
     
-    # 加载20ul吸头架
+    # Load 20ul tip rack
     tips20_1 = protocol.load_labware('opentrons_96_tiprack_20ul', '2')
     tips20_2 = protocol.load_labware('opentrons_96_tiprack_20ul', '4')
 
     plate1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '1')
 
-    # 加载温度模块和在温度模块上加载
+    # Load temperature module and plate on temperature module
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
 
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure correct position number
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
     # Pipettes
@@ -118,7 +118,7 @@ def run(protocol: protocol_api.ProtocolContext):
     left_pipette.flow_rate.aspirate = 3.78  # Set aspirate speed to 50 μL/s
     left_pipette.flow_rate.dispense = 7.56 
 
-    # 定义液体
+    # Define liquids
     # labeling liquids in wells
     PCR_barcode = protocol.define_liquid(
         name="PCR_barcode",
@@ -135,7 +135,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="PCR_Product",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     liquid_list = calculate_liquid(Sample_nums,MIX_volume)
     for ii in range(8):
@@ -150,14 +150,14 @@ def run(protocol: protocol_api.ProtocolContext):
         plate1.wells_by_name()[well_name].load_liquid(liquid=PCR_barcode, volume=30)
         thermocycler_plate.wells_by_name()[well_name].load_liquid(liquid=PCR_Product, volume=6.5)
 
-    #执行指令
-    # 1. 将温控模块设置为4度并暂停等待达到设定温度
+    # Execute commands
+    # 1. Set temperature module to 4°C and wait until target temperature is reached
     temp_module.set_temperature(4)
     temp_module.await_temperature(4)
 
     thermocycler_module.open_lid()
     thermocycler_module.set_block_temperature(4)
-    # 移液
+    # Transfer
     transfer_times = use_col_nums
     transfer_info_left1 = []
     for ii in range(transfer_times):

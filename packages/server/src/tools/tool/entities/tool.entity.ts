@@ -27,6 +27,7 @@ export class ToolEntity implements ToolNode {
     children: NodeChild[],
     parent: NodeChild,
     version: string,
+    conversationUUID: string,
   ) {
     this.toolType = toolType;
     this.name = name;
@@ -37,6 +38,7 @@ export class ToolEntity implements ToolNode {
     this.children = children;
     this.parent = parent;
     this.version = version;
+    this.conversationUUID = conversationUUID;
   }
   @ApiProperty()
   @PrimaryGeneratedColumn()
@@ -65,6 +67,9 @@ export class ToolEntity implements ToolNode {
 
   @Column()
   name: string;
+
+  @Column()
+  conversationUUID: string;
 
   @Column('text')
   shortDesc: string;

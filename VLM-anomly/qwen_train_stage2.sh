@@ -1,0 +1,14 @@
+MAX_PIXELS=2073600 NPROC_PER_NODE=8 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 swift sft  \
+  --model_type qwen2-vl-7b-instruct  \
+  --model_id_or_path /***   \
+  --custom_train_dataset_path  ***.jsonl \
+  --custom_val_dataset_path ***.jsonl \
+  --sft_type lora \
+  --deepspeed default-zero2 \
+  --num_train_epochs 3 \
+  --save_total_limit -1 \
+  --save_strategy epoch \
+  --use_flash_attn true \
+  --safe_serialization false \
+  --evaluation_strategy epoch \
+  --batch_size 6 \

@@ -71,21 +71,19 @@ const isSubmited = ref(false);
 
 onMounted(() => {
     operations.value = props?.optionInfo?.operations || [];
+    isSubmited.value = props?.optionInfo?.submitted ? true:false
+
     operations.value.forEach(operation => {
         if (!operation.type.includes('file')) {
             operation.options.forEach((item:Record<string,any>) => {
                 operation.value.forEach(operationItem => {
                     if (operationItem == item['Drug']) {
                         selected.value.push(operationItem)
-                        isSubmited.value = true;
                     }
                 })
             })
         }
     });
-    if (selected.value.length > 0) {
-        isSubmited.value = true;
-    }
 })
 
 const canSubmit = computed(() => {
@@ -109,6 +107,8 @@ const submitOption = async () => {
         search_type,
         pathogen_drug_resistance_dict,
         operations: operations.value,
+        // last response data
+        data: props?.optionInfo?.data ?? {},
     }
     await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
 }
@@ -121,5 +121,9 @@ const submitOption = async () => {
     border: 3px solid transparent;
     background: #151728;
     margin: 10px 0;
+    .v-input{
+        display: flex;
+        justify-content: center;
+    }
 }
 </style>

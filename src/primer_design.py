@@ -16,7 +16,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 def snp_primer_design(instruction,stage):
     if stage == 1: 
         stage += 1
-        response = '''The next crucial step is to ”determine the parameters for primer design“. This includes defining optimal conditions such as the maximum and minimum amplicon lengths, desired annealing temperatures, and GC content ranges. These parameters will serve as the foundation for designing specific primers, ensuring the specificity and efficiency of subsequent amplification and detection processes, ultimately guiding you toward your experimental goals.'''
+        response = '''The next crucial step is to "determine the parameters for primer design". This includes defining optimal conditions such as the maximum and minimum amplicon lengths, desired annealing temperatures, and GC content ranges. These parameters will serve as the foundation for designing specific primers, ensuring the specificity and efficiency of subsequent amplification and detection processes, ultimately guiding you toward your experimental goals.'''
         return {'response':response,"operations":[{"key": "min_amp_len","type": ["input","required"],"title": "Min Amp length","value": [210],"options": []},
         {"key": "max_amp_len","type": ["input","required"],"title": "Max Amp length", "value": [270],"options": []},
         {"key": "temperature","type": ["input","required"],"title": "temperature","value": [60], "options": []},
@@ -26,7 +26,7 @@ def snp_primer_design(instruction,stage):
         ], 'state': 'continue', "primer_type": "snp_primer_design_type","stage":stage}
 
     elif stage ==2:
-        print('进入stage 2')
+        print('Entering stage 2')
         primer_design_dict = {
         "Experiment_Direction": "primer design",
         "search_type":"",
@@ -45,8 +45,8 @@ def snp_primer_design(instruction,stage):
         primer_design_dict["max_primer_len"] = instruction['instruction']["max_primer_len"]
         search_type = instruction['instruction']['search_responses']['search_type']
         primer_design_dict["search_type"] = search_type
-        print('已接收到search：', instruction['instruction']['search_responses'])
-        print('接收参数：', instruction['instruction'])
+        print('Received search:', instruction['instruction']['search_responses'])
+        print('Received parameters:', instruction['instruction'])
         #exit()
         stage += 1
         print('primer_design_dict',primer_design_dict)
@@ -64,9 +64,9 @@ here is the designed primer file.
     
         print('search_type',search_type)
 
-        # #获取引物设计所必需的参数
+        # Get required parameters for primer design
         if search_type == 'genetic_disorder_type':
-            print(f'当前结果来自：{search_type}')
+            print(f'Current results from: {search_type}')
             gen_name_list = instruction['instruction']['search_responses']['data']['history_data']['gen_name_list']
             temp_file_name = '_'.join(gen_name_list)
             records = []
@@ -95,12 +95,12 @@ here is the designed primer file.
             mane = set(trans.transcript)
 
             records = []
-            with gzip.open(f'/reference_data/gencode.v46.primary_assembly.annotation.gtf.gz', 'rt') as f:  ## 根据位置修改路径
+            with gzip.open(f'/reference_data/gencode.v46.primary_assembly.annotation.gtf.gz', 'rt') as f:  # Modify path based on location
                 for line in f:
                     if line.startswith('#'):
                         continue
                     tmp = line.strip().split("\t")
-                    if tmp[2] == 'exon':  ## exon
+                    if tmp[2] == 'exon':  # exon
                         chrom, ori, start, end, strand, info = tmp[0], tmp[1], tmp[3], tmp[4], tmp[6], tmp[8]
                         infod = dict()
                         gene = re.search(r'gene_name\s"(.*?)"', info).group(1)
@@ -117,26 +117,26 @@ here is the designed primer file.
             cds_disease['end'] = cds_disease['end'].astype('int')
             wd = '/reference_data'
             merge_num = 580
-            ## 合并间隔 xx 的cds
+            # Merge CDS with interval xx
             cds_disease[['chrom', 'start', 'end', 'strand', 'gene', 'transcript', 'exon_number']].to_csv(
                 f'{wd}/cds.bed', sep="\t", index=False, header=False)
             os.system(f'bedtools sort -i {wd}/cds.bed > {wd}/cds.sort.bed')
             os.system(
                 f'bedtools merge -d {merge_num} -o collapse -c 4,5,7 -i {wd}/cds.sort.bed -delim : > {wd}/cds.merge.bed')
 
-            ## 添加表头
+            # Add header
             cds = pd.read_csv(f'{wd}/cds.merge.bed', sep="\t", header=None)
             cds.columns = ['chrom', 'start', 'end', 'strand', 'gene', 'exon']
             cds.to_csv(f'{wd}/hg38_disease.cds_pos.tsv', index=False, sep="\t")
             os.system(f'rm {wd}/cds.bed {wd}/cds.sort.bed {wd}/cds.merge.bed')
 
-            ## 延伸
+            # Extend
             max_amp_len = 270
             chr2seq = dict()
             for r in SeqIO.parse(f'{wd}/GCF_000001405.40_GRCh38.p14_genomic.fna', 'fasta'):
                 chr2seq[r.id] = str(r.seq)
             cds = pd.read_csv(f'{wd}/hg38_disease.cds_pos.tsv', sep="\t")
-            expand = 100  ## cds边界往前后延伸的碱基数目（自行调整） #72
+            expand = 100  # Number of bases to extend CDS boundaries (adjust as needed) #72
             final_fasta_file = f'{wd}/{temp_file_name}_cds.fasta'
             with open(final_fasta_file, 'w') as out:
                 for i, r in cds.iterrows():
@@ -166,8 +166,8 @@ here is the designed primer file.
                     result.append(temp_path)
 
         elif search_type == 'protein_mutation_type':
-            print(f'Current results from：{search_type} ')
-            logging.info(f'Current results from：{search_type} ')
+            print(f'Current results from: {search_type} ')
+            logging.info(f'Current results from: {search_type} ')
             path_list = instruction['instruction']['search_responses']['data']['protein_gene_seq_path']
             protein_mutation_dict = instruction['instruction']['search_responses']['data']['protein_mutation_dict']
             start_pos = protein_mutation_dict['start_pos']
@@ -207,7 +207,7 @@ here is the designed primer file.
                         result.append(temp_path)
 
         elif search_type == 'pathogen_drug_resistance_type':
-            print(f'Current results from：{search_type} ')
+            print(f'Current results from: {search_type} ')
             res_path = instruction['instruction']['search_responses']['data']['filter_result_path']
             res_df = pd.read_csv(res_path)
             gene_list = list(set(list(res_df['Gene'])))
@@ -246,7 +246,7 @@ here is the designed primer file.
                         result.append(os.path.join(out_path, file))
 
         elif search_type == 'whole_genome_type':
-            print(f'Current results from：{search_type}')
+            print(f'Current results from: {search_type}')
             seqs_file = instruction['instruction']['search_responses']['data']['target_fna_list'][0]
             design_tpye = instruction['instruction']['search_responses']['data']['design_type'][0]
 
@@ -266,7 +266,7 @@ here is the designed primer file.
                     result.append(os.path.join(out_path, file))
 
         elif search_type == 'cancer_type':
-            print(f'Current results from：{search_type}')
+            print(f'Current results from: {search_type}')
             res_dict = instruction['instruction']['search_responses']['data']['target_gene_info']
             res_df = pd.DataFrame.from_dict(res_dict)
             gene_list = list(set(list(res_df['Gene name'])))
@@ -287,7 +287,7 @@ here is the designed primer file.
                 snp_df.to_csv(snp_path, index=False)
     
                 temp_seq = get_dna_seq(list(temp_df['Chromosome'])[0], list(temp_df['Gene start'])[0], list(temp_df['Gene end'])[0], file_content)
-                print('该基因的总长度：',len(temp_seq))
+                print('Total length of this gene:', len(temp_seq))
                 temp_path = os.path.join(dna_file_path,gen+'_seq.fa')
                 with open(temp_path, 'w') as f:
                     f.write(f'>{gen}\n')
@@ -295,13 +295,13 @@ here is the designed primer file.
                     f.close()
     
                 fasta_path = temp_path
-                print(f'{gen}基因序列提取完成。开始设计引物')
+                print(f'Gene sequence extraction complete. Starting primer design')
                 if len(snp_df) ==1:
                     start_pos = int(list(snp_df['START'])[0])
                     temp_len = int(int(parameters[0]) - int(parameters[5])*2)
                     target_gene_part = temp_seq[start_pos-temp_len:start_pos+temp_len]
                     i_length = len(target_gene_part)
-                    print('开始primer3设计')
+                    print('Starting primer3 design')
                     primers = primer3.bindings.design_primers(
                         seq_args={
                             "SEQUENCE_ID": gen,
@@ -355,14 +355,14 @@ here is the designed primer file.
                         
         elif search_type == 'species_identification_type':
             search_result_dict = instruction['instruction']['search_responses']["data"]['species_identification_dict']
-            print(f'Current results from：{search_type}')
-            logging.info(f'当前结果来自：\n{search_type}')
-            #print('Search结果：\n',search_result_dict)
-            logging.info(f'Search结果：\n{search_result_dict}')
+            print(f'Current results from: {search_type}')
+            logging.info(f'Current results from: \n{search_type}')
+            #print('Search results: \n',search_result_dict)
+            logging.info(f'Search results: \n{search_result_dict}')
             name_list = search_result_dict['organism']
             #print(search_result_dict['Target_cds_path'])
             result = []
-            #如果是基因文件，则直接设计引物
+            # If it's a gene file, design primers directly
             gene_path = search_result_dict['target_cds_path']
             output_path = '/reference_data/primer_result'
             if type(gene_path) == str:
@@ -398,7 +398,7 @@ def redesign_primer(instruction,stage):
 
     elif stage == 2:
         stage += 1
-        #Analyze primers that do not meet the requirements and find the corresponding reference sequences
+        # Analyze primers that do not meet the requirements and find the corresponding reference sequences
         summary_depth_file = instruction['instruction']['summary_depth']
         efficiency_file = instruction['instruction']['efficiency']
         first_design_file = instruction['instruction']['first_design_file']
@@ -480,9 +480,9 @@ def primer3_design(fa_path_list, parameters, output_path, name_list=[[1]]):
     result = []
 
     print(fa_path_list)
-    logging.info(f"当前fna路径：{fa_path_list}")
+    logging.info(f"Current fna path: {fa_path_list}")
     print(parameters)
-    logging.info(f"当前primer3参数：{parameters}")
+    logging.info(f"Current primer3 parameters: {parameters}")
     #print([type(y) for y in parameters])
     
     for name_info, fa_path in zip(name_list, fa_path_list):

@@ -1,0 +1,14 @@
+MAX_PIXELS=2073600 NPROC_PER_NODE=8 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 swift sft  \
+  --model_type qwen2-vl-7b-instruct  \
+  --model_id_or_path /home/YJhou/workspace/model_weight/VLM_model/Qwen2-VL-7B-Instruct/   \
+  --custom_train_dataset_path   /home/Tli/workspace/PCR/Data/Data_new_alphatool_split/stage1_1227-1054/qwen_stage1_train.jsonl \
+  --custom_val_dataset_path /home/Tli/workspace/PCR/Data/Data_new_alphatool_split/stage1_1227-1054/qwen_stage1_val.jsonl \
+  --sft_type lora \
+  --deepspeed default-zero2 \
+  --num_train_epochs 5 \
+  --save_total_limit -1 \
+  --save_strategy epoch \
+  --use_flash_attn true \
+  --safe_serialization false \
+  --evaluation_strategy epoch \
+  --batch_size 8 \

@@ -1,6 +1,6 @@
 from opentrons import protocol_api
 #
-##本代码块适用于fastRNA,RNA方向性的RNA片段化_2。
+## This code block is for fastRNA, RNA directional RNA fragmentation_2.
 #
 metadata = {
     'protocolName': 'MGIEasy_fastRNA_RNA片段化_2',
@@ -10,16 +10,16 @@ metadata = {
 }
 
 
-# 移液函数
+# Liquid transfer function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info, mix_flag=0, mix_value=[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette used
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: A list containing transfer information, where each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information, which is a list [number of times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -71,11 +71,11 @@ def run(protocol: protocol_api.ProtocolContext):
     if Sample_nums % 8 != 0:
         use_col_nums = use_col_nums + 1
 
-    # 加载20ul吸头架
+    # Load 20ul tip rack
     tips20_1 = protocol.load_labware('opentrons_96_tiprack_20ul', '1')
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure correct position number is specified
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
     # Pipettes
@@ -83,7 +83,7 @@ def run(protocol: protocol_api.ProtocolContext):
     left_pipette.flow_rate.aspirate = 3.78  # Set aspirate speed to 50 μL/s
     left_pipette.flow_rate.dispense = 7.56
 
-    # 定义液体
+    # Define liquids
     # labeling liquids in wells
     RNA_sample = protocol.define_liquid(
         name="RNA_sample",
@@ -95,7 +95,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="Fragmentation_Buffer",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     liquid_list_1 = calculate_liquid(Sample_nums, Fragmentation_Buffer_volume)
     for ii in range(8):
@@ -104,14 +104,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well:
         thermocycler_plate.wells_by_name()[well_name].load_liquid(liquid=RNA_sample, volume=10)
 
-        # 执行指令
-    # 1. 将温控模块设置为4度并暂停等待达到设定温度
+        # Execute commands
+    # 1. Set temperature module to 4°C and wait until target temperature is reached
     temp_module.set_temperature(4)
     temp_module.await_temperature(4)
-    # 开启热循环
+    # Start thermal cycling
     thermocycler_module.open_lid()
     thermocycler_module.set_block_temperature(4)
-    # 移液
+    # Liquid handling
     transfer_times = use_col_nums
     transfer_info_left1 = []
     for ii in range(transfer_times):

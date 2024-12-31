@@ -47,4 +47,17 @@ export class ConversationController {
       await this.chatsService.deleteConversationsByUUID(conversationUUID),
     );
   }
+
+  @Post(':conversationUUID/rename')
+  async reNameConversationByUUID(
+    @Param('conversationUUID') conversationUUID: string,
+    @Body() msgInfo: { name: string },
+  ) {
+    return XResponse.Success(
+      await this.chatsService.reNameConversationByUUID(
+        conversationUUID,
+        msgInfo.name,
+      ),
+    );
+  }
 }

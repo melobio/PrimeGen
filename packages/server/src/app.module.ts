@@ -34,11 +34,11 @@ import { AgentMessageEntity } from './chats/entities/agent-message.entity';
 
 @Module({
   imports: [
-    // 前端
+    // frontend
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'client/dist'),
-      serveRoot: '/',
-      exclude: ['/api/(.*)'],
+      serveRoot: '/xpcr',
+      exclude: ['/xpcr-api/(.*)'],
     }),
     JwtModule.register({
       global: true,

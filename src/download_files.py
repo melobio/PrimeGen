@@ -34,7 +34,7 @@ def download_files(instruction,stage):
         # user_select_protien_ncbi_download=""
         aa_dna_content, download_path = user_select_protein_ncbi_download(data_list)
         response = f"Protein gene selection has been completed as needed, the details are as follows: {aa_dna_content} "
-        print('结果',download_path)
+        print('result',download_path)
         return {"response": response, "operations":[], "protein_gene_seq_path": download_path,
                 "search_type": "download_type", "search_system_prompt": download_system_prompt, "stage": stage,
                 "state": 'stop'}
@@ -133,7 +133,7 @@ def user_select_protein_ncbi_download(data_list):
                                     dna_define, dna_seq, pro_id, pro_name, pro_seq))
                 break
 
-    # 一方面要前端展示，一方面要后端保存供给引物设计
+    # Need to both display on frontend and save on backend for primer design
     aa_dna_content = 'Based on your final choice, I give the following DNA sequence and amino acid sequence information:\n'
     download_path = []
     for idx, aa_dna_info in enumerate(aa_dna_list):
@@ -152,7 +152,7 @@ def user_select_protein_ncbi_download(data_list):
     return aa_dna_content, download_path
     
 def get_nucleotide_info(name, aa_seq):
-    # 搜索nucleotide数据库
+    # Search nucleotide database
     query = f"{name}"
     handle = Entrez.esearch(db="nucleotide", term=query, retmax=100000)
     record = Entrez.read(handle)
@@ -160,7 +160,7 @@ def get_nucleotide_info(name, aa_seq):
     nucleotide_ids = record["IdList"]
     print('nucleotide_ids', nucleotide_ids)
 
-    # 根据uniport提供的序列和名称来判断，取出真正的DNA序列
+    # Extract the actual DNA sequence by comparing with the sequence and name provided by UniProt
     for nucleotide_id in nucleotide_ids:
         handle = Entrez.efetch(db="nucleotide", id=nucleotide_id, retmode="xml")
         records = Entrez.read(handle)

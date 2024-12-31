@@ -7,16 +7,16 @@ metadata = {
     'apiLevel': '2.14'
 }
 
-#移液函数
+# Transfer function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info,mix_flag = 0,mix_value =[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette to use
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: List containing transfer information, each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information as a list [number of times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -56,14 +56,14 @@ def run(protocol: protocol_api.ProtocolContext):
     use_col_nums = int(Sample_nums/8)
     if Sample_nums%8 !=0:
         use_col_nums = use_col_nums+1
-    # 加载20ul吸头架
+    # Load 20ul tip rack
     tips20 = protocol.load_labware('opentrons_96_tiprack_20ul', '1')
-    # 加载200ul滤芯吸头架
+    # Load 200ul filtered tip rack
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
-    # 加载温度模块和在温度模块上加载
+    # Load temperature module and plate on it
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure correct position number
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
 
@@ -91,7 +91,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="UDB_MIX",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     if use_col_nums>6:
         for well in temp_plate.columns_by_name()['1']:
@@ -120,11 +120,11 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well: 
         thermocycler_plate.wells_by_name()[well_name].load_liquid(liquid=sample, volume=19)
 
-    #执行指令
+    # Execute commands
     thermocycler_module.deactivate_block()
     thermocycler_module.deactivate_lid()
     thermocycler_module.open_lid()
-    # 移液
+    # Transfer
     transfer_times =use_col_nums
     transfer_info_left1 = []
     for ii in range(transfer_times):

@@ -42,8 +42,8 @@ it acquires the gene name and corresponding SNP information, and also retrieves 
         #cancer_dict["cancer_name"] = experiment_info_json_data["cancer_name"]
 
         #cancer_name = cancer_dict["cancer_name"]
-        # 加载一个目录数据集，让用户选择
-        print('文件是否存在', os.path.exists("/reference_data/cancer_directory.json"))
+        # Load a directory dataset for user selection
+        print('Check if file exists', os.path.exists("/reference_data/cancer_directory.json"))
         with open("/reference_data/cancer_directory_filter.json", "r") as f:
             Tumor_catalog = json.load(f)
         f.close()
@@ -69,7 +69,7 @@ it acquires the gene name and corresponding SNP information, and also retrieves 
         name_list = instruction['instruction']['cancer_select']
         print('name_list', name_list)
         data = pd.read_csv("/reference_data/Cosmicfilter.tsv", header=0, sep='\t')
-        # 文件名中的空格用下划线代替
+        # Replace spaces in filenames with underscores
         primary_site = name_list[0].lower().strip().replace(' ', '_')
         site_subtype_1 = name_list[1].lower().strip().replace(' ', '_')
         primary_histology = name_list[2].lower().strip().replace(' ', '_')
@@ -93,7 +93,7 @@ it acquires the gene name and corresponding SNP information, and also retrieves 
 
         # file_path_list.append(fna_path)
         if len(name_mutation_csv) == 0:
-            print('没有找到相关的基因信息')
+            print('No relevant gene information found')
             stage = stage - 2
             with open("/reference_data/cancer_directory.json", "r") as f:
                 Tumor_catalog = json.load(f)
@@ -115,14 +115,14 @@ it acquires the gene name and corresponding SNP information, and also retrieves 
 
                     
 def extract_json_response(response):
-    # 从response中提取JSON内容
+    # Extract JSON content from response
     experiment_info_dict = response.choices[0].message.content
     match = re.search(r'```json\n(.*?)\n```', experiment_info_dict, re.DOTALL)
     if match:
         experiment_info_json_str = match.group(1)
         experiment_info_json_data = json.loads(experiment_info_json_str)
     else:
-        print("GPT构造JSON错误，情况如下所示：\n",experiment_info_dict)
+        print("GPT JSON construction error, details shown below:\n",experiment_info_dict)
         exit()
     return experiment_info_json_data
 

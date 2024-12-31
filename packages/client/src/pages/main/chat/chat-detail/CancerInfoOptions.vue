@@ -1,61 +1,65 @@
 <template>
     <v-sheet class="cancer-info-options" style="border-radius: 24px;" width="100%" v-if="operations.length > 0">
-        <template v-for="operation in operations" :key="operation.key">
-            <v-form v-if="(operation.type.includes('single') || operation.type.includes('multi')) && !wantUploadFile">
-                <div class="option-item">
-                    <span class="option-item-title">
-                        Primary Site:
-                    </span>
-                    <span class="option-item-opt">
-                        <v-select size="large" clearable class="option-item-opt-select" v-model="primarySite"
-                            :rules="optionRules" :disabled="isSubmited" :items="primarySiteOptions">
-                        </v-select>
-                    </span>
-                </div>
-                <div class="option-item">
-                    <span class="option-item-title">
-                        Site subtype 1:
-                    </span>
-                    <span class="option-item-opt">
-                        <v-select class="option-item-opt-select" v-model="siteSubType1" :rules="optionRules"
-                            :disabled="isSubmited" :items="siteSubType1Options"></v-select>
-                    </span>
-                </div>
-                <div class="option-item">
-                    <span class="option-item-title">
-                        Primary histology:
-                    </span>
-                    <span class="option-item-opt">
-                        <v-select class="option-item-opt-select" v-model="primaryHistology" :rules="optionRules"
-                            :disabled="isSubmited" :items="primaryHistologyOptions"></v-select>
-                    </span>
-                </div>
-                <div class="option-item">
-                    <span class="option-item-title">
-                        Histology subtype 1:
-                    </span>
-                    <span class="option-item-opt">
-                        <v-select class="option-item-opt-select" v-model="histologySubtype1" :rules="optionRules"
-                            :disabled="isSubmited" :items="histologySubtype1Options"></v-select>
-                    </span>
-                </div>
-            </v-form>
-            <div class="option-item" v-if="operation.type.includes('file') && wantUploadFile">
-                <span class="option-item-title">
-                    {{ operation.title }}
-                </span>
-                <template v-if="uploadedFiles.length > 0 && isSubmited">
-                    <div class="file-uploaded" v-for="(fileItem, fileIndex) in uploadedFiles" :key="fileIndex">
-                        {{ fileItem.split('/').pop() }}
+        <v-form ref="formRef">
+            <template v-for="operation in operations" :key="operation.key">
+                <template v-if="(operation.type.includes('single') || operation.type.includes('multi')) && !wantUploadFile">
+                    <div class="option-item">
+                        <span class="option-item-title">
+                            Primary Site:
+                        </span>
+                        <span class="option-item-opt">
+                            <v-select size="large" clearable class="option-item-opt-select" v-model="primarySite"
+                                :rules="optionRules" :disabled="isSubmited" :items="primarySiteOptions">
+                            </v-select>
+                        </span>
+                    </div>
+                    <div class="option-item">
+                        <span class="option-item-title">
+                            Site subtype 1:
+                        </span>
+                        <span class="option-item-opt">
+                            <v-select class="option-item-opt-select" v-model="siteSubType1" :rules="optionRules"
+                                :disabled="isSubmited" :items="siteSubType1Options"></v-select>
+                        </span>
+                    </div>
+                    <div class="option-item">
+                        <span class="option-item-title">
+                            Primary histology:
+                        </span>
+                        <span class="option-item-opt">
+                            <v-select class="option-item-opt-select" v-model="primaryHistology" :rules="optionRules"
+                                :disabled="isSubmited" :items="primaryHistologyOptions"></v-select>
+                        </span>
+                    </div>
+                    <div class="option-item">
+                        <span class="option-item-title">
+                            Histology subtype 1:
+                        </span>
+                        <span class="option-item-opt">
+                            <v-select class="option-item-opt-select" v-model="histologySubtype1" :rules="optionRules"
+                                :disabled="isSubmited" :items="histologySubtype1Options"></v-select>
+                        </span>
                     </div>
                 </template>
-                <template v-else>
-                    <v-file-input @change="handleFileChange" v-model="selectedFiles" prepend-icon=""
-                        label="Upload Gene File" :disabled="isSubmited" :rules="rules">
-                    </v-file-input>
+                <template v-if="operation.type.includes('file') && wantUploadFile">
+                    <div class="option-item">
+                        <span class="option-item-title">
+                            {{ operation.title }}
+                        </span>
+                        <template v-if="uploadedFiles.length > 0 && isSubmited">
+                            <div class="file-uploaded" v-for="(fileItem, fileIndex) in uploadedFiles" :key="fileIndex">
+                                {{ fileItem.split('/').pop() }}
+                            </div>
+                        </template>
+                        <template v-else>
+                            <v-file-input @change="handleFileChange" v-model="selectedFiles" prepend-icon=""
+                                label="Upload Gene File" :disabled="isSubmited" :rules="fileRules">
+                            </v-file-input>
+                        </template>
+                    </div>
                 </template>
-            </div>
-        </template>
+            </template>
+        </v-form>
         <div class="bottom-btns">
             <v-btn variant='text' v-if="!isSubmited" @click="handleChangeMode">i want
                 {{ wantUploadFile ? 'select' : 'upload File' }}</v-btn>
@@ -69,21 +73,27 @@
 <script setup lang="ts">
 import { watch, onMounted, ref, computed } from 'vue'
 import { useChatStore, } from '@/stores/chats';
-import { AgentType } from "@xpcr/common/src/agent";
 import { type Message, type CancerOptionInfo, NCBIFunctionType, type Operation } from '@/stores/chat-types';
 import { uploadSequenceFiles } from "@/api";
 const selectedFiles = ref<File[]>([]);
 const uploadedFiles = ref<string[]>([]);
+const formRef = ref();
 const fileExtensionRegex = /\.(fna|fa)$/i;
-const rules = ref([
+const fileRules = ref([
     (files: any) => {
         let validate = true;
+        let tips = ''
         files.forEach((file: any) => {
             if (!fileExtensionRegex.test(file.name)) {
                 validate = false;
+                tips = 'You can only upload fna/fa files'
             }
         });
-        return validate || 'You can only upload fna/fa files';
+        if(files.length<1){
+            validate = false;
+            tips = 'You should upload fna/fa files'
+        }
+        return validate || tips;
     },
 ],);
 const wantUploadFile = ref<boolean>(false);
@@ -115,9 +125,7 @@ const optionRules = [
 ]
 
 const canSubmit = computed(() => {
-    // const lastSearchMsgId = chatStore.currentChatMessages.filter(item => item.agentType == AgentType.SEQUENCE_SEARCH).pop()?.id || '';
-    // props.id == lastSearchMsgId && 
-    return (!chatStore.currentChat.isGenerating) && (finishSelected.value || finishedUploadFile.value) && (!isSubmited.value);
+    return (!chatStore.currentChat.isGenerating) && (!isSubmited.value);
 })
 
 const finishSelected = computed(() => {
@@ -163,14 +171,18 @@ watch(() => primaryHistology, (newVal, odlVal) => {
     }
 }, { deep: true });
 
+const validate = async () => {
+    console.log('formRef.value===>', formRef.value)
+    const { valid } = await formRef.value.validate()
+    return valid
+}
+
 
 onMounted(() => {
+    isSubmited.value = props?.optionInfo?.submitted ? true : false
     if (props?.optionInfo?.operations) {
         operations.value = props?.optionInfo?.operations;
         operations.value.forEach((operation) => {
-            if (operation?.value && operation.value.length > 0) {
-                isSubmited.value = true;
-            }
             if (operation.type.includes('file')) {
                 uploadedFiles.value = [...operation.value];
                 if (operation.value.length > 0) wantUploadFile.value = true;
@@ -215,22 +227,26 @@ const handleFileChange = () => {
     }
 }
 const submitOption = async () => {
-    let stage = props.optionInfo?.stage || 2;
-    let userReply = "I have submitted";
-    let selected_options = [primarySite.value, siteSubType1.value, primaryHistology.value, histologySubtype1.value]
-    operations.value.forEach((item, index) => {
-        if (item.key == 'cancer_select') {
-            operations.value[index] = { ...item, value: selected_options }
+
+    if (await validate()) {
+        isSubmited.value = true;
+        let stage = props.optionInfo?.stage || 2;
+        let userReply = "I have submitted";
+        let selected_options = [primarySite.value, siteSubType1.value, primaryHistology.value, histologySubtype1.value]
+        operations.value.forEach((item, index) => {
+            if (item.key == 'cancer_select') {
+                operations.value[index] = { ...item, value: selected_options }
+            }
+        })
+        let cancer_dict = props.optionInfo?.cancer_dict || {};
+        let search_type = props.optionInfo?.search_type || NCBIFunctionType.cancer_type;
+        let data: CancerOptionInfo = { stage, cancer_dict, search_type, operations: operations.value, data: props?.optionInfo?.data ?? {}, }
+        if (finishSelected.value) {
+            userReply = ` Primary Site: ${primarySite.value};\n Site subtype 1: ${siteSubType1.value};\n Primary histology: ${primaryHistology.value};\n Histology subtype 1: ${histologySubtype1.value}`;
         }
-    })
-    let cancer_dict = props.optionInfo?.cancer_dict || {};
-    let search_type = props.optionInfo?.search_type || NCBIFunctionType.cancer_type;
-    let data: CancerOptionInfo = { stage, cancer_dict, search_type, operations: operations.value }
-    isSubmited.value = true;
-    if (finishSelected.value) {
-        userReply = ` Primary Site: ${primarySite.value};\n Site subtype 1: ${siteSubType1.value};\n Primary histology: ${primaryHistology.value};\n Histology subtype 1: ${histologySubtype1.value}`;
+        await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
     }
-    await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
+
 }
 </script>
 
@@ -244,12 +260,12 @@ const submitOption = async () => {
 
     .option-item {
         width: 100%;
-        margin-top: 20px;
+        margin-top: 5px;
 
         &-title {
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             display: block;
         }
 

@@ -24,7 +24,7 @@ import { ToolEntity } from './tool/entities/tool.entity';
 
 @Injectable()
 export class ToolsService {
-  async getAgentTemplates() {
+  async getAgentTemplates(conversationUUID?: string) {
     return [
       new Agents(
         AgentType.SEQUENCE_SEARCH,
@@ -67,16 +67,17 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
       new Agents(
         AgentType.PRIMER_DESIGN,
         `${AgentType.PRIMER_DESIGN} Agent`,
-        '"This is a primer design agent  function. This method is triggered under two conditions: 1) the sequence_search agent has completed its task; 2) the user has confirmed their desire to start primer design for experiments. It communicates with the user to confirm the primer parameters and employs an algorithm to carry out the primer design.',
+        'A primer design toolkit.Useful for when user want primer design.It can be used even if the user does not provide anything',
         [
           {
             name: AgentFunctions.DESIGN_PRIMER,
             description:
-              '"This is a primer design agent  function. This method is triggered under two conditions: 1) the sequence_search agent has completed its task; 2) the user has confirmed their desire to start primer design for experiments. It communicates with the user to confirm the primer parameters and employs an algorithm to carry out the primer design.',
+              'A primer design toolkit.Useful for when user want primer design.It can be used even if the user does not provide anything',
             parameters: {
               type: 'object',
               properties: {
@@ -109,6 +110,7 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
       new Agents(
         AgentType.PROTOCOL_DESIGN,
@@ -151,6 +153,7 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
       new Agents(
         AgentType.INTERNET_SEARCH,
@@ -223,16 +226,17 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
       new Agents(
         AgentType.FAULT,
         `${AgentType.FAULT} Agent`,
-        'Check whether the OT2 or OT3 machine has encountered a runtime error based on the provided parameters.',
+        'Check whether the Alphatool machine has encountered a runtime error based on the provided parameters.',
         [
           {
             name: AgentFunctions.CHECK_OT2_STATE,
             description:
-              'Check whether the OT2 machine has encountered a runtime error based on the provided parameters.',
+              'Check whether the Alphatool machine has encountered a runtime error based on the provided parameters.',
             parameters: {
               type: 'object',
               properties: {
@@ -274,23 +278,24 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
       new Agents(
         AgentType.CODE_EXECUTION,
         `${AgentType.CODE_EXECUTION} Agent`,
-        'OT2 protocol executor. Please input a complete Python script code that can be accurately executed on OT-2',
+        'Alphatool protocol executor. Please input a complete Python script code that can be accurately executed on Alphatool',
         [
           {
-            name: AgentFunctions.EXECUTE_OT2_PROTOCOL,
+            name: AgentFunctions.CODE_EXECUTION,
             description:
-              'Code Execution Agent is a software component designed to execute the protocol on OT2 and return the results.',
+              'Code Execution Agent is a software component designed to execute the protocol on Alphatool and return the results.',
             parameters: {
               type: 'object',
               properties: {
                 protocol: {
                   type: 'string',
                   description:
-                    'The opentrons protocol to be executed, empty when not provided',
+                    'The Alphatool protocol to be executed, empty when not provided',
                 },
               },
             },
@@ -325,11 +330,12 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
     ];
   }
 
-  async getLLMTemplates() {
+  async getLLMTemplates(conversationUUID?: string) {
     // this.logger.log(`open ai key: ${process.env.OPENAI_API_KEY}`);
     // this.logger.log(`open ai base: ${process.env.OPENAI_API_BASE}`);
     // this.logger.log(`open ai engine: ${process.env.OPENAI_API_ENGINE}`);
@@ -379,10 +385,58 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
+      ),
+      new LlmsEntity(
+        LLMType.OpenAI,
+        LLMType.OpenAI,
+        'Wrapper around OpenAI-chatgpt Chat Large language models.',
+        'Wrapper around OpenAI-chatgpt Chat Large language models.',
+        [],
+        [
+          {
+            label: 'api_key',
+            key: LLMFields.API_KEY,
+            hint: 'The API key for the OPENAI API.',
+            type: NodeFieldType.TextField,
+            required: true,
+            value: process.env.OPENAI_API_KEY || '', // default value
+            accept: {},
+          },
+          {
+            label: 'api_base',
+            key: LLMFields.API_BASE,
+            hint: 'The base URL for the OPENAI API.',
+            type: NodeFieldType.TextField,
+            required: true,
+            value: process.env.OPENAI_API_BASE || '', // default value
+            accept: {},
+          },
+          {
+            label: 'api_engine',
+            key: LLMFields.API_ENGINE,
+            hint: 'The engine for the OPENAI API.',
+            type: NodeFieldType.TextField,
+            required: true,
+            value: process.env.OPENAI_API_ENGINE || '', // default value
+            accept: {},
+          },
+        ],
+        [],
+        {
+          type: NodeTypes.LLMs,
+          name: NodeTypes.LLMs,
+          uuid: '',
+          functionName: '',
+          functionDesc: '',
+          required: false,
+        },
+        '0.0.1',
+        conversationUUID || '',
       ),
     ];
   }
-  async getDeviceTemplates() {
+  async getDeviceTemplates(conversationUUID?: string) {
     return [
       new DevicesEntity(
         DeviceType.OT2,
@@ -431,6 +485,7 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
     ];
   }
@@ -507,7 +562,7 @@ export class ToolsService {
     ];
   }
 
-  async getToolTemplates() {
+  async getToolTemplates(conversationUUID?: string) {
     return [
       new ToolEntity(
         ToolType.GOOGLE_SEARCH,
@@ -544,6 +599,7 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
 
       new ToolEntity(
@@ -581,6 +637,7 @@ export class ToolsService {
           required: false,
         },
         '0.0.1',
+        conversationUUID || '',
       ),
     ];
   }

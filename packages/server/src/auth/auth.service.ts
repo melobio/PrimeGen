@@ -16,10 +16,28 @@ export class AuthService {
     ) {
   }
 
+  // Get user by user name
+  async getUser(userName: string) {
+    return this.userService.findUserByUserName(userName);
+  }
+
+  // Register by user name
+  async registerByUserName(userName: string, password: string) {
+    const user = await this.userService.findUserByUserName(userName);
+    if (user) {
+      throw new XException(CODES.AUTH.USER_ALREADY_EXIST, 'User already exist');
+    }
+    const newUser = await this.userService.registerByUserName(
+      userName,
+      password,
+    );
+    return newUser;
+  }
+
   async loginByUserName(userName: string, password: string) {
     const user = await this.userService.findUserByUserName(userName);
     if (user?.password !== calculateSHA256Hash(password)) {
-      throw new XException(CODES.AUTH.USER_NOT_FOUND_OR_INVALID_PWD, '用户或密码不正确');
+      throw new XException(CODES.AUTH.USER_NOT_FOUND_OR_INVALID_PWD, 'User name or password is invalid');
     }
     // Generate token
     const token = this.jwtService.sign({

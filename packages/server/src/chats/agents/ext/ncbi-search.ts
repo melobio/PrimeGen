@@ -1,6 +1,8 @@
 import * as WebSocket from 'ws';
 import { Logger } from '@nestjs/common';
 import { AgentMessageEntity } from '../../entities/agent-message.entity';
+import { CacheService } from 'src/cache/cache.service';
+import { AgentType } from '@xpcr/common';
 export interface TargetGeneInfo {
   response: string;
   target_gene_info: {
@@ -14,6 +16,7 @@ export interface TargetGeneInfo {
   search_type: NCBIFunctionType;
   search_system_prompt: string;
   state: 'continue' | 'stop';
+  data?: any;
 }
 
 export interface CancerResult {
@@ -30,6 +33,7 @@ export interface CancerResult {
   search_system_prompt: string;
   state: 'continue' | 'stop';
   stage?: number;
+  data?: any;
 }
 
 export interface UploadFileInfo {
@@ -42,15 +46,16 @@ export interface UploadFileInfo {
   upload_file?: Array<string>;
   upload_title?: string;
 }
-//物种鉴定提交的数据
+// submit SpeciesIdentificationInfo
 export interface SpeciesIdentificationInfo {
   stage: number;
   search_type?: NCBIFunctionType;
   upload_file_flag?: boolean;
   species_identification_dict?: Record<string, string>;
   operations?: Operation[];
+  data?: object;
 }
-//物种鉴定的结果
+// SpeciesIdentificationResult response
 export interface SpeciesIdentificationResult {
   response: string;
   upload_file: boolean;
@@ -58,18 +63,21 @@ export interface SpeciesIdentificationResult {
   state: 'continue' | 'stop';
   search_type: NCBIFunctionType;
   species_identification_dict: Record<string, string>;
-  strain_path?: string;
   operations?: Operation[];
+  strain_path?: string[];
   non_target_path?: string[];
+  target_gene_path?: string[];
+  data?: object;
 }
-// 耐药提交的数据
+// submit PathogenDrugInfo
 export interface PathogenDrugInfo {
   stage: number;
   search_type: NCBIFunctionType;
   pathogen_drug_resistance_dict?: Record<string, string>;
   operations?: Operation[];
+  data?: object;
 }
-// 耐药的结果
+// PathogenDrugResult response
 export interface PathogenDrugResult {
   response: string;
   stage: number;
@@ -79,16 +87,18 @@ export interface PathogenDrugResult {
   pathogen_drug_resistance_dict?: Record<string, string>;
   operations?: Operation[];
   sequences?: string;
+  data?: object;
 }
 
-// 蛋白质突变提交的数据
+// submit ProteinMutationInfo
 export interface ProteinMutationInfo {
   stage: number;
   search_type: NCBIFunctionType;
   protein_mutation_dict?: Record<string, string>;
   operations?: Operation[];
+  data?: object;
 }
-// 蛋白质突变的结果
+// ProteinMutationResult response
 export interface ProteinMutationResult {
   response: string;
   stage: number;
@@ -97,26 +107,47 @@ export interface ProteinMutationResult {
   protein_mutation_dict?: Record<string, string>;
   protein_gene_seq_path?: string[];
   operations?: Operation[];
+  data?: object;
 }
-//癌症提交的数据
+// submit CancerOptionInfo
 export interface CancerOptionInfo {
   response: string;
   cancer_list: Record<string, any>;
+  operations?: Operation[];
   stage: number;
   search_type: NCBIFunctionType;
   search_system_prompt: string;
   state: 'continue' | 'stop';
   selected_options?: Array<string>;
+  data?: object;
 }
-// 遗传病提交的数据
+// submit GeneticDisorderInfo
 export interface GeneticDisorderInfo {
   response: string;
-  options: Array<Record<string, any>>;
+  operations?: Operation[];
   stage: number;
   search_type: NCBIFunctionType;
   state: 'continue' | 'stop';
   search_system_prompt: string;
   selected_options?: Array<string>;
+  data?: object;
+}
+export interface SnpPrimerDesignInfo {
+  operations?: Operation[];
+  primer_design_dict: Record<string, string>;
+  primer_design_prompt: string;
+  primer_type: PrimerDesignFunctionType | string;
+  stage: number;
+  state: 'continue' | 'stop';
+  data?: object;
+}
+
+export interface RedesignInfo {
+  operations: Operation[];
+  primer_type: PrimerDesignFunctionType | string;
+  stage: number;
+  state: 'continue' | 'stop';
+  data?: object;
 }
 
 export interface DownLoadTypeOptionsInfo {
@@ -127,9 +158,9 @@ export interface DownLoadTypeOptionsInfo {
   search_type: NCBIFunctionType;
   search_system_prompt: string;
   state: 'continue' | 'stop';
+  data?: object;
 }
 
-type ExperimentStrain = 'Group' | 'Microbe';
 export interface Operation {
   title: string;
   key: string;
@@ -138,7 +169,7 @@ export interface Operation {
   type: string[];
 }
 
-// search 响应结果
+// search response
 export interface NCBIResultContent {
   responses: ProteinMutationInfo &
     DownLoadTypeOptionsInfo &
@@ -160,8 +191,12 @@ export enum NCBIFunctionType {
   species_identification_type = 'species_identification_type',
   pathogen_drug_resistance_type = 'pathogen_drug_resistance_type',
   download_type = 'download_type',
+  whole_genome_type = 'whole_genome_type',
 }
-
+export enum PrimerDesignFunctionType {
+  snp_primer_design_type = 'snp_primer_design_type',
+  redesign_primer_type = 'redesign_primer_type',
+}
 export type NCBIStateType = {
   continue: 'continue';
   stop: 'stop';
@@ -177,15 +212,20 @@ export class NcbiSearch {
   protected ip: string;
   protected port: string;
   protected path: string;
-
-  protected generating = false;
-  protected generatingContent = '';
+  protected domain: string;
   protected resolve?: (value: any) => void;
   protected ws: WebSocket;
 
   protected connected = false;
 
-  constructor() {
+  constructor(
+    readonly cacheService: CacheService,
+    readonly conversationUUID: string,
+  ) {
+    this.cacheService.setObject(
+      `${AgentType.SEQUENCE_SEARCH}:${this.conversationUUID}`,
+      false,
+    );
     this.initConnect();
   }
 
@@ -193,8 +233,14 @@ export class NcbiSearch {
     this.ip = process.env.NCBI_HOST;
     this.port = process.env.NCBI_PORT;
     this.path = process.env.NCBI_PATH;
-
-    const url = `ws://${this.ip}:${this.port}${this.path}`;
+    this.domain = process.env.NCBI_DOMAIN;
+    let url = '';
+    if (this.domain) {
+      url = `wss://${this.domain}${this.path}`;
+    } else {
+      url = `ws://${this.ip}:${this.port}${this.path}`;
+    }
+    this.logger.debug('ncbi-search===>initConnect====>', url);
     this.ws = new WebSocket(url);
 
     this.ws.on('open', () => {
@@ -210,12 +256,18 @@ export class NcbiSearch {
           response: `NCBI Search error: ${error.toString()}`,
         },
       } as NCBIResultContent);
-      this.generating = false;
+      this.cacheService.setObject(
+        `${AgentType.SEQUENCE_SEARCH}:${this.conversationUUID}`,
+        false,
+      );
     });
 
     this.ws.on('close', () => {
       this.logger.debug('== NCBI Search connect Close ==');
-      this.generating = false;
+      this.cacheService.setObject(
+        `${AgentType.SEQUENCE_SEARCH}:${this.conversationUUID}`,
+        false,
+      );
     });
 
     this.ws.on('message', (data) => {
@@ -224,7 +276,10 @@ export class NcbiSearch {
         this.logger.debug(`== NCBI Search heartbeat ==`);
       } else {
         try {
-          this.generating = false;
+          this.cacheService.setObject(
+            `${AgentType.SEQUENCE_SEARCH}:${this.conversationUUID}`,
+            false,
+          );
           const ncbiResult: NCBIResult = JSON.parse(text);
           this.logger.debug('== NCBI Search Message ==');
           this.logger.debug(JSON.parse(text));
@@ -252,43 +307,26 @@ export class NcbiSearch {
       this.resolve = null;
     }
   }
-  call(input: string, history: AgentMessageEntity[]) {
-    if (this.generating) {
+
+  async call(input: string, history: AgentMessageEntity[]) {
+    const generating = await this.cacheService.getObject(
+      `${AgentType.SEQUENCE_SEARCH}:${this.conversationUUID}`,
+    );
+    if (generating) {
       return Promise.resolve<NCBIResultContent>({
         responses: {
           response: 'NCBI search is running, please wait...',
         },
       } as NCBIResultContent);
     }
-    this.generating = true;
-    this.generatingContent = '';
+    this.cacheService.setObject(
+      `${AgentType.SEQUENCE_SEARCH}:${this.conversationUUID}`,
+      true,
+    );
     const sendObj = {
       instruction: input,
       history,
-      type: 0, // 无用字段
-    };
-    this.ws.send(JSON.stringify(sendObj));
-    this.logger.log(`send: ${JSON.stringify(sendObj)}`);
-
-    return new Promise<NCBIResultContent>((resolve) => {
-      this.resolve = resolve;
-    });
-  }
-
-  callFromService(input: string, history: AgentMessageEntity[]) {
-    if (this.generating) {
-      return Promise.resolve<NCBIResultContent>({
-        responses: {
-          response: 'NCBI search is running, please wait...',
-        },
-      } as NCBIResultContent);
-    }
-    this.generating = true;
-    this.generatingContent = '';
-    const sendObj = {
-      instruction: input,
-      history,
-      type: 0, // 无用字段
+      type: 0, // deprecated
     };
     if (!this.ws) {
       this.initConnect();

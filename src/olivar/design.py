@@ -111,8 +111,7 @@ def WAlignScore(seq1, seq2=None):
 
 def check_repeat(seq, rp_num=3):
     '''
-    根据赛默飞的说明，一般单碱基或双碱基的串联重复<4。因此用上述的集合，如果还要其他模式，比如3碱基的串联重复，增加即可。
-    这部分没有办法确保（赛默飞的说明）repeat < 4, 因为PDR如果存在大于阈值的repeat，则要满足多个条件的可能性越低，所以一定会有所牺牲。除非在PDR那里就加入risk进行约束
+
     '''
     one_cp = {x * int(rp_num+1) for x in ['a', 't', 'c', 'g']}
     two_cp = {x * int(rp_num) for x in ['at', 'ac', 'ag', 'ta', 'tc', 'tg', 'ca', 'cg', 'ct', 'ga', 'gc', 'gt']}

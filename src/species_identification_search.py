@@ -9,7 +9,7 @@ from llm_utils.utils import get_llm_chat_completion
 
 
 def extract_json_response(response):
-    # 从response中提取JSON内容
+    # Extract JSON content from response
     experiment_info_dict = response.choices[0].message.content
     try:
         #if json.loads(experiment_info_dict):
@@ -20,8 +20,8 @@ def extract_json_response(response):
             experiment_info_json_str = match.group(1)
             experiment_info_json_data = json.loads(experiment_info_json_str)
         else:
-            print("GPT构造JSON错误，情况如下所示：\n",experiment_info_dict)
-            experiment_info_json_data = None  # 默认值，避免未绑定变量错误
+            print("GPT JSON construction error, details shown below:\n",experiment_info_dict)
+            experiment_info_json_data = None  # Default value to avoid unbound variable error
         return experiment_info_json_data
 
 
@@ -84,7 +84,7 @@ def accession2seqs(term, accession_id, taxid_list):
     #taxid_list = [related_info_dict[term][0]['taxid']]      
     core_cds_path_list=[]
     for species_path,taxid  in zip(species_path_list,taxid_list):
-        print(f'开始{species_path}')
+        print(f'Starting {species_path}')
         core_cds_path_list.append(get_core_gene(file_path=[species_path],taxid=[taxid], type_cds="have_cds"))
     return species_info_list, core_cds_path_list
 
@@ -177,7 +177,7 @@ Assistant: {"species_information":["Helicobacter pylori NCTC 11637 = CCUG 17874 
 
             # [NER] Based on the species information, genus, species, organism, infraspecific, and isolate information are extracted.
             extract_meta_info_list = ner2metainfo(extract_information,base_url,get_ner_entities)
-            print("[NER result]：", extract_meta_info_list)
+            print("[NER result]: ", extract_meta_info_list)
             species_num,target_num_list,related_info_dict = extract_metainfor(extract_meta_info_list,base_url)
             #print("commend information: ",related_info_dict)
             #If NER succeeds, it returns no value info, which means there may be synonyms.
@@ -233,14 +233,14 @@ Assistant: {"species_information":["Helicobacter pylori NCTC 11637 = CCUG 17874 
                             "data":{"species_identification_dict": species_identification_dict} 
                             }
 
-            #获得唯一数据，可直接accession下载序列
+            # Get unique data, can directly download sequence by accession
             else:
                 print(related_info_dict)
                 term=list(related_info_dict.keys())[0]
                 accession_id = related_info_dict[term][0]['accession']
                 
                 species_info_list,core_cds_path_list = accession2seqs(term, accession_id, [related_info_dict[term][0]['taxid']])
-                print('完成 core cds：',core_cds_path_list)
+                print('Core CDS completed:',core_cds_path_list)
                 user_response, core_cds_path_list, species_identification_dict = get_coregene_response(species_info_list, related_info_dict, core_cds_path_list, species_identification_dict,term)
                 
                 species_identification_dict["accession"] = [accession_id]
@@ -265,7 +265,7 @@ Assistant: {"species_information":["Helicobacter pylori NCTC 11637 = CCUG 17874 
                         "data":{"species_identification_dict": species_identification_dict}
                     }     
         
-        #user choice data
+        # User choice data
         else:
             print(instruction)
             print('user select data')
@@ -275,7 +275,7 @@ Assistant: {"species_information":["Helicobacter pylori NCTC 11637 = CCUG 17874 
             tax_id= operation_result[0]["taxid"]
             species_identification_dict = instruction['instruction']["species_identification_dict"]
             species_info_list,core_cds_path_list = accession2seqs(term, accession_id, [tax_id])
-            print('完成 core cds：',core_cds_path_list)
+            print('Core CDS completed:',core_cds_path_list)
             related_info_dict = {term:operation_result}
             print('related_info_dict: ',related_info_dict)
             user_response, core_cds_path_list, species_identification_dict = get_coregene_response(species_info_list, related_info_dict, core_cds_path_list, species_identification_dict,term)

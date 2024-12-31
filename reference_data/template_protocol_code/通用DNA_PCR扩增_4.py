@@ -61,18 +61,18 @@ def run(protocol: protocol_api.ProtocolContext):
     use_col_nums = int(Sample_nums/8)
     if Sample_nums%8 !=0:
         use_col_nums = use_col_nums+1
-    # 加载200ul吸头架
+    # Load 200ul tip rack
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure to specify a correct slot number
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
     # Pipettes
     right_pipette = protocol.load_instrument('p300_multi_gen2', mount='right',tip_racks=[tips200_1])
     right_pipette.flow_rate.aspirate = 46.43  # Set aspirate speed to 50 μL/s
     right_pipette.flow_rate.dispense = 92.86
-    # 定义液体
+    # Define liquids
     # labeling liquids in wells
     sample = protocol.define_liquid(
         name="sample",
@@ -84,7 +84,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="PCR_MIX",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     if use_col_nums>6:
         for well in temp_plate.columns_by_name()['1']:
@@ -101,14 +101,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well:
         thermocycler_plate.wells_by_name()[well_name].load_liquid(liquid=sample, volume=19)
 
-    #执行指令
-    # 1. 将温控模块设置为4度并暂停等待达到设定温度
+    # Execute instructions
+    # 1. Set the temperature module to 4 degrees and pause to wait for the set temperature to be reached
     temp_module.set_temperature(4)
     temp_module.await_temperature(4)
-    # 开启热循环
+    # Start thermocycler
     thermocycler_module.open_lid()
     thermocycler_module.set_block_temperature(4)
-    # 移液
+    # Transfer liquid
     transfer_times = use_col_nums
     transfer_info_right1 = []
     for ii in range(transfer_times):

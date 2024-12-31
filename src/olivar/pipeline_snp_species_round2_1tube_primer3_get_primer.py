@@ -321,7 +321,7 @@ def generate_context(SOI):
 
 def snp_clu(a_r):
     '''
-    snp聚类
+    snp clustering
     '''
     cluster = []
     var_index = np.where(a_r != 0)[0]
@@ -488,7 +488,7 @@ from . import basic  # import basic
 
 
 def get_primer_3(seqs, tm_setting, primer_class='', l_r_flag=''):
-    # 针对单个基因序列文件设计引物
+    
     primer_seq = []  # primer sequence
     primer_arr = []  # array format
     primer_len = []  # primer length without prefix
@@ -829,15 +829,15 @@ def optimize(all_plex_info, config, species_candidates):
         curr_fp = {}
         curr_rp = {}
         curr_badness = 0
-        # 防止候选引物全部都是SNP位点结尾
+        # 
         count = 0
-        # 防止候选引物全部都是SNP位点结尾
+        #
         for plex_id in curr_tube:
             # randomly select one primer pair
             while True:  # 3' avoid snp
-                # 防止候选引物全部都是SNP位点结尾
+                # 
                 count += 1
-                # 防止候选引物全部都是SNP位点结尾
+                # 
                 i = floor(rand() * len(all_plex_info[plex_id]['optimize']))
                 curr_index[plex_id] = i
 
@@ -852,10 +852,10 @@ def optimize(all_plex_info, config, species_candidates):
                 if curr_fp[plex_id][-1].islower() and curr_rp[plex_id][-1].islower():
                     break
 
-                # 防止候选引物全部都是SNP位点结尾
+                # 
                 if count > 200:
                     break
-                # 防止候选引物全部都是SNP位点结尾
+                #
             # for species
             if plex_id not in species_name_list:
                 curr_badness += fp['badness'] + rp['badness']

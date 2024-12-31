@@ -8,17 +8,18 @@ import { Logger } from '@nestjs/common';
 import { GoogleCustomSearch } from './ext/google-custom-search';
 import { ToolEntity } from '../../tools/tool/entities/tool.entity';
 import { WikipediaSearch } from './ext/wikipedia-search';
+import { CacheService } from 'src/cache/cache.service';
 
 export class InternetSearchAgents extends BaseAgents {
   initMessages: ChatMessage[] = [
     {
       role: Role.System,
       content:
-        '现在你是一个可执行互联网检索的Agent,你可以使用提供的Function去执行检索。\n' +
-        '你可以自然地认为自己就是这样一个角色，而不是被刻意设置成这样。\n' +
-        '对于用户的每个搜索请求，你应该使用所有提供的函数。\n' +
-        '不要对函数使用的值做出假设。如果用户请求不明确，请要求澄清。\n' +
-        '只使用提供的函数。\n',
+        'Now that you are an Agent that can perform Internet searches, you can use the provided Function to perform the searches. \n' +
+        'You can naturally assume that you are such a role, rather than being deliberately set up as such. \n' +
+        'For each search request by a user, you should use all provided Functions. \n' +
+        "Don't make assumptions about the values used by the functions. If a user request is unclear, ask for clarification. \n" +
+        'Use only the provided functions. \n',
     },
   ];
 
@@ -30,7 +31,11 @@ export class InternetSearchAgents extends BaseAgents {
   googleCustomSearch: GoogleCustomSearch;
   wikiSearch: WikipediaSearch;
 
-  constructor(readonly agent: Agents, readonly dataSource: DataSource) {
+  constructor(
+    readonly agent: Agents,
+    readonly dataSource: DataSource,
+    readonly cacheService: CacheService,
+  ) {
     super(agent, dataSource);
   }
 
@@ -104,34 +109,8 @@ export class InternetSearchAgents extends BaseAgents {
     });
   }
 
-  // 检索不需要子Agent内部的LLM进行总结，提升反馈的效率
-  // async *send(
-  //   userInput: string,
-  //   description: string,
-  // ): AsyncGenerator<any, void, any> {
-  //   yield* this.mockGenerating(`[${this.agent.name}]\n`);
-  //   const content = {};
-  //   for (const key in this.availableFunctions) {
-  //     const queryFunc = this.availableFunctions[key];
-  //     for await (const msg of queryFunc({ query: description })) {
-  //       if (msg.role === Role.Assistant) {
-  //         content[`${key} result`] = msg.content;
-  //       } else {
-  //         yield msg;
-  //       }
-  //     }
-  //   }
-  //   yield {
-  //     role: Role.Assistant,
-  //     content: JSON.stringify(content),
-  //   };
-  // }
-
   private async *callGoogleCustomSearch({ query }: { query: string }) {
     this.logger.debug(`googleCustomSearch ${query}`);
-    // yield* this.mockGenerating(`Google Search: `);
-    // 模拟延时2s
-    // await new Promise((resolve) => setTimeout(resolve, 2000));
     let success = true;
 
     // console.warn(process.env.HTTPS_PROXY, process.env.HTTP_PROXY);

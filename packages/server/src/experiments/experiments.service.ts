@@ -39,10 +39,30 @@ export class ExperimentsService implements OnModuleInit {
 
   async addExperiment(user: User, isFromInit = false) {
     const nodeChildren: NodeChild[] = [];
+    // create conversation
+    const conversationName = isFromInit
+      ? `Multiplex PCR(${user.userName})`
+      : `New Multiplex PCR`;
+    const conversation = await this.dataSource.manager.save(
+      new ConversationEntity(
+        conversationName,
+        'Modify the board layout of OT-2.',
+        user.uuid,
+      ),
+    );
+    const experimentName = isFromInit
+      ? `Multiplex PCR With OT-2 (${user.userName})`
+      : 'New Multiplex PCR With OT-2';
+
     // add LLM (only Azure)
-    const allLlmTemps = await this.toolsService.getLLMTemplates();
+    const allLlmTemps = await this.toolsService.getLLMTemplates(
+      conversation.uuid,
+    );
     let azureLLM = allLlmTemps.find(
       (llmTemp) => llmTemp.llmType === LLMType.Azure,
+    );
+    let openaiLLM = allLlmTemps.find(
+      (llmTemp) => llmTemp.llmType === LLMType.OpenAI,
     );
     if (azureLLM) {
       azureLLM = await this.dataSource.manager.save(azureLLM);
@@ -55,8 +75,21 @@ export class ExperimentsService implements OnModuleInit {
         required: true,
       });
     }
+    if (openaiLLM) {
+      openaiLLM = await this.dataSource.manager.save(openaiLLM);
+      nodeChildren.push({
+        type: openaiLLM.type,
+        name: 'LLM',
+        uuid: openaiLLM.uuid,
+        functionName: openaiLLM.name,
+        functionDesc: openaiLLM.desc,
+        required: true,
+      });
+    }
     // add OT2
-    const allDeviceTemps = await this.toolsService.getDeviceTemplates();
+    const allDeviceTemps = await this.toolsService.getDeviceTemplates(
+      conversation.uuid,
+    );
     let ot2 = allDeviceTemps.find(
       (deviceTemp) => deviceTemp.deviceType === DeviceType.OT2,
     );
@@ -64,7 +97,9 @@ export class ExperimentsService implements OnModuleInit {
       ot2 = await this.dataSource.manager.save(ot2);
     }
     // add Google search tool
-    const allToolTemps = await this.toolsService.getToolTemplates();
+    const allToolTemps = await this.toolsService.getToolTemplates(
+      conversation.uuid,
+    );
     let googleSearch = allToolTemps.find(
       (toolTemp) => toolTemp.toolType === ToolType.GOOGLE_SEARCH,
     );
@@ -81,7 +116,9 @@ export class ExperimentsService implements OnModuleInit {
     }
 
     // add Agent
-    let allAgentTemps = await this.toolsService.getAgentTemplates();
+    let allAgentTemps = await this.toolsService.getAgentTemplates(
+      conversation.uuid,
+    );
     allAgentTemps.forEach((agentTemp) => {
       // add LLM and OT2 to Agent
       agentTemp.children.forEach((child) => {
@@ -118,19 +155,7 @@ export class ExperimentsService implements OnModuleInit {
         required: true,
       });
     });
-    const conversationName = isFromInit
-      ? `Multiplex PCR(${user.userName})`
-      : `New Multiplex PCR`;
-    const conversation = await this.dataSource.manager.save(
-      new ConversationEntity(
-        conversationName,
-        'Modify the board layout of OT-2.',
-        user.uuid,
-      ),
-    );
-    const experimentName = isFromInit
-      ? `Multiplex PCR With OT-2 (${user.userName})`
-      : 'New Multiplex PCR With OT-2';
+
     await this.dataSource.manager.save(
       new ExperimentEntity(
         experimentName,

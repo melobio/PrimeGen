@@ -1,0 +1,1 @@
+MAX_PIXELS=2073600 CUDA_VISIBLE_DEVICES=0,1,2,3 swift deploy --ckpt_dir /*** --infer_backend vllm  --port 8181 --safe_serialization false --use_flash_attn false --gpu-memory-utilization 0.97 --tensor_parallel_size 4

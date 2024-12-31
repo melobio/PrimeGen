@@ -74,6 +74,7 @@ export interface Node {
   functions: FunctionItem[];
   children?: NodeChild[];
   parent?: NodeChild;
+  conversationUUID?: string,
 }
 
 export interface NodeChild {

@@ -22,21 +22,21 @@ class Retrieval_():
         # self.LoadRerankingModel(reranking_path)
         self.LoadingVectorBase(txt_library_path, vector_library_path)
 
-    # 加载Embedding模型
+    # Load Embedding Model
     def LoadEmbeddingModel(self, embedding_path):
-        #暂时只支持bge-m3模型
+        # Currently only supports bge-m3 model
 #         from FlagEmbedding import BGEM3FlagModel
         self.EM_model = BGEM3FlagModel(embedding_path)
     
-    # 加载Rerank模型
+    # Load Rerank Model 
     # def LoadRerankingModel(self, reranking_path):
-    #     #暂时只支持bge-m3模型
+    #     # Currently only supports bge-m3 model
     #     from FlagEmbedding import FlagReranker
     #     self.reranker_model = FlagReranker(reranking_path)
     
-    # 定义加载向量和文本
+    # Define loading vectors and text
     def LoadingVectorBase(self, txt_library_path, vector_library_path):
-        #暂时pickle和npy文件
+        # Currently pickle and npy files
         with open(vector_library_path,"rb") as f:
             self.doc_embeddings = pickle.load(f)
         f.close()
@@ -45,16 +45,16 @@ class Retrieval_():
         des_df = pd.read_csv(txt_library_path)
         self.txt_library =list(des_df['description'])
 
-    # 定义嵌入方法
+    # Define embedding method
     def GetEmbedding(self, query):
-        #暂时只支持bge-m3模型
+        # Currently only supports bge-m3 model
         self.embedding = self.EM_model.encode(query,
                                                 return_dense=True,
                                                 return_sparse=False,
                                                 return_colbert_vecs=False)
         return self.embedding
     
-    # 定义Embedding检索方法——用pytorch加速矩阵运算
+    # Define Embedding retrieval method - use pytorch to accelerate matrix operations
     def ComputeEmbeddingSimilarityScore(self, query, top_k=50, score_threshold=0.5):
         similarity_score_list = []
         start_time = time.time()
@@ -70,7 +70,7 @@ class Retrieval_():
                 self.embedding_results.append({'text':self.txt_library[i], 'score':score,'index':i})
         return self.embedding_results
 
-    # 定义Rerank方法
+    # Define Rerank method
     def ComputeRerankScore(self, query, top_r=10):
         retrieval_pairs = [[query,result['text']] for result in self.embedding_results]
         scores = self.reranker_model.compute_score(retrieval_pairs, normalize=True)
@@ -79,62 +79,62 @@ class Retrieval_():
         return self.reranked_results
 
     def retrieval_pipeline(self, query, top_k=50, top_r=10, score_threshold=0.5):
-        #先进行Embedding检索
+        # First perform Embedding retrieval
         start_time=time.time()
         embedding_results = self.ComputeEmbeddingSimilarityScore(query, top_k, score_threshold)
 #         print('embedding_results',embedding_results)
-        print("Embedding耗时：",time.time()-start_time)
+        print("Embedding time cost：",time.time()-start_time)
         
         return embedding_results
-#         #再进行Rerank排序
+#         # Then perform Rerank sorting
 #         start_time=time.time()
 #         reranked_results = self.ComputeRerankScore(query, top_r)
 #         print('reranked_results',reranked_results)
-#         print("Reranking耗时：",time.time()-start_time)
+#         print("Reranking time cost：",time.time()-start_time)
 #         return reranked_results
     def retrieval_pipeline2(self, query, top_k=50, top_r=10, score_threshold=0.5):
-        #先进行Embedding检索
+        # First perform Embedding retrieval
         start_time=time.time()
         embedding_results = self.ComputeEmbeddingSimilarityScore(query, top_k, score_threshold)
 #         print('embedding_results',embedding_results)
-        print("Embedding耗时：",time.time()-start_time)
-#         #再进行Rerank排序
+        print("Embedding time cost：",time.time()-start_time)
+#         # Then perform Rerank sorting
         start_time=time.time()
         reranked_results = self.ComputeRerankScore(query, top_r)
         print('reranked_results',reranked_results)
-        print("Reranking耗时：",time.time()-start_time)
+        print("Reranking time cost：",time.time()-start_time)
         return reranked_results
 
-#定义入参解析格式
+# Define input parameter parsing format
 class Query(BaseModel):
     text: str
     top_k: int
     top_r: int
     score_threshold: float
 
-# # 全局变量存储模型和数据
+# # Global variables to store models and data
 # retrieval_instance = None
-# # 启动服务先加载内容
+# # Load content before starting service
 # @app.on_event("startup")
 # def load_models():
 #     global retrieval_instance
-#     # 预设定Embedding模型
+#     # Preset Embedding model
 #     embedding_path = "./bge-m3"
-#     # 预设定Rerank模型
+#     # Preset Rerank model
 #     reranking_path = "./bge-reranker-v2-m3/"
-#     # 文本地址
+#     # Text path
 #     txt_library_path = "./code_block_description.csv"#alil_txt_library.npy"
-#     # 向量地址
+#     # Vector path
 #     vector_library_path = "./data/all_m3_vector_library.pickle"#all_m3_vector_library.pickle"
     
-#     # 构建检索方法
+#     # Build retrieval method
 #     retrieval_instance = Retrieval_(embedding_path, reranking_path, txt_library_path, vector_library_path)
 
 if __name__=="__main__":
     openai.api_type = "azure"
     openai.api_base = "https://xmgi-chat8.openai.azure.com/"
-    openai.api_version = "2024-02-15-preview"
-    openai.api_key = "2d4b3509a9904372be2a75f45a12203f"
+    openai.api_version = ""
+    openai.api_key = ""
     
     parser = argparse.ArgumentParser(description='text embedding ')
     parser.add_argument("--query_file_path", type=str, help="input file")
@@ -142,20 +142,20 @@ if __name__=="__main__":
     query_file_path = args.query_file_path
     
     
-    # 预设定Embedding模型
+    # Preset Embedding model
     embedding_path = "/reference_data/bge-m3"
-    # 预设定Rerank模型
+    # Preset Rerank model
     reranking_path = "/reference_data/bge-reranker-v2-m3/"
-    # 文本地址
+    # Text path
     txt_library_path_1 = "/reference_data/block_description_filter.csv"#alil_txt_library.npy"
     txt_library_path_2 = "/reference_data/block_name_description.csv"
-    # 向量地址
+    # Vector path
     vector_library_path_1 = "/reference_data/all_code_block_vector_library.pickle"#all_m3_vector_library.pickle"
     vector_library_path_2 = "/reference_data/all_name_vector_library.pickle"#all_m3_vector_library.pickle"
-    # 构建检索方法
+    # Build retrieval method
      
     retrieval_2 = Retrieval_(embedding_path, reranking_path, txt_library_path_2, vector_library_path_2)
-    #通过步骤向量和描述向量两种方式进行多路召回
+    # Multi-path recall using both step vectors and description vectors
     query_df = pd.read_csv(query_file_path)
     df_all = pd.read_csv(txt_library_path_1)
     
@@ -195,7 +195,7 @@ if __name__=="__main__":
         print('query字典',query_dict)
         print('target字典库',target_dict_list)
 
-        #通过GPT4来选择描述最相近的代码块
+        # Use GPT4 to select code blocks with the most similar descriptions
         experiment_type_prompt = (f"""
         用户会给你一个target字典和一个query字典库，字典中都有"名称"和"描述"两个关键字，你需要在target字典库中找出名称与query名称是同类型的并且描述与query的描述语义最相近的一个字典，并以JSON进行返回。
         名称是同类型的判断标准为："连接产物纯化"与"连接产物纯化2"是同类型的，另外打断后磁珠双选和打断产物纯化是同类型,多重扩增产物纯化和PCR产物纯化是同类型，打断末端修复与酶切打断是同类型。

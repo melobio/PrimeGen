@@ -3,7 +3,7 @@
     <div class='user'>
       <img alt='' src='@/assets/user.png' class='icon'/>
       <span class='name'>
-        X-Agents
+        PrimeGen
       </span>
     </div>
     <div class='menu-list'>
@@ -80,6 +80,7 @@ function selectMenu(menu: Menus) {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  overflow-x:hidden;
   .user {
     align-self: stretch;
     display: flex;

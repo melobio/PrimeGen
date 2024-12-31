@@ -26,6 +26,7 @@ export class DevicesEntity implements DeviceNode {
     children: NodeChild[],
     parent: NodeChild,
     version: string,
+    conversationUUID: string,
   ) {
     this.deviceType = deviceType;
     this.name = name;
@@ -36,6 +37,7 @@ export class DevicesEntity implements DeviceNode {
     this.children = children;
     this.parent = parent;
     this.version = version;
+    this.conversationUUID = conversationUUID;
   }
   @ApiProperty()
   @PrimaryGeneratedColumn()
@@ -64,6 +66,9 @@ export class DevicesEntity implements DeviceNode {
 
   @Column()
   name: string;
+
+  @Column()
+  conversationUUID: string;
 
   @Column('text')
   shortDesc: string;

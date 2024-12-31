@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 #root_path = '/home/x/x-multiplex-pcr/.data/xsearch/reference_data'
-#增加药品名称，增加可选择SNP
+#Add drug names, add selectable SNPs
 def pathogen_drug_resistance_search(instruction,stage):
 
     pathogen_drug_resistance_prompt = """ 
@@ -19,7 +19,7 @@ def pathogen_drug_resistance_search(instruction,stage):
     it can find the SNP and sequence information of the corresponding species for 
     subsequent design of primers for drug resistance analysis.
     """
-    # 第一轮对话，提取实体，提取出用户提到的物种信息，并与现有耐药库中的物种进行对比。
+    # First round of dialogue, extract entities, extract species information mentioned by users, and compare with existing species in the drug resistance database
     if stage == 1:
         stage += 1
         pathogen_drug_resistance_dict = {
@@ -136,7 +136,7 @@ Example is shown below:
 
 
 def extract_json_response(response):
-    # 从response中提取JSON内容
+    # Extract JSON content from response
     experiment_info_dict = response.choices[0].message.content
     try:
         # if json.loads(experiment_info_dict):
@@ -147,6 +147,6 @@ def extract_json_response(response):
             experiment_info_json_str = match.group(1)
             experiment_info_json_data = json.loads(experiment_info_json_str)
         else:
-            print("GPT构造JSON错误，情况如下所示：\n", experiment_info_dict)
+            print("GPT JSON construction error, situation shown below:\n", experiment_info_dict)
             exit()
         return experiment_info_json_data

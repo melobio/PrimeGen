@@ -42,12 +42,12 @@ aa_dict = {'AA':-7.6,'AT':-7.2,'AC':-8.4,'AG':-7.2,
           'CA':-8.5,'CT':-7.8,'CC':-8,'CG':-10.6,
           'GA':-8.2,'GT':-8.4,'GC':-9.8,'GG':-8}
 def reverse_complement(seq):
-    """计算DNA序列的反向互补序列。"""
+    """Calculate the reverse complement sequence of DNA."""
     complement = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
     return ''.join([complement[base] for base in reversed(seq)])
 def calc_end_stability(seq,flag):
     if flag == 'left':
-        # 末端5个核苷酸的序列
+        # Sequence of last 5 nucleotides
         end_seq = seq[-5:].upper()
         #print(end_seq)
         final_score =0.0
@@ -55,9 +55,9 @@ def calc_end_stability(seq,flag):
             #print(end_seq[ii:ii+2])
             temp = aa_dict[end_seq[ii:ii+2]]
             final_score+=temp
-        # 计算GC含量作为稳定性的近似指标
+        # Calculate GC content as an approximation of stability
 #         gc_content = (end_seq.count('G') + end_seq.count('C')) / len(end_seq)
-        return final_score  # 转换为百分比
+        return final_score  # Convert to percentage
     else:
         end_seq = seq[:5].upper()
         end_seq = reverse_complement(end_seq)
@@ -299,7 +299,7 @@ class primer_generator(object):
                                 'BLAST_hits': BLAST_hits,
                                 'end_stability': end_stability,
                                 'hair_pin': hairpin})
-        #确认hairpin是越小越好？
+        # Confirm that lower hairpin values are better
         sorted_by_hairpin = primers.sort_values(by='hair_pin', ascending=True)
         
         return sorted_by_hairpin[:len(sorted_by_hairpin)//2], {'end_fail': end_fail, 'SNP_fail': SNP_fail, 

@@ -28,6 +28,7 @@ export class LlmsEntity implements LLMNode {
     children: NodeChild[],
     parent: NodeChild,
     version: string,
+    conversationUUID: string,
   ) {
     this.llmType = llmType;
     this.name = name;
@@ -38,6 +39,8 @@ export class LlmsEntity implements LLMNode {
     this.children = children;
     this.parent = parent;
     this.version = version;
+    this.conversationUUID = conversationUUID;
+
     // this.tempArgs = tempArgs;
   }
 
@@ -58,8 +61,10 @@ export class LlmsEntity implements LLMNode {
     default: LLMType.Azure,
   })
   llmType: LLMType;
+
   @Column('simple-json')
   fields: NodeField[];
+
   @Column('simple-json')
   functions: FunctionItem[];
 
@@ -71,6 +76,9 @@ export class LlmsEntity implements LLMNode {
 
   @Column('text')
   shortDesc: string;
+
+  @Column()
+  conversationUUID: string;
 
   @Column('text')
   desc: string;

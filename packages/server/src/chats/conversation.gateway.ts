@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, OnModuleInit } from '@nestjs/common';
@@ -15,21 +16,29 @@ import {
   TEXT_QUESTION,
   VOICE_QUESTION,
   SEND_OPTION_NCBI_SEARCH,
+  RESTART_CONVERSATION,
+  STOP_GENERATING_MESSAGE,
+  TEXT_ANSWER_GENERATING,
+  SEND_OPTION_PRIMER_DESIGN,
+  SEND_OPTION_PROTOCOL_DESIGN,
 } from './conversation.constant';
 import axios, { AxiosRequestConfig } from 'axios';
 import type { AxiosInstance } from 'axios';
 import * as FormData from 'form-data';
-import * as fs from 'fs';
 import {
   CancerOptionInfo,
   GeneticDisorderInfo,
   PathogenDrugInfo,
   SpeciesIdentificationInfo,
   ProteinMutationInfo,
+  SnpPrimerDesignInfo,
 } from './agents/ext/ncbi-search';
+import { ProtocolDesignInfo } from './agents/ext/protocol-design';
+import { AgentType } from '@xpcr/common';
+import * as pako from 'pako';
 
 @WebSocketGateway({
-  path: '/pcr-ws',
+  path: '/xpcr-ws',
   allowEIO3: true,
   transports: ['polling', 'websocket'],
   cors: true,
@@ -114,25 +123,28 @@ export class ConversationGateway
     },
   ) {
     this.logger.log('inputText: ' + text);
-    setTimeout(() => {
-      // 发送text到openai
-      this.chatsService
-        .sendText(conversationUUID, client, text)
-        .catch((e) => {
-          this.logger.error(`sendText error: ${e.message}`, e.stack);
-        })
-        .finally(() => {
-          this.logger.log(`sendText done.`);
-          client.emit(TEXT_ANSWER_DONE, { conversationUUID });
-        });
-    }, 200);
-    // 创建一个user消息
+    // Create a user message
     const userMessage = await this.chatsService.createMessage(
       '',
       text,
       conversationUUID,
       Role.User,
     );
+    this.chatsService.setCacheObject(
+      `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
+      true,
+    );
+    // send the text to the agent
+    this.chatsService
+      .sendText(conversationUUID, client, text)
+      .catch((e) => {
+        this.logger.error(`sendText error: ${e.message}`, e.stack);
+      })
+      .finally(() => {
+        this.chatsService.emitToCliet(client, TEXT_ANSWER_DONE, {
+          conversationUUID,
+        });
+      });
     return { success: true, data: [userMessage] };
   }
 
@@ -145,10 +157,23 @@ export class ConversationGateway
     return res;
   }
 
-  @SubscribeMessage(SEND_OPTION_NCBI_SEARCH)
-  async handleGeneticDiseasesOptionsSubmit(
+  @SubscribeMessage(STOP_GENERATING_MESSAGE)
+  async handleStopGeneratingMessage(
     client: Socket,
-    {
+    { conversationUUID }: { conversationUUID: string },
+  ) {
+    this.logger.debug('STOP_GENERATING_MESSAGE');
+    this.chatsService.resetCacheStatus(conversationUUID);
+    this.chatsService.setCacheObject(
+      `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
+      false,
+    );
+    return { data: [], success: true };
+  }
+
+  @SubscribeMessage(SEND_OPTION_NCBI_SEARCH)
+  async handleNCBISearchOption(client: Socket, compressedData: Uint8Array) {
+    const {
       text,
       conversationUUID,
       option,
@@ -163,38 +188,140 @@ export class ConversationGateway
         | SpeciesIdentificationInfo
         | ProteinMutationInfo;
       messageId: number;
-    },
-  ) {
-    setTimeout(async () => {
-      await this.chatsService.updateNcbiSearchMessage({
-        messageId,
-        option,
-      });
-      const res = await this.chatsService.handleNcbiSearch({
-        option,
-        conversationUUID,
-      });
-      await this.chatsService.updateNcbiSearchMessage({
-        messageId,
-        option,
-        optionRes: res.data,
-      });
-      if (res.data.state == 'stop' && res.success) {
-        const routerAgents = await this.chatsService.getOrCreateRouterAgents(
-          conversationUUID,
-        );
-        await routerAgents.handleNcbiSearchStop(client, res.data);
-      }
-      client.emit(TEXT_ANSWER_DONE, {
-        conversationUUID,
-      });
-    }, 200);
+    } = JSON.parse(pako.inflate(compressedData, { to: 'string' }));
+    this.chatsService.setCacheObject(
+      `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
+      true,
+    );
     const userMessage = await this.chatsService.createMessage(
       '',
       text,
       conversationUUID,
       Role.User,
     );
+    setTimeout(async () => {
+      await this.chatsService.updateAgentMessage({
+        messageId,
+        agentType: AgentType.SEQUENCE_SEARCH,
+        option,
+      });
+      const routerAgents = await this.chatsService.getOrCreateRouterAgents(
+        conversationUUID,
+      );
+      await routerAgents.sendToSearch(client, text, option);
+      client.emit(TEXT_ANSWER_DONE, {
+        conversationUUID,
+      });
+    }, 200);
     return { success: true, data: [userMessage] };
+  }
+
+  @SubscribeMessage(SEND_OPTION_PRIMER_DESIGN)
+  async handlePrimerDesignOption(
+    client: Socket,
+    {
+      text,
+      conversationUUID,
+      option,
+      messageId,
+    }: {
+      text: string;
+      conversationUUID: string;
+      option?: SnpPrimerDesignInfo;
+      messageId: number;
+    },
+  ) {
+    this.chatsService.setCacheObject(
+      `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
+      true,
+    );
+    const userMessage = await this.chatsService.createMessage(
+      '',
+      text,
+      conversationUUID,
+      Role.User,
+    );
+    setTimeout(async () => {
+      await this.chatsService.updateAgentMessage({
+        messageId,
+        agentType: AgentType.PRIMER_DESIGN,
+        option,
+      });
+      const routerAgents = await this.chatsService.getOrCreateRouterAgents(
+        conversationUUID,
+      );
+      await routerAgents.sendToPrimerDesign(client, text, option);
+      client.emit(TEXT_ANSWER_DONE, {
+        conversationUUID,
+      });
+    }, 200);
+    return { success: true, data: [userMessage] };
+  }
+
+  @SubscribeMessage(SEND_OPTION_PROTOCOL_DESIGN)
+  async handleProtocolDesignOption(
+    client: Socket,
+    {
+      text,
+      conversationUUID,
+      option,
+      messageId,
+    }: {
+      text: string;
+      conversationUUID: string;
+      option?: ProtocolDesignInfo;
+      messageId: number;
+    },
+  ) {
+    this.chatsService.setCacheObject(
+      `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
+      true,
+    );
+    const userMessage = await this.chatsService.createMessage(
+      '',
+      text,
+      conversationUUID,
+      Role.User,
+    );
+    setTimeout(async () => {
+      await this.chatsService.updateAgentMessage({
+        messageId,
+        agentType: AgentType.PROTOCOL_DESIGN,
+        option,
+      });
+      const routerAgents = await this.chatsService.getOrCreateRouterAgents(
+        conversationUUID,
+      );
+      await routerAgents.sendToProtocolDesign(client, text, option);
+      client.emit(TEXT_ANSWER_DONE, {
+        conversationUUID,
+      });
+    }, 200);
+    return { success: true, data: [userMessage] };
+  }
+
+  @SubscribeMessage(RESTART_CONVERSATION)
+  async handleRestartConversation(
+    client: Socket,
+    {
+      conversationUUID,
+      restart,
+    }: { conversationUUID: string; restart: boolean },
+  ) {
+    const res = { success: true, data: '' };
+    this.chatsService.setCacheObject(
+      `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
+      true,
+    );
+    try {
+      await this.chatsService.handleRestartConversation(
+        client,
+        conversationUUID,
+        restart,
+      );
+    } catch (e) {
+      res.success = false;
+    }
+    return res;
   }
 }

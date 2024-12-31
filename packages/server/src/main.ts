@@ -8,7 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const logger = new Log4jsService();
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api', {
+  app.setGlobalPrefix('xpcr-api', {
     exclude: [{ path: '/files/(.*)', method: RequestMethod.ALL }],
   });
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
@@ -22,7 +22,7 @@ async function bootstrap() {
     .setDescription('X PCR Api Document')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('auth', '鉴权管理')
+    .addTag('auth', 'Auth')
     .addTag('agents', 'Agents')
     .build();
   const document = SwaggerModule.createDocument(app, config);

@@ -1,11 +1,12 @@
 import { Logger } from '@nestjs/common';
 import * as WebSocket from 'ws';
-import { NCBIResultContent } from './ncbi-search';
+import { NCBIResultContent, SnpPrimerDesignInfo } from './ncbi-search';
 import { AgentMessageEntity } from '../../entities/agent-message.entity';
 import { DataSource } from 'typeorm';
 import { MessageEntity } from 'src/chats/entities/message.entity';
 import { AgentType } from '@xpcr/common';
 import { ChatMessage } from '@azure/openai';
+import { CacheService } from 'src/cache/cache.service';
 
 export interface PrimerResultContent {
   responses: {
@@ -17,6 +18,7 @@ export interface PrimerResultContent {
     primer_design_prompt?: string;
     primer_design_dict?: Record<string, any>;
     primer?: string[];
+    data?: any;
   };
   history_conversation: Array<Record<string, string>>;
 }
@@ -33,21 +35,31 @@ export class PrimerDesign {
   protected ip: string;
   protected port: string;
   protected path: string;
-
-  protected generating = false;
+  protected domain: string;
   protected resolve?: (value: any) => void;
   protected ws: WebSocket;
 
   protected connected = false;
   constructor(
     readonly dataSource: DataSource,
+    readonly cacheService: CacheService,
     readonly conversationUUID: string,
   ) {
+    this.cacheService.setObject(
+      `${AgentType.PRIMER_DESIGN}:${this.conversationUUID}`,
+      false,
+    );
     this.ip = process.env.PRIMER_HOST;
     this.port = process.env.PRIMER_PORT;
     this.path = process.env.PRIMER_PATH;
-
-    const url = `ws://${this.ip}:${this.port}${this.path}`;
+    this.domain = process.env.PRIMER_DOMAIN;
+    let url = '';
+    if (this.domain) {
+      url = `wss://${this.domain}${this.path}`;
+    } else {
+      url = `ws://${this.ip}:${this.port}${this.path}`;
+    }
+    this.logger.debug('primer-design===>initConnect====>', url);
     this.ws = new WebSocket(url);
 
     this.ws.on('open', () => {
@@ -66,7 +78,10 @@ export class PrimerDesign {
 
     this.ws.on('close', () => {
       this.logger.log(`close`);
-      this.generating = false;
+      this.cacheService.setObject(
+        `${AgentType.PRIMER_DESIGN}:${this.conversationUUID}`,
+        false,
+      );
     });
 
     this.ws.on('message', (data) => {
@@ -78,9 +93,11 @@ export class PrimerDesign {
         this.logger.debug('== Primer Design Result ==');
         this.logger.log(text);
         const primerResult: PrimerResult = JSON.parse(text);
-        this.generating = false;
+        this.cacheService.setObject(
+          `${AgentType.PRIMER_DESIGN}:${this.conversationUUID}`,
+          false,
+        );
         if (primerResult.state === 'stop') {
-          // this.resolve(this.current.content);
           this.sendResolve(primerResult.content);
         }
       }
@@ -89,7 +106,7 @@ export class PrimerDesign {
 
   private sendResolve(content: PrimerResultContent) {
     if (this.resolve) {
-      this.logger.log(`Primer Design result: ${content}`);
+      this.logger.log(`Primer Design result: ${JSON.stringify(content)}`);
       this.resolve(content);
       this.resolve = null;
     }
@@ -99,8 +116,12 @@ export class PrimerDesign {
     input: string,
     history: AgentMessageEntity[],
     lastPrimerMsg: Record<string, any> = {},
+    optionInfo: SnpPrimerDesignInfo,
   ) {
-    if (this.generating) {
+    const generating = await this.cacheService.getObject(
+      `${AgentType.PRIMER_DESIGN}:${this.conversationUUID}`,
+    );
+    if (generating) {
       return Promise.resolve<PrimerResultContent>({
         responses: {
           response: `Primer Design is running, please wait...`,
@@ -120,7 +141,10 @@ export class PrimerDesign {
       (item) => item.optionInfo && item.optionInfo.state == 'stop',
     ).optionInfo;
     const search_responses = searchLastoptionInfo || {};
-    this.generating = true;
+    this.cacheService.setObject(
+      `${AgentType.PRIMER_DESIGN}:${this.conversationUUID}`,
+      true,
+    );
     const chatHistory = await this.dataSource.manager.find(MessageEntity, {
       where: { conversationUUID: this.conversationUUID },
       order: { createTime: 'asc' },
@@ -128,15 +152,22 @@ export class PrimerDesign {
     const chatHistoryArr = chatHistory.map<ChatMessage>((item) => {
       return { role: item.role, content: item.content };
     });
+    const operationsObj = {};
+    if (optionInfo?.operations) {
+      optionInfo?.operations.forEach((item) => {
+        operationsObj[item.key] = item.value;
+      });
+    }
     const sendObj = {
       instruction: JSON.stringify({
         stage: 1,
         ...lastPrimerMsg.optionInfo,
+        ...operationsObj,
         conversation: chatHistoryArr,
         search_responses,
       }),
       history,
-      type: 0, // 无用字段
+      type: 0, // deprecated
     };
     this.ws.send(JSON.stringify(sendObj));
     this.logger.log(`send: ${JSON.stringify(sendObj)}`);

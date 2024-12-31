@@ -23,6 +23,7 @@ export class Agents implements AgentNode {
     children: NodeChild[],
     parent: NodeChild,
     version: string,
+    conversationUUID: string,
   ) {
     this.agentType = agentType;
     this.name = name;
@@ -33,6 +34,7 @@ export class Agents implements AgentNode {
     this.children = children;
     this.parent = parent;
     this.version = version;
+    this.conversationUUID = conversationUUID;
   }
 
   @ApiProperty()
@@ -54,6 +56,9 @@ export class Agents implements AgentNode {
 
   @Column()
   name: string;
+
+  @Column()
+  conversationUUID: string;
 
   @Column('text')
   shortDesc: string;

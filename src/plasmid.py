@@ -21,7 +21,7 @@ round2_exclude_dict = {}
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='引物设计代码')
+    parser = argparse.ArgumentParser(description='Primer Design Code')
     parser.add_argument('--fasta_path', help='the path of fasta file')
     parser.add_argument('--out_path', help='the path of output')
     parser.add_argument('--gene_name', help='the gene name')
@@ -52,14 +52,13 @@ if __name__ == "__main__":
     print('min_GC', min_GC)
     print('max_GC', max_GC)
     print('max_len', max_len)
-    print('temperature', temperature)
-    print('开始进行引物设计')
+    print('Start primer design')
     build(
         fasta_path = fasta_path,
         var_path = var_path,
         BLAST_db = None,
-        ## 一定要写makeblastdb得出的数据库name
-        #BLAST_db = '/Users/wangyi/PycharmProjects/pcr_1/twt_设计/dt1/dt1_db/dt1_db', ## 一定要写makeblastdb得出的数据库name
+        ## Must write the database name output from makeblastdb
+        #BLAST_db = '/Users/wangyi/PycharmProjects/pcr_1/twt_设计/dt1/dt1_db/dt1_db', ## Must write the database name output from makeblastdb
         #BLAST_db= '/Users/wangyi/PycharmProjects/pcr_1/primer_agent/snp_target_typing/db_NC_000962.3/NC_000962',
         #Optional, path to the BLAST database.
         # Note that this path should end with the name of the BLAST database (e.g., "example_input/Human/GRCh38_primary").

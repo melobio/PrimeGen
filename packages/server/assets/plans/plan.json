@@ -10,7 +10,8 @@
   "steps": [
     {
       "stepName": "Confirm the experiment type and experiment objectives",
-      "purpose": "user confirm the specific purpose of the experiment (composed of a specific type of experiment and a specific experimental subject); The experiment type only supports (Protein Mutation Analysis/ Genetic Disease Diagnosis/ Cancer Research/ Pathogen Resistance Analysis/ Pathogen Species Identification/ COVID-19 Detection Experiment); The aim of the experiment refers to the specific name; The purpose of the experiment must consist of the experiment type and the experimental subject; such as 'Protein Mutation Analysis of Luciferase/DNA Polymerase/Deaminase/Hydrolase', 'Diagnosis of Genetic Diseases like Myasthenia Gravis/Acatalasemia/Marfan Syndrome/Hyperlipoproteinemia Type III in Humans', 'Cancer Research related to Lung Cancer/Colorectal Cancer/Breast Cancer/Pancreatic Cancer', 'Pathogen Resistance Studies for E. coli/Staphylococcus/Pneumococcus/Neisseria gonorrhoeae', 'Species Identification of Mycobacterium/Branching Mycobacterium'.",
+      "purpose": "if user confirm the specific purpose of the experiment (composed of a specific type of experiment and a specific experimental subject,No need to confirm details on the objective); The experiment type only supports (Protein Mutation Analysis/ Genetic Disease Diagnosis/ Cancer Research/ Resistance Analysis/ Species Identification / Whole genome testing /Species Diagnosis /Species Classify Experiment); The aim of the experiment refers to the specific name; The purpose of the experiment must consist of the experiment type and the experimental subject. At the same time, it must be personally confirmed by the user.",
+      "purposeExample":" 'Protein Mutation Analysis of Luciferase/DNA Polymerase/Deaminase/Hydrolase'、 'Diagnosis of Genetic Diseases like Myasthenia Gravis/Acatalasemia/Marfan Syndrome/Hyperlipoproteinemia Type III in Humans'、 'Cancer Research related to Lung Cancer/Colorectal Cancer/Breast Cancer/Pancreatic Cancer'、 'Pathogen Resistance Studies for E. coli/Staphylococcus/Pneumococcus/Neisseria gonorrhoeae'、 'Species Identification of Mycobacterium/Branching Mycobacterium' ",
       "state": "idle",
       "checkWithContext":true,
       "useAgents": [
@@ -19,7 +20,8 @@
     },
     {
       "stepName": "Determining DNA Sequence",
-      "purpose": "Sequence file name or Gene information;sequence file name(.fasta/.fastq/.fna/.csv,Just need the file name; no need to worry about the gene detail),gene information(including the gene's chrom/Chromosome、start、end、gene、type、HGNC);only need either the gene file name or the gene information.",
+      "purpose": "Gene information(including the gene's chrom/Chromosome、start、end、gene、type、HGNC(Can be empty));only need either the gene file name or the gene information.",
+      "purposeExample":"",
       "state": "idle",
       "checkWithContext":false,
       "useAgents": [
@@ -28,7 +30,8 @@
     },
     {
       "stepName": "Primer Design",
-      "purpose": "The Primer Design file('.fasta/.fastq/.fna/.csv')just need the file name",
+      "purpose": "The Primer Design file('.fasta/.fastq/.fna/.csv');just need the file name",
+      "purposeExample":"",
       "checkWithContext":false,
       "state": "idle",
       "useAgents": [
@@ -36,27 +39,20 @@
       ]
     },
     {
-      "stepName": "Primer synthesis",
-      "purpose": "The user confirms receipt of the primers; no specific data or description is required.",
-      "checkWithContext":false,
-      "state": "idle",
-      "useAgents": [
-        "Internet Search"
-        ]
-    },
-    {
       "stepName": "Protocol Design",
-      "purpose": "Python content for OT2 Protocol.",
+      "purpose": "Get Python file(.py) or JSON file(.json) for Experiment Protocol;just need the file name",
       "checkWithContext":false,
+      "purposeExample":"",
       "state": "idle",
       "useAgents": [
         "Protocol Design"
       ]
     },
     {
-      "stepName": "OT2 Execution",
-      "purpose": "Successfully executed OT2 Protocol, obtaining PCR results.",
+      "stepName": "Code Execution",
+      "purpose": "Successfully execute all protocols in the experiment, obtaining PCR results.",
       "checkWithContext":false,
+      "purposeExample":"",
       "state": "idle",
       "useAgents": [
         "Code Execution"
@@ -66,13 +62,17 @@
       "stepName": "Sequencing",
       "purpose": "Sequence the PCR results on the machine to obtain sequencing results.",
       "checkWithContext":false,
+      "purposeExample":"",
       "state": "idle",
-      "useAgents": []
+      "useAgents": [
+        "Internet Search"
+      ]
     },
     {
       "stepName": "Result Analysis",
       "purpose": "Analyze the sequencing results to derive experimental conclusions.",
       "checkWithContext":false,
+      "purposeExample":"",
       "state": "idle",
       "useAgents": [
         "Result Analysis"
@@ -128,7 +128,7 @@
     },
     {
       "agentName": "Protocol Generation",
-      "description": "OT2 Protocol Generator for PCR experiment targeting tuberculosis DNA",
+      "description": "AlphaTool Protocol Generator for PCR experiment targeting tuberculosis DNA",
       "dependenceAgents": [
         "Experiment Design"
       ],
@@ -140,7 +140,7 @@
     },
     {
       "agentName": "Code Execution",
-      "description": "OT2 Code Execution for PCR experiment targeting tuberculosis DNA",
+      "description": "AlphaTool Code Execution for PCR experiment targeting tuberculosis DNA",
       "dependenceAgents": [
         "Protocol Generation"
       ],
@@ -152,7 +152,7 @@
     },
     {
       "agentName": "Fault",
-      "description": "Fault checking for execution of OT2 Protocol code",
+      "description": "Fault checking for execution of AlphaTool Protocol code",
       "dependenceAgents": [
         "Protocol Generation"
       ],

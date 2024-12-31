@@ -7,10 +7,10 @@ export class PlanStep {
     public stepName: string,
     public purpose: string,
     public prompt: string,
-    public actualResult: string,
     public state: string,
     public useAgents: string[],
     public checkWithContext: boolean,
+    public purposeExample: string,
   ) {}
 }
 export class Planner {
@@ -19,7 +19,6 @@ export class Planner {
   description = '';
   availableStates: string[] = [];
   steps: PlanStep[] = [];
-
   constructor(
     private cvs: ConversationEntity,
     private dataSource: DataSource,
@@ -37,20 +36,22 @@ export class Planner {
         step.stepName,
         step.purpose,
         step.prompt,
-        '',
         step.state,
         step.useAgents,
-        step.checkWithContext
+        step.checkWithContext,
+        step.example,
       );
     });
     planner.title = obj.title;
     planner.description = obj.description;
     planner.availableStates = obj.availableStates;
-    // 将第一个step设置为running
     if (planner.steps.length > 0) {
       const currentStepIndex = planner.steps.findIndex(
         (step) => step.stepName === cvs.currentStep,
       );
+      planner.logger.debug('cvs.currentStep===>', cvs.currentStep);
+
+      planner.logger.debug('currentStepIndex===>', currentStepIndex);
       if (currentStepIndex > 0) {
         planner.steps[currentStepIndex].state = 'running';
       } else {
@@ -61,17 +62,18 @@ export class Planner {
     }
     return planner;
   }
-  // constructor() {}
 
   getCurrentStep(): PlanStep {
     return this.steps.find((step) => step.state === 'running');
   }
+
   getNextStep(): PlanStep {
     const currentStep = this.getCurrentStep();
     const currentIndex = this.steps.indexOf(currentStep);
     const nextStep = this.steps[currentIndex + 1];
     return nextStep;
   }
+
   goNextStep() {
     const currentStep = this.getCurrentStep();
     if (currentStep) {
@@ -88,6 +90,7 @@ export class Planner {
       return nextStep;
     }
   }
+
   setCurrentStep(currentStepName: string) {
     let currentStepIndex = -1;
     this.steps.forEach((step, index) => {

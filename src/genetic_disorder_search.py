@@ -17,7 +17,7 @@ Further user interaction will select the genetic disease and associated genes re
     """
     # genetic disorder name --> gene name list
     if stage == 1:
-        #使用LLM提取疾病
+        # Use LLM to extract disease
         experiment_type_prompt = """Based on the user's contextual dialogue, you need to perform information extraction. The information to be extracted includes:  
         1.disease_name (human genetic diseases name,Return null if no diseases was mentioned in the user conversation)   
         The results should be returned to me in JSON format.  
@@ -47,10 +47,10 @@ Further user interaction will select the genetic disease and associated genes re
         response = f'I will provide the name of the genetic disease and the corresponding gene name related to {disease_name}'
         stage += 1
         # OMIM dataset
-        # 根据 disorder name来抽取gene names
+        # Extract gene names based on disorder name
         gene_result = get_disease_gene(disease_name)
         history_data = {}
-        #根据是否有history_data判断是首次搜索还是循环搜索
+        # Determine if this is first search or repeat search based on history_data
         if 'data' in instruction['instruction'].keys() and 'history_data' in instruction['instruction']['data'].keys():
             history_data = instruction['instruction']['data']['history_data']
 
@@ -64,7 +64,7 @@ Further user interaction will select the genetic disease and associated genes re
             #         "search_type": "genetic_disorder_type", "data":{'history_data':history_data}, "search_system_prompt": genetic_disorder_system_prompt,
             #         "state": 'continue'}
         else:
-            # 返回gene names 、 stage、type
+            # Return gene names, stage, type
             return {"response": response,"operations":[{"title":"gene and disease information","options":gene_result,"type":["multi","input"],"key":"gene_select","value":[]}], "stage": stage,
                     "search_type": "genetic_disorder_type", "data":{'history_data':history_data},"search_system_prompt": genetic_disorder_system_prompt,
                     "state": 'continue'}
@@ -83,7 +83,7 @@ Further user interaction will select the genetic disease and associated genes re
         temp_gene = target_gene_names_list[0]
         if ',' in temp_gene:
             target_gene_names_list = temp_gene.split(',')
-        # 打开 ClinVar dataset
+        # Open ClinVar dataset
         gene_info_df = pd.read_csv('/reference_data/gene_info_gencodev46.txt', sep='\t')
         print('target_gene_names_list', target_gene_names_list)
         if history_data:
@@ -96,7 +96,7 @@ Further user interaction will select the genetic disease and associated genes re
         for gene_name in target_gene_names_list:
             temp_df = gene_info_df[gene_info_df['gene'] == gene_name]
             df_list.append(temp_df)
-        # 返回目标基因在染色体上的位置信息
+        # Return target gene position information on chromosome
         res = pd.concat(df_list)
         if len(res) == 0:
             response = f'sorry, the gene {gene_name} seq not found'
@@ -109,12 +109,12 @@ Further user interaction will select the genetic disease and associated genes re
         end_list = list(res['end'])
         start_list = list(res['start'])
         chr_list = list(res['chrom'])
-        # 定义文件路径
+        # Define file paths
         fasta_file = "/reference_data/GCF_000001405.40_GRCh38.p14_genomic_filter.fna"
         dna_file_path = '/reference_data/dna_file'
         result = []
         len_list =[]
-        # 打开文件并读入内容
+        # Open file and read content
         with open(fasta_file, 'r') as file:
             file_content = file.read().splitlines()
             file.close()
@@ -134,35 +134,13 @@ Further user interaction will select the genetic disease and associated genes re
         else:
             history_data['dna_seqs'] = result
         # history_data['dna_seqs'] = result
-        #你已经确定了当前遗传病相关的基因名称，请问您是否还需要进行其他遗传病相关信息的搜索，如果是，请提供疾病的名称，如果不是，我们将进入下一阶段的引物设计流程。
         response = f'The gene {target_gene_names_list} has been identified in relation to the current genetic disease. If you would like to search for additional genetic information related to another disease, please provide the name of the disease you want to explore. If not, we will proceed to the next stage of the primer design process.'
         return {"response": response,
                 "data":{"target_gene_list": target_gene_names_list,"history_data":history_data},
                 "search_type": 'genetic_disorder_type',
                 "search_system_prompt": genetic_disorder_system_prompt, "stage": stage,"state": 'continue'}
-    # elif stage == 3:
-    #     stage += 1
-    #     history_data = instruction['instruction']['data']['history_data']
-    #     result = instruction['instruction']["data"]['target_gene_path']
-    #     start_pos = instruction['instruction']['start_pos']
-    #     end_pos = instruction['instruction']['end_pos']
-    #     #询问用户是否要继续搜索，如果要搜索则需要用户提供具体的疾病名称
-    #     #当前遗传病对应的基因的序列已经下载完成，你是否需要继续搜索其他遗传病的相关信息，如果是，请提供具体的遗传病名称，如果不是，请回复NO，我们将为您执行下一步的引物设计流程。
-    #     response = f'The sequence of the gene corresponding to the current genetic disease has been downloaded. Do you need to continue searching for relevant information of other genetic diseases? If so, please provide the specific name of the genetic disease. If not, please reply NO and we will perform the next step of the primer design process for you.'
-    #     #组装history_data字典格式
-    #     #判断字典是否为空
-    #     if history_data:
-    #         history_data['file_path_list'].append(result)
-    #         history_data['start_end_list'].append([start_pos, end_pos])
-    #     else:
-    #         history_data = {'file_path_list':[result],'start_end_list':[[start_pos, end_pos]]}
-    #
-    #     return {"response": response, "operations": [],
-    #             "data":{"start_end_pos": [start_pos,end_pos],"gene_file_path":result,'history_data':history_data},
-    #             "search_type": 'genetic_disorder_type',
-    #             "search_system_prompt": genetic_disorder_system_prompt, "stage": stage, "state": 'continue'}
     else:
-        #LLM判断是否要继续搜索,如果要继续搜索则调用自己本身
+        # Use LLM to determine whether to continue searching, if continue then call itself
         experiment_type_prompt = """Based on the user's contextual dialogue, you need to perform information extraction. The information to be extracted includes:  
                 1.disease_name (human genetic diseases,Return null if no diseases was mentioned in the user conversation)   
                 The results should be returned to me in JSON format.  
@@ -198,26 +176,26 @@ Further user interaction will select the genetic disease and associated genes re
 
 def get_dna_seq(chr_num, start, end,file_content):
     chr_name = f'chromosome {chr_num}'
-    # fasta文件中的染色体名称
+    # Chromosome name in fasta file
     all_chr_name = 'Homo sapiens ' + chr_name + ', GRCh38.p14 Primary Assembly'
     print(all_chr_name)
-    # 用于存储提取的内容
+    # Store extracted content
     extracted_content = ""
-    # 是否找到了chr
+    # Whether chr is found
     found_chr = False
-    # 在内存中搜索包含"all_chr_name"的行并提取内容
+    # Search for lines containing "all_chr_name" in memory and extract content
     for i, line in enumerate(file_content):
         if not found_chr and all_chr_name in line:
             found_chr = True
         elif found_chr:
             if line.startswith('>'):
-                # 如果是新的标题行，则停止提取
+                # Stop extracting if it's a new title line
                 break
             extracted_content += line
     temp_seq = extracted_content[int(start):int(end)].upper()
     return temp_seq
 def extract_json_response(response):
-    # 从response中提取JSON内容
+    # Extract JSON content from response
     experiment_info_dict = response.choices[0].message.content
     try:
         #if json.loads(experiment_info_dict):
@@ -228,7 +206,7 @@ def extract_json_response(response):
             experiment_info_json_str = match.group(1)
             experiment_info_json_data = json.loads(experiment_info_json_str)
         else:
-            print("GPT构造JSON错误，情况如下所示：\n",experiment_info_dict)
+            print("GPT JSON construction error, situation shown below:\n",experiment_info_dict)
             exit()
         return experiment_info_json_data
 
@@ -236,7 +214,7 @@ def get_disease_gene(disease_name):
     path = '/reference_data/pheno2gene.csv'
     gene_df = pd.read_csv(path)
     if disease_name is None:
-        return "disease_name 不能为 None"
+        return "disease_name cannot be None"
     if '"' in disease_name:
         disease_name = disease_name.replace('"', "'")
 

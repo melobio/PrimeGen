@@ -51,7 +51,7 @@ const initRecording = () => {
       chatStore.setRecordingAudioState(true)
     })
     .catch(error => {
-      console.error('录音失败:', error);
+      console.error('record error:', error);
     });
 }
 
@@ -60,7 +60,7 @@ const convertToBase64 = (audioBlob: Blob) => {
   //   const reader = new FileReader();
   //   reader.onloadend = () => {
   //     const base64DataString = reader.result as string;
-  //     console.log('Audio===>base64数据:', base64DataString);
+  //     console.log('Audio===>base64 data:', base64DataString);
   //   };
   //   reader.readAsDataURL(audioBlob);
   // }

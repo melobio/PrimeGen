@@ -7,16 +7,16 @@ metadata = {
     'apiLevel': '2.14'
 }
 
-#移液函数
-def transfer_all(pipette, source_plate, dest_plate, transfer_info,mix_flag = 0,mix_value =[]):
+# Transfer function
+def transfer_all(pipette, source_plate, dest_plate, transfer_info, mix_flag=0, mix_value=[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: The pipette to use
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: List containing transfer information, each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information, a list [times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -25,34 +25,34 @@ def transfer_all(pipette, source_plate, dest_plate, transfer_info,mix_flag = 0,m
         temp_dest = dest_map.get(dest_col)
         pipette.pick_up_tip()
         if mix_flag == 1:
-            pipette.transfer(volume, temp_source, temp_dest, new_tip='never',mix_after=(mix_value[0], mix_value[1]))
+            pipette.transfer(volume, temp_source, temp_dest, new_tip='never', mix_after=(mix_value[0], mix_value[1]))
         else:
             pipette.transfer(volume, temp_source, temp_dest, new_tip='never')
         pipette.drop_tip()
 
-def calculate_liquid(sample_num,liquid_volume):
-    liquid_list =[]
-    if sample_num <8:
-        per_sample_liquid = liquid_volume/sample_num
+def calculate_liquid(sample_num, liquid_volume):
+    liquid_list = []
+    if sample_num < 8:
+        per_sample_liquid = liquid_volume / sample_num
         temp_num = sample_num
         for ii in range(8):
             if temp_num > 0:
                 liquid_list.append(per_sample_liquid)
-                temp_num=temp_num-1
+                temp_num = temp_num - 1
             else:
                 liquid_list.append(0.0)
         return liquid_list
     else:
-        count1 = int(sample_num/8)
-        count2 = sample_num%8
-        per_sample_liquid = liquid_volume/(8*(count1+1)+count2)
+        count1 = int(sample_num / 8)
+        count2 = sample_num % 8
+        per_sample_liquid = liquid_volume / (8 * (count1 + 1) + count2)
 
         for ii in range(8):
             if count2 > 0:
-                liquid_list.append((count1+2)*per_sample_liquid)
-                count2=count2-1
+                liquid_list.append((count1 + 2) * per_sample_liquid)
+                count2 = count2 - 1
             else:
-                liquid_list.append((count1+1)*per_sample_liquid)
+                liquid_list.append((count1 + 1) * per_sample_liquid)
         return liquid_list
     
 def run(protocol: protocol_api.ProtocolContext):
@@ -60,18 +60,18 @@ def run(protocol: protocol_api.ProtocolContext):
     Sample_nums = input_sample_nums_1
     MIX_volume = input_Frag_Master_Mix_volume_1
     
-    use_col_nums = int(Sample_nums/8)
-    if Sample_nums%8 !=0:
-        use_col_nums = use_col_nums+1
+    use_col_nums = int(Sample_nums / 8)
+    if Sample_nums % 8 != 0:
+        use_col_nums = use_col_nums + 1
     
-    # 加载20ul吸头架
+    # Load 20ul tip rack
     tips20 = protocol.load_labware('opentrons_96_tiprack_20ul', '4')
-    # 加载200ul滤芯吸头架
+    # Load 200ul filter tip rack
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
     plate1 = protocol.load_labware('biorad_96_wellplate_200ul_pcr', '1')
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure to specify a correct slot number
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
     # Pipettes
@@ -81,7 +81,7 @@ def run(protocol: protocol_api.ProtocolContext):
     left_pipette.flow_rate.dispense = 7.56 
     right_pipette.flow_rate.aspirate = 46.43  # Set aspirate speed to 50 μL/s
     right_pipette.flow_rate.dispense = 92.86 
-    # 定义液体
+    # Define liquids
     # labeling liquids in wells
     sample = protocol.define_liquid(
         name="sample",
@@ -93,9 +93,9 @@ def run(protocol: protocol_api.ProtocolContext):
         description="Enzyme_MIX",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
-    liquid_list = calculate_liquid(Sample_nums,MIX_volume)
+    liquid_list = calculate_liquid(Sample_nums, MIX_volume)
     for ii in range(8):
         well_name = all_plate_well[ii]
         temp_plate.wells_by_name()[well_name].load_liquid(liquid=Enzyme_MIX, volume=liquid_list[ii])
@@ -105,14 +105,14 @@ def run(protocol: protocol_api.ProtocolContext):
         plate1.wells_by_name()[well_name].load_liquid(liquid=sample, volume=50) 
     
 
-    #执行指令
-    # 1. 将温控模块设置为4度并暂停等待达到设定温度
+    # Execute instructions
+    # 1. Set the temperature module to 4 degrees and pause to wait for the set temperature to be reached
     temp_module.set_temperature(4)
     temp_module.await_temperature(4)
-    # 开启热循环
+    # Open thermocycler lid
     thermocycler_module.open_lid()
     thermocycler_module.set_block_temperature(4)
-    # 移液
+    # Transfer
     transfer_times = use_col_nums
     transfer_info_right1 = []
     for ii in range(transfer_times):
@@ -129,8 +129,8 @@ def run(protocol: protocol_api.ProtocolContext):
     thermocycler_module.close_lid()
     thermocycler_module.set_lid_temperature(105)
     steps1 = [{'temperature': 4, 'hold_time_seconds': 60}, {'temperature': 30, 'hold_time_seconds': 510},
-              {'temperature': 65, 'hold_time_seconds': 900},{'temperature': 4, 'hold_time_seconds': 60}]
-    thermocycler_module.execute_profile(steps=steps1, repetitions=1,block_max_volume=60)
+              {'temperature': 65, 'hold_time_seconds': 900}, {'temperature': 4, 'hold_time_seconds': 60}]
+    thermocycler_module.execute_profile(steps=steps1, repetitions=1, block_max_volume=60)
     thermocycler_module.set_block_temperature(4, hold_time_seconds=None)
     thermocycler_module.deactivate_lid()
     thermocycler_module.open_lid()

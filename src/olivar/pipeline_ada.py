@@ -391,7 +391,7 @@ def generate_context(SOI):
 
 def snp_clu(a_r):
     '''
-    snp聚类
+    snp clustering
     '''
     cluster = []
     var_index = np.where(a_r!=0)[0]

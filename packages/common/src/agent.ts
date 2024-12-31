@@ -21,7 +21,7 @@ export enum AgentType {
 // Call By RouterAgent
 export const AgentFunctionByType = {
   [AgentType.FAULT]: 'ot2_fault_check',
-  [AgentType.CODE_EXECUTION]: 'execute_ot2_protocol',
+  [AgentType.CODE_EXECUTION]: 'code_execution',
   [AgentType.INTERNET_SEARCH]: 'internet_search',
   [AgentType.SEQUENCE_SEARCH]: 'sequence_search',
   [AgentType.PRIMER_DESIGN]: 'design_primer',
@@ -31,6 +31,7 @@ export const AgentFunctionByType = {
 export const AgentFunctions = {
   CHECK_OT2_STATE: 'check_ot2_state',
   EXECUTE_OT2_PROTOCOL: 'execute_ot2_protocol',
+  CODE_EXECUTION: 'code_execution',
   GOOGLE_SEARCH: 'google_search',
   WIKIPEDIA_SEARCH: 'wikipedia_search',
   NCBI_SEARCH: 'ncbi_search',

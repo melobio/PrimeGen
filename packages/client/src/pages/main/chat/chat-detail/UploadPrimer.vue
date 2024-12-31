@@ -40,7 +40,6 @@ const handleFileSelection = (event: Event) => {
   selectedFiles.splice(0);
   const input = event.target as HTMLInputElement;
   if (input.files) {
-    // 将选中的文件追加到selectedFiles数组中
     for (const file of input.files) {
       selectedFiles.push(file);
     }
@@ -71,7 +70,6 @@ const uploadFiles = async () => {
       let messageEntity = {
         id: props.id,
       }
-    
       let messageRet = await deleteMessageById(messageEntity);
       console.log(messageRet);
 
@@ -88,7 +86,6 @@ const uploadFiles = async () => {
 
 
     }
-    
     selectedFiles.splice(0);
     if (fileInputRef.value) {
       fileInputRef.value.value = '';
@@ -182,13 +179,11 @@ const uploadFiles = async () => {
         }
     }
     .loading-animation {
-      // 简单的文字加载动画
       &::after {
         content: '.';
         animation: dots 1s steps(5, end) infinite;
       }
 
-      // 定义动画效果
       @keyframes dots {
         0%, 20% {
           color: rgba(0,0,0,0);

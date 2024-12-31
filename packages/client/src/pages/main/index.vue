@@ -1,6 +1,6 @@
 <template>
   <div class='main'>
-    <div class='menu-container'>
+    <div class='menu-container' :style="{width:chatStore.hideChatList ? '0px':'200px'}" >
       <Menu v-model='menu'/>
     </div>
     <div class='content-container'>
@@ -36,6 +36,7 @@ const menu = ref('Chats')
   align-items: stretch;
   background: #151728;
   .menu-container {
+    transition: all 0.2s ease-out;
     width: 200px;
   }
   .content-container {

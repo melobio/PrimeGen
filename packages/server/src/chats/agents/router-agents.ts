@@ -9,7 +9,8 @@ import {
   FunctionDefinition,
   OpenAIClient,
 } from '@azure/openai';
-import { DataSource } from 'typeorm';
+import { OpenAI } from 'openai';
+import { DataSource, IntegerType } from 'typeorm';
 import { ExperimentEntity } from '../../experiments/entities/experiment.entity';
 import {
   AgentFunctionByType,
@@ -19,11 +20,21 @@ import {
   LLMType,
   NodeTypes,
 } from '@xpcr/common';
-import { NCBIFunctionType, NCBIResultContent } from '../agents/ext/ncbi-search';
+import {
+  CancerOptionInfo,
+  GeneticDisorderInfo,
+  NCBIFunctionType,
+  NCBIResultContent,
+  PathogenDrugInfo,
+  ProteinMutationInfo,
+  SnpPrimerDesignInfo,
+  SpeciesIdentificationInfo,
+} from '../agents/ext/ncbi-search';
+import { ProtocolDesignInfo } from '../agents/ext/protocol-design';
 import { LlmsEntity } from '../../tools/llms/entities/llms.entity';
 import { Agents } from '../../tools/agents/entities/agents.entity';
 import { FaultAgents } from './fault-agents';
-import { CodeExecutionAgents } from './code-execution-agents';
+import { CodeExecutionAgent } from './code-execution-agent';
 import { BaseAgents } from './base-agents';
 import { Socket } from 'socket.io';
 import {
@@ -37,6 +48,12 @@ import {
   TEXT_ANSWER_DONE,
   TEXT_ANSWER_GENERATING,
   UPLOAD_PRIMER_EXCEL,
+  INITIATIVE_START_PRIMER_DESIGN,
+  RESTART_CONVERSATION,
+  UPDATE_CONVERSATIONS,
+  UPDATE_MESSAGE,
+  SUMMARY_MESSAGE,
+  INITIATIVE_START_CODE_EXECUTION,
 } from '../conversation.constant';
 import { InternetSearchAgents } from './internet-search-agents';
 import { SequenceSearchAgents } from './sequence-search-agents';
@@ -46,6 +63,8 @@ import { ConversationEntity } from '../entities/conversation.entity';
 import { PrimerDesignAgents } from './primer-design-agents';
 import { ProtocolDesignAgents } from './protocol-design-agents';
 import { CacheService } from 'src/cache/cache.service';
+import { PrimerDesign, PrimerResultContent } from './ext/primer-design';
+import { AgentMessageEntity } from '../entities/agent-message.entity';
 interface jasonType {
   output: string;
   achieved: boolean;
@@ -54,28 +73,30 @@ interface jasonType {
   wantTips?: string;
 }
 function removeLeadingSpaces(str) {
-  // 使用正则表达式替换每一行开头的空格
+  // use regex to remove leading spaces
   return str.replace(/^\s+/gm, '');
 }
 
 function removeLineBreaks(str) {
-  // 使用正则表达式替换换行符
+  // use regex to remove line breaks
   return str.replace(/\n/g, '');
 }
-// 正则判断search 是否达到目的(输出序列文件或提供基因信息)
-function checkStringForFileOrGeneInfo(inputString) {
-  console.log(`checkStringForFileOrGeneInfo inputString: ${inputString}`);
-  // 正则表达式用于匹配文件名
-  const fileRegex = /\.(fasta|fastq|fna|csv)\b/;
 
-  // 正则表达式用于匹配基因信息字段
+function checkGeneFile(inputString: string) {
+  // use regex to match file name
+  const fileRegex = /\.(fasta|fastq|fna|csv)\b/;
+  return fileRegex.test(inputString);
+}
+// use regex to match gene info if purpose is not achieved
+function checkStringForFileOrGeneInfo(inputString: string) {
+  // regex to match gene info file
   const geneInfoRegex1 =
     /\b(?=.*chrom)(?=.*start)(?=.*end)(?=.*gene)(?=.*type)(?=.*HGNC)\b/;
   const geneInfoRegex2 =
     /\b(?=.*Gene name)(?=.*Chromosome)(?=.*Gene start)(?=.*Gene end)(?=.*Start position in gene)(?=.*End position in gene)\b/;
-  // 检查输入字符串是否匹配文件名或基因信息字段
+  // check if input string matches file name or gene info fields
   if (
-    fileRegex.test(inputString) ||
+    checkGeneFile(inputString) ||
     geneInfoRegex1.test(inputString) ||
     geneInfoRegex2.test(inputString)
   ) {
@@ -84,11 +105,13 @@ function checkStringForFileOrGeneInfo(inputString) {
     return false;
   }
 }
+
 export class RouterAgents {
   logger = new Logger(RouterAgents.name);
-  nextMaybeGoNextStep = false;
   planner: Planner;
   openAIClient: OpenAIClient;
+  GPTClient: OpenAI;
+  llm_type: LLMType;
   initMessages: ChatMessage[] = [];
   // FUNCTION to sub agent
   functionToAgents: { [key: string]: BaseAgents } = {};
@@ -105,7 +128,26 @@ export class RouterAgents {
     private readonly conversationUUID: string,
   ) {}
 
-  // 更新步骤为StepName的结果
+  async updateTokens(usage) {
+    if (!usage) {
+      return;
+    }
+    this.cvs.completionTokens += usage.completionTokens;
+    this.cvs.promptTokens += usage.promptTokens;
+    this.cvs.totalTokens += usage.totalTokens;
+    console.log(
+      `[${this.conversationUUID}] completionTokens: ${this.cvs.completionTokens}`,
+    );
+    console.log(
+      `[${this.conversationUUID}] promptTokens: ${this.cvs.promptTokens}`,
+    );
+    console.log(
+      `[${this.conversationUUID}] totalTokens: ${this.cvs.totalTokens}`,
+    );
+    this.dataSource.manager.update(ConversationEntity, this.cvs.id, this.cvs);
+  }
+
+  // update step result
   updateStepResult(stepName: string, result: string) {
     this.cvs.stepsResult[stepName] = result;
     this.dataSource.manager
@@ -124,27 +166,27 @@ export class RouterAgents {
       this.cvs.stepsResult = {};
     }
 
-    // 读取check-purpose模板内容
+    // read check-purpose template content
     this.checkPurpose = fs
       .readFileSync(
         path.join(process.cwd(), 'assets', 'plans', 'check-purpose.txt'),
       )
       .toString('utf-8');
-    this.logger.debug(`checkPurpose: ${String(this.checkPurpose)}`);
+    // this.logger.debug(`checkPurpose: ${String(this.checkPurpose)}`);
 
-    // 读取next模板内容
+    // read next template content
     this.next = fs
       .readFileSync(path.join(process.cwd(), 'assets', 'plans', 'next.txt'))
       .toString('utf-8');
-    this.logger.debug(`next: ${String(this.next)}`);
+    // this.logger.debug(`next: ${String(this.next)}`);
 
-    // 读取summary模板内容
+    // read summary template content
     this.summary = fs
       .readFileSync(path.join(process.cwd(), 'assets', 'plans', 'summary.txt'))
       .toString('utf-8');
-    this.logger.debug(`summary: ${String(this.summary)}`);
+    // this.logger.debug(`summary: ${String(this.summary)}`);
 
-    // 读取PCR实验的预设数据,并初始化planner,并设置cvs的currentStep
+    // read PCR experiment preset data, initialize planner, and set cvs's currentStep
     this.planner = Planner.parse(
       fs
         .readFileSync(path.join(process.cwd(), 'assets', 'plans', 'plan.json'))
@@ -204,10 +246,19 @@ export class RouterAgents {
     this.logger.log(`open ai key: ${apiKey}`);
     this.logger.log(`open ai base: ${apiBase}`);
     this.logger.log(`open ai engine: ${apiEngine}`);
-    this.openAIClient = new OpenAIClient(
-      apiBase,
-      new AzureKeyCredential(apiKey),
-    );
+    if (process.env.LLM_TYPE.toLowerCase() == 'azure') {
+      this.llm_type = LLMType.Azure;
+      this.openAIClient = new OpenAIClient(
+        apiBase,
+        new AzureKeyCredential(apiKey),
+      );
+    } else if (process.env.LLM_TYPE.toLowerCase() == 'openai') {
+      this.llm_type = LLMType.OpenAI;
+      this.GPTClient = new OpenAI({
+        baseURL: apiBase,
+        apiKey: apiKey,
+      });
+    }
     this.logger.log(`init openai success.`);
   }
 
@@ -231,7 +282,7 @@ export class RouterAgents {
             );
             break;
           case AgentType.CODE_EXECUTION:
-            newAgent = new CodeExecutionAgents(
+            newAgent = new CodeExecutionAgent(
               agent,
               this.dataSource,
               this.cacheService,
@@ -239,20 +290,35 @@ export class RouterAgents {
             );
             break;
           case AgentType.INTERNET_SEARCH:
-            newAgent = new InternetSearchAgents(agent, this.dataSource);
+            newAgent = new InternetSearchAgents(
+              agent,
+              this.dataSource,
+              this.cacheService,
+            );
             break;
           case AgentType.SEQUENCE_SEARCH:
             newAgent = new SequenceSearchAgents(
               agent,
               this.dataSource,
+              this.cacheService,
               this.chatsService,
             );
             break;
           case AgentType.PRIMER_DESIGN:
-            newAgent = new PrimerDesignAgents(agent, this.dataSource);
+            newAgent = new PrimerDesignAgents(
+              agent,
+              this.dataSource,
+              this.cacheService,
+              this.chatsService,
+            );
             break;
           case AgentType.PROTOCOL_DESIGN:
-            newAgent = new ProtocolDesignAgents(agent, this.dataSource);
+            newAgent = new ProtocolDesignAgents(
+              agent,
+              this.dataSource,
+              this.cacheService,
+              this.chatsService,
+            );
             break;
         }
         if (newAgent) {
@@ -282,7 +348,6 @@ export class RouterAgents {
         name: funcName,
         description: agent.agent.desc,
         parameters: {
-          // 一个字符串传递Agent需要做的事情，TODO 应对每种Agent增加特定参数，更准确
           type: 'object',
           properties: {
             description: {
@@ -297,23 +362,23 @@ export class RouterAgents {
     return funcDefs;
   }
 
-  // 完成了STEP的第一步，需要提示用户下一步的步骤
+  // finish the first step of the STEP, need to prompt the user the next step
   async showSummary(client: Socket, history: MessageEntity[]) {
     const nextStep = this.planner.getNextStep();
 
     const assistantMessage = await this.chatsService.createMessage(
-      '',
+      SUMMARY_MESSAGE,
       '',
       this.conversationUUID,
       Role.Assistant,
     );
-    // 发送给客户端
-    client.emit(TEXT_ANSWER_CREATE, {
+    // send to client
+    this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
       success: true,
       data: assistantMessage,
       finishReason: null,
+      conversationUUID: this.conversationUUID,
     });
-
     let content = `
       #known information: ${JSON.stringify(this.cvs.stepsResult)}
       #Objective: Quickly assist in planning the next steps of the experiment for the user.
@@ -332,6 +397,7 @@ export class RouterAgents {
       * Please use English to reply.
     `;
     content = removeLeadingSpaces(content);
+    this.logger.debug(`content: ${content}`);
 
     const currentStepIndex = this.planner.steps.indexOf(
       this.planner.getCurrentStep(),
@@ -347,105 +413,38 @@ export class RouterAgents {
         '{{PURPOSE}}',
         this.cvs.stepsResult[this.planner.steps[0].stepName],
       );
-    const messages = [
-      { role: Role.System, content: system },
-      { role: Role.User, content },
-    ];
     const startTime = performance.now();
-    this.logger.debug(`summary messages:${JSON.stringify(messages)}`);
-    const events = await this.openAIClient.listChatCompletions(
-      process.env.OPENAI_API_ENGINE,
-      messages,
-    );
-    await this.handleStreamMessage(client, assistantMessage, events);
+    let events = null;
+    if (this.llm_type === LLMType.Azure) {
+      const messages = [
+        { role: Role.System, content: system },
+        { role: Role.User, content },
+      ];
+      this.logger.debug(`summary messages:${JSON.stringify(messages)}`);
+      events = await this.openAIClient.listChatCompletions(
+        process.env.OPENAI_API_ENGINE,
+        messages,
+      );
+      this.logger.debug(`this.openAIClient.events: ${JSON.stringify(events)}`);
+      this.updateTokens(events.usage);
+      await this.handleStreamMessage(client, assistantMessage, events);
+    } else if (this.llm_type === LLMType.OpenAI) {
+      const messages: OpenAI.ChatCompletionMessageParam[] = [
+        { role: Role.System, content: system, name: 'system' },
+        { role: Role.User, content, name: 'user' },
+      ];
+      const params: OpenAI.ChatCompletionCreateParams = {
+        model: process.env.OPENAI_API_ENGINE,
+        messages: messages,
+        stream: true,
+      };
+      events = await this.GPTClient.chat.completions.create(params);
+      await this.handleStreamMessage(client, assistantMessage, events);
+    }
 
     const endTime = performance.now();
     const executionTime = ((endTime - startTime) / 1000).toFixed(2);
     this.logger.warn(`Execution summary time: ${executionTime} seconds`);
-
-    // if (events.choices && events.choices.length > 0) {
-    //   const choice = events.choices[0];
-
-    //   if (choice.message) {
-    //     assistantMessage.content = choice.message.content;
-    //     this.logger.warn(`Summary message: ${choice.message.content}`);
-    //   }
-    // }
-
-    ////////////////////// auto next
-    // let canGoNext = false;
-    // let goNextText = '';
-    // content = `
-    //   #目标: 帮助用户判断是否能进行下一步实验
-    //   #思考: 分析实验的SOP和提供的信息，判断是否具备了进行下一步实验的条件，如果具备了条件，那么将进行下一步。
-    //   #输出：请输出一个JSON对象的字符串，包括以下字段:
-    //   - goNextText // String类型，用一个句子描述，描述的内容类似 "进行xxx"，其中xxx表示下一步具体的内容
-    //   - canGoNext // Boolean类型，是否可以进行下一步
-    //   - thought // String类型，思考过程
-    // `;
-    // content = removeLeadingSpaces(content);
-    //
-    // this.logger.debug(`auto next content: ${content}`);
-    //
-    // chatHistory.push({
-    //   role: Role.Assistant,
-    //   content: assistantMessage.content,
-    // });
-    //
-    // messages = [
-    //   { role: Role.System, content: system },
-    //   ...chatHistory,
-    //   { role: Role.User, content },
-    // ];
-    //
-    // events = await this.openAIClient.getChatCompletions(
-    //   process.env.OPENAI_API_ENGINE,
-    //   messages,
-    // );
-    //
-    // if (events.choices && events.choices.length > 0) {
-    //   const choice = events.choices[0];
-    //
-    //   if (choice.message) {
-    //     console.log(messages);
-    //     // assistantMessage.content = choice.message.content;
-    //     const text = choice.message.content.replace(/```json|```/g, '');
-    //     this.logger.warn(`Auto next message: ${text}`);
-    //     try {
-    //       const json = JSON.parse(text);
-    //       canGoNext = json.canGoNext;
-    //       goNextText = json.goNextText;
-    //     } catch (e) {
-    //       this.logger.warn(`Auto next JSON parse error: ${e.message}`);
-    //     }
-    //   }
-    // }
-
-    //////////////////////
-
-    /////////////////// auto next
-    // if (canGoNext) {
-    //   history = [...history, assistantMessage];
-    //   assistantMessage = await this.chatsService.createMessage(
-    //     '',
-    //     '',
-    //     this.conversationUUID,
-    //     Role.Assistant,
-    //   );
-    //   // 发送给客户端
-    //   client.emit(TEXT_ANSWER_CREATE, {
-    //     success: true,
-    //     data: assistantMessage,
-    //     finishReason: null,
-    //   });
-    //
-    //   await this.sendText(
-    //     client,
-    //     { content: goNextText, role: Role.User } as MessageEntity,
-    //     assistantMessage,
-    //     history,
-    //   );
-    // }
   }
 
   async checkAchieved(client: Socket, input?: string) {
@@ -459,9 +458,8 @@ export class RouterAgents {
     const history = await this.chatsService.findAllMessages(
       this.conversationUUID,
     );
-    const chatHistory = history.map<ChatMessage>((item) => {
-      return { role: item.role, content: item.content };
-    });
+    // remove the opening remarks
+    history.splice(0, 1);
     let json: jasonType = {
       output: '',
       achieved: false,
@@ -469,30 +467,38 @@ export class RouterAgents {
       objective: '',
       wantTips: '',
     };
-    const cvs = history
-      .map((item) => `${item.role}: ${item.content}`)
-      .slice(1)
-      .join('\n');
-    const userFirstMsg = chatHistory.find((item) => item.role == Role.User);
-    // 就提取具体的实验目的(具体的实验类型和实验对象)是什么/具体的文件列表是什么/具体的Protocol脚本等等
+    let cvs = history.map((item) => `${item.role}: ${item.content}`).join('\n');
+    if (isConfirmExperObj) {
+      cvs = history
+        .filter((item) => !item.agentType)
+        .map((item) => `${item.role}: ${item.content}`)
+        .join('\n');
+    }
+    this.logger.warn(`checkAchieved cvs:${JSON.stringify(cvs)}`);
+    // extract the experimental purpose
     let content = `
-    #Purpose: Assistant needs to quickly get "${
+    #Purpose:  Careful and comprehensive confirm: ${
       currentStep.purpose
-    }" from the dialogue
-    #Think: Analyze the dialogue, whether the assistant can get the purpose from the dialogue
-    #Output：Please quickly output a string of a JSON object(like {"output":"","achieved":"","thought":"","objective":"","wantTips":""}),including the following key:
-    - output // String type, the purpose summarized from the dialogue, the purpose of the dialogue needs to include the actual results.
-    - achieved // Boolean type,Whether to achieve the purpose
-    - thought // String type, thinking process
-    - wantTips // String type, when the purpose is not achieved, the assistant needs to provide a prompt to achieve the purpose of the user to achieve (please explain ...  So I can better help you complete ${
-      currentStep.purpose
-    });
+    } from the dialogue;\n
     ${
-      isConfirmExperObj
-        ? `- objective // String type, experimental purpose(words composed of experimental objectives and experiment types);(The first sentence that the user says is${userFirstMsg.content}Please determine the language output of the following fields according to the first sentence input of the user, default English output);`
+      currentStep.purposeExample
+        ? `Examples:\n ${currentStep.purposeExample}`
         : ''
     }
-    # Rule
+    #Think: Analyze the dialogue to determine whether the assistant can get the purpose from the dialogue. Please don't guess or suggest.\n
+    #Output：Please quickly output a JSON object with the following keys (do not start or end with \`\`\`json):\n
+    - output //  String type, the purpose summarized from the dialogue. It needs to include the actual results.\n
+    - achieved // Boolean type, whether the purpose was achieved.\n
+    - thought // String type, the thinking process.\n
+    - wantTips // String type, when the purpose is not achieved, provide a prompt to help achieve the purpose. Explain: "So I can better help you complete ${
+      currentStep.purpose
+    });\n
+    ${
+      isConfirmExperObj
+        ? `- objective // String type, the experimental purpose (composed of experiment type and experimental subject).\n`
+        : ''
+    }
+    # Rule:
     * Please use English to reply.`;
     content = removeLeadingSpaces(content);
     this.logger.debug(`content: ${content}`);
@@ -518,16 +524,32 @@ export class RouterAgents {
     }
     this.logger.debug(`system: ${system}`);
 
-    const messages = [
-      { role: Role.System, content: system },
-      { role: Role.User, content },
-    ];
     const startTime = performance.now();
-    this.logger.warn(`checkAchieved messages:${JSON.stringify(messages)}`);
-    const events = await this.openAIClient.getChatCompletions(
-      process.env.OPENAI_API_ENGINE,
-      messages,
-    );
+    let events = null;
+    if (this.llm_type == LLMType.Azure) {
+      const messages = [
+        { role: Role.System, content: system },
+        { role: Role.User, content },
+      ];
+      this.logger.warn(`checkAchieved messages:${JSON.stringify(messages)}`);
+      events = await this.openAIClient.getChatCompletions(
+        process.env.OPENAI_API_ENGINE,
+        messages,
+      );
+      this.logger.log(`this.openAIClient.events: ${JSON.stringify(events)}`);
+      this.updateTokens(events.usage);
+    } else {
+      const params: OpenAI.ChatCompletionCreateParams = {
+        model: process.env.OPENAI_API_ENGINE,
+        messages: [
+          { role: 'system', content: system, name: 'system' },
+          { role: 'user', content: content, name: 'user' },
+        ],
+        stream: false,
+      };
+      this.logger.warn(`checkAchieved messages: ${JSON.stringify(params)}`);
+      events = await this.GPTClient.chat.completions.create(params);
+    }
     const endTime = performance.now();
     const executionTime = ((endTime - startTime) / 1000).toFixed(2);
     this.logger.warn(`Execution checkAchieved time: ${executionTime} seconds`);
@@ -558,17 +580,17 @@ export class RouterAgents {
     }
     if (json.achieved) {
       this.updateStepResult(currentStep.stepName, json.output);
-      await this.showSummary(client, history);
+      // await this.showSummary(client, history);
       this.planner.goNextStep();
       if (isConfirmExperObj && json.objective) {
-        this.logger.debug('sendTextToSearch====>0');
-        await this.sendTextToSearch(client, input, chatHistory);
-        // 更新会话名称
+        // update conversation name
         this.cvs.name = json.objective;
-        this.dataSource.manager
-          .update(ConversationEntity, this.cvs.id, this.cvs)
-          .then();
-        // 更新实验名称
+        this.dataSource.manager.update(
+          ConversationEntity,
+          this.cvs.id,
+          this.cvs,
+        );
+        // update experiment name
         const experiment = await this.dataSource.manager.findOne(
           ExperimentEntity,
           {
@@ -578,82 +600,175 @@ export class RouterAgents {
           },
         );
         experiment.name = `${json.objective} With OT-2`;
-        this.dataSource.manager
-          .update(ExperimentEntity, experiment.id, experiment)
-          .then();
-      } else {
-        this.logger.debug('TEXT_ANSWER_DONE 1');
-        client.emit(TEXT_ANSWER_DONE, {
-          conversationUUID: this.conversationUUID,
-        });
+        this.dataSource.manager.update(
+          ExperimentEntity,
+          experiment.id,
+          experiment,
+        );
+        client.emit(UPDATE_CONVERSATIONS);
+        // after knowing the purpose, send to search agent
+        await this.sendToSearch(client, input);
       }
-    } else {
-      // if (json.wantTips) {
-      //   this.handleTipsAfterCheckAchieved(client, json.wantTips);
-      // }
-      this.logger.debug('TEXT_ANSWER_DONE 2');
-      client.emit(TEXT_ANSWER_DONE, {
-        conversationUUID: this.conversationUUID,
-      });
     }
+    return json.achieved;
   }
 
   async handleNcbiSearchStop(
     client: Socket,
     responses: NCBIResultContent['responses'],
   ) {
-    const history = await this.chatsService.findAllMessages(
-      this.conversationUUID,
-    );
-    const currentStep = this.planner.getCurrentStep();
     if (responses.stage > 2) {
-      // search阶段结束，开始总结
-      this.logger.debug('sendTextToSearch ==>search阶段结束，开始反思');
-      this.updateStepResult(currentStep.stepName, JSON.stringify(responses));
-      await this.showSummary(client, history);
-      this.planner.goNextStep();
-      // 下一步引物设计，创建开始引物设计的提示气泡
-      this.createPrimerDesignTips(client);
+      const responsesStr = JSON.stringify(responses);
+      if (checkStringForFileOrGeneInfo(responsesStr)) {
+        const history = await this.chatsService.findAllMessages(
+          this.conversationUUID,
+        );
+        const currentStep = this.planner.getCurrentStep();
+        this.updateStepResult(currentStep.stepName, responsesStr);
+        // 24.12.19 remove Reflection
+        // await this.showSummary(client, history);
+        this.planner.goNextStep();
+      } else {
+        const achieved = await this.checkAchieved(client, responsesStr);
+        if (!achieved) {
+          this.logger.debug('=====ncbi-search=checkAchieved=fail==');
+        }
+      }
+      // next step: primer-design, create primer-design tips
+      await this.createPrimerDesignTips(client);
     } else {
-      // search阶段结束，开始闲聊
-      this.logger.debug('sendTextToSearch ==>search阶段结束，开始闲聊');
+      this.logger.debug('sendTextToSearch==>search end, start normal chat');
     }
   }
+
+  async handlePrimerDesignStop(
+    client: Socket,
+    msg: {
+      optionInfo: SnpPrimerDesignInfo;
+      content: string;
+      role: Role;
+    },
+  ) {
+    if (msg.optionInfo.stage > 2) {
+      if (checkGeneFile(msg.content)) {
+        const history = await this.chatsService.findAllMessages(
+          this.conversationUUID,
+        );
+        const currentStep = this.planner.getCurrentStep();
+        this.updateStepResult(currentStep.stepName, msg.content);
+        await this.showSummary(client, history);
+        this.planner.goNextStep();
+      } else {
+        const achieved = await this.checkAchieved(client, msg.content);
+        if (!achieved) {
+          this.logger.debug('=====primer-design=checkAchieved=fail==');
+        }
+      }
+    } else {
+      this.logger.debug(
+        'sendTextToSearch ==>primer-design end, start normal chat',
+      );
+    }
+  }
+  // create start PrimerDesign tip message
   async createPrimerDesignTips(client: Socket) {
-    // 创建start PrimerDesign提示消息
-    const tipsMessage = await this.chatsService.createMessage(
-      'INITIATIVE_START_PRIMER_DESIGN',
-      'We have now completed the Determing DNA Sequence step. Do you want to start the primer design process now?',
+    await this.chatsService.createMessage(
+      INITIATIVE_START_PRIMER_DESIGN,
+      "We have now completed the 'Determining DNA Sequence' step. Would you like to start the primer design process now?",
       this.conversationUUID,
       Role.Assistant,
     );
-
-    client.emit(TEXT_ANSWER_CREATE, {
-      success: true,
-      data: tipsMessage,
-      finishReason: null,
+    client.emit(UPDATE_MESSAGE, {
+      conversationUUID: this.conversationUUID,
     });
   }
 
-  async handleTipsAfterCheckAchieved(client: Socket, tipsText: string) {
-    // 创建一个Assistant消息, 提示缺乏什么达成目标
-    const assistantMessage = await this.chatsService.createMessage(
+  async sendToCodeExecution(client: Socket, msg: string, optionInfo?: any) {
+    const previewFunctionCall = {
+      name: AgentFunctionByType[AgentType.CODE_EXECUTION],
+      arguments: `{"description":"${msg}"}`,
+    };
+    const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
+    const agentMessage = await this.chatsService.createMessage(
       '',
-      tipsText,
+      '',
       this.conversationUUID,
       Role.Assistant,
+      agent.agent.agentType,
     );
-    client.emit(TEXT_ANSWER_CREATE, {
+    this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
       success: true,
-      data: assistantMessage,
+      data: agentMessage,
       finishReason: null,
-    });
-    client.emit(TEXT_ANSWER_GENERATING, {
-      success: true,
-      data: assistantMessage,
-      finishReason: 'stop',
       conversationUUID: this.conversationUUID,
     });
+    for await (const response of this._callFunction(
+      previewFunctionCall,
+      msg,
+      optionInfo,
+    )) {
+      if (response.role == Role.Assistant) {
+        // this.logger.log(
+        //   `CodeExecution response-optionInfo: ${JSON.stringify(
+        //     response.optionInfo,
+        //   )}`,
+        // );
+        if (response?.optionInfo) {
+          agentMessage.optionInfo = response.optionInfo;
+        }
+        // string content
+        agentMessage.content = response.content;
+        this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+          success: true,
+          data: agentMessage,
+          finishReason: null,
+          conversationUUID: this.conversationUUID,
+        });
+        if (!response?.optionInfo?.data?.generating) {
+          // need user to choose what to do next
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: 'stop',
+            conversationUUID: this.conversationUUID,
+          });
+          client.emit(UPDATE_MESSAGE, {
+            conversationUUID: this.conversationUUID,
+          });
+          client.emit(TEXT_ANSWER_DONE, {
+            conversationUUID: this.conversationUUID,
+          });
+        }
+        // store in database
+        await this.dataSource.manager.update(
+          MessageEntity,
+          agentMessage.id,
+          agentMessage,
+        );
+        // experiment result
+        if (response?.optionInfo?.data.state == 'stop') {
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: 'stop',
+            conversationUUID: this.conversationUUID,
+          });
+          const responsesStr = JSON.stringify(response);
+          const history = await this.chatsService.findAllMessages(
+            this.conversationUUID,
+          );
+          const currentStep = this.planner.getCurrentStep();
+          this.updateStepResult(currentStep.stepName, responsesStr);
+          const achieved = await this.checkAchieved(client, responsesStr);
+          if (!achieved) {
+            this.logger.debug('=====code-execution=checkAchieved=fail==');
+          } else {
+            await this.showSummary(client, history);
+            this.planner.goNextStep();
+          }
+        }
+      }
+    }
   }
 
   async sendText(
@@ -661,61 +776,65 @@ export class RouterAgents {
     userMessageContent: string,
     history: MessageEntity[],
   ) {
-    const content = removeLeadingSpaces(userMessageContent);
-    // if (this.nextMaybeGoNextStep) {
-    //   this.nextMaybeGoNextStep = false;
-    //   // await this.getCurrentStepActualResult(history);
-    //   if (await this.goNextStep(client, content, assistantMessage, history)) {
-    //     return;
-    //   }
-    // }
+    let content = removeLeadingSpaces(userMessageContent);
+    // replace " with '
+    content = content.replace(/"/g, "'");
 
-    // content = `
-    //   # Q&A Examples
-    //   ${this.examples[this.planner.getCurrentStep().stepName].replace(
-    //     '{{NEXT_STEP}}',
-    //     this.planner.getNextStep().stepName,
-    //   )}
-    //
-    //   # User Input: ${content}, (Reply with reference to the Q&A Examples, Do not mention the word "example" in the answer.)
-    // `;
+    const restart = await this.checkIfRestart(content);
+    if (restart) {
+      // restart the experiment
+      client.emit(RESTART_CONVERSATION, {
+        conversationUUID: this.conversationUUID,
+      });
+      this.cvs.totalTokens =
+        this.cvs.completionTokens =
+        this.cvs.promptTokens =
+          0;
+      return;
+    }
 
     this.logger.log(`content: ${content}`);
 
     const chatHistory = history.map<ChatMessage>((item) => {
       return { role: item.role, content: item.content };
     });
+    chatHistory.splice(0, 1);
 
-    const currentStepIndex = this.planner.steps.indexOf(
-      this.planner.getCurrentStep(),
-    );
+    const currentStep = this.planner.getCurrentStep();
+    this.logger.debug('currentStep====>', JSON.stringify(currentStep));
+    const currentStepIndex = this.planner.steps.indexOf(currentStep);
+    this.logger.debug('currentStepIndex====>', currentStepIndex);
     const doneSteps =
       currentStepIndex !== 0
         ? this.planner.steps.slice(0, currentStepIndex + 1)
         : [];
+    this.logger.debug('doneSteps====>', JSON.stringify(doneSteps));
     this.initMessages.forEach((item, index) => {
       if (item.role == Role.System) {
-        this.initMessages[index].content = this.initMessages[
-          index
-        ].content.replace('{{DONE_STEPS}}', JSON.stringify(doneSteps));
+        let embeddedContent = this.initMessages[index].content;
+        embeddedContent = embeddedContent.replace(
+          '{{DONE_STEPS}}',
+          JSON.stringify(doneSteps),
+        );
+        embeddedContent = embeddedContent.replace(
+          '{{CURRENT_STEP}}',
+          JSON.stringify(currentStep),
+        );
+        this.initMessages[index].content = embeddedContent;
       }
     });
-    const messages = [
-      ...this.initMessages,
-      ..._.slice(chatHistory, -50), // TODO 应该计算token能覆盖到前面几条记录，而不是直接取最后50条
-      {
-        role: Role.User,
-        content,
-      },
-    ];
+    const messages = [...this.initMessages, ..._.slice(chatHistory, -50)];
     this.logger.log(`messages: ${JSON.stringify(messages)}`);
-    const functions = this._getFunctions();
-    this.logger.log(`functions: ${JSON.stringify(functions)}`);
-    const currentStep = this.planner.getCurrentStep();
     const isDeterminingDNA =
       currentStep.stepName == this.planner.steps[1].stepName;
     const isPrimerDesign =
       currentStep.stepName == this.planner.steps[2].stepName;
+    // stepName == 'Protocol Design'
+    const isProtocolDesign =
+      currentStep.stepName == this.planner.steps[3].stepName;
+    // stepName == 'Code Execution'
+    const isCodeExecution =
+      currentStep.stepName == this.planner.steps[4].stepName;
     const searchAgentMessages = history.filter(
       (item) =>
         item.role == Role.Assistant &&
@@ -726,36 +845,79 @@ export class RouterAgents {
         item.role == Role.Assistant &&
         item.agentType == AgentType.PRIMER_DESIGN,
     );
-    // 确定`基因步骤`有什么agent就直接调用agent，绕过planner
+    const protocolDesignMessages = history.filter(
+      (item) =>
+        item.role == Role.Assistant &&
+        item.agentType == AgentType.PROTOCOL_DESIGN,
+    );
+    const codeExecutionMessages = history.filter(
+      (item) => item.agentType == AgentType.CODE_EXECUTION,
+    );
     if (isDeterminingDNA && searchAgentMessages.length > 0) {
-      await this.sendTextToSearch(client, content, messages);
+      // enter `determine gene` step, invoke Search agent, ignore planner
+      await this.sendToSearch(client, content);
     } else if (isPrimerDesign && primerAgentMessages.length > 0) {
-      await this.sendTextToPrimerDesign(client, content, messages);
+      // enter `primer design` step, invoke PrimerDesign agent，ignore planner
+      await this.sendToPrimerDesign(client, content);
+    } else if (isProtocolDesign && protocolDesignMessages.length > 0) {
+      // enter `Protocol Design` step, invoke ProtocolDesign agent, ignore planner
+      await this.sendToProtocolDesign(client, content);
+    } else if (isCodeExecution) {
+      // enter `Code Execution` step, invoke CodeExecution agent, ignore planner
+      await this.sendToCodeExecution(client, content);
     } else {
       this.logger.debug('=normal_talk=======>');
+      const functions = this._getFunctions();
+      this.logger.log(`functions: ${JSON.stringify(functions)}`);
       const assistantMessage = await this.chatsService.createMessage(
         '',
         '',
         this.conversationUUID,
         Role.Assistant,
       );
-      client.emit(TEXT_ANSWER_CREATE, {
+      this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
         success: true,
         data: assistantMessage,
         finishReason: null,
+        conversationUUID: this.conversationUUID,
       });
-      const events = await this.openAIClient.listChatCompletions(
-        process.env.OPENAI_API_ENGINE,
-        messages,
-        functions.length > 0
-          ? {
-              functionCall: 'auto',
-              functions: functions,
+      // choose LLM according to llm_type
+      let events = null;
+      if (this.llm_type === LLMType.Azure) {
+        events = await this.openAIClient.listChatCompletions(
+          process.env.OPENAI_API_ENGINE,
+          messages,
+          functions.length > 0
+            ? {
+                functionCall: 'auto',
+                functions: functions,
+              }
+            : null,
+        );
+        this.logger.log(`this.openAIClient.events: ${JSON.stringify(events)}`);
+        this.updateTokens(events.usage);
+      } else if (this.llm_type === LLMType.OpenAI) {
+        const chatCompletionMessages: OpenAI.ChatCompletionMessageParam[] =
+          messages.map((message) => {
+            if ('name' in message) {
+              return message;
+            } else {
+              return { ...message, name: '' }; // or some other default value
             }
-          : null,
-      );
+          }) as OpenAI.ChatCompletionMessageParam[];
+        const params: OpenAI.ChatCompletionCreateParams = {
+          model: process.env.OPENAI_API_ENGINE,
+          messages: chatCompletionMessages,
+          function_call: 'auto',
+          functions: functions,
+          stream: true,
+        };
+        events = await this.GPTClient.chat.completions.create(params);
+      } else {
+        events = null;
+      }
 
-      // try catch 是处理openai的关键词
+      // try catch get openai result
       try {
         await this._handleChatCompletions(
           client,
@@ -766,21 +928,20 @@ export class RouterAgents {
         );
       } catch (e) {
         assistantMessage.content = e.message;
-        // 更新数据库
+        // update database
         await this.dataSource.manager.update(
           MessageEntity,
           assistantMessage.id,
           assistantMessage,
-        ); // 发送给客户端
-        client.emit(TEXT_ANSWER_GENERATING, {
+        );
+        this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
           success: true,
           data: assistantMessage,
           finishReason: null,
           conversationUUID: this.conversationUUID,
         });
 
-        // 发送给客户端
-        client.emit(TEXT_ANSWER_GENERATING, {
+        this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
           success: true,
           data: assistantMessage,
           finishReason: 'stop',
@@ -788,128 +949,277 @@ export class RouterAgents {
         });
         throw e;
       }
-
-      // 判断是否应该进入下一步，如果需要，提示用户
-      // this.logger.debug(`ask whether go next step`);
-      // await this.askWhetherGoNextStep(client, [
-      //   ...history,
-      //   userMessage,
-      //   assistantMessage,
-      // ]);
-
-      // 判断用户是否已同意进入到下一步
-      // const shouldGoNext = await this.checkGoNext(
-      //   client,
-      //   userMessage.content,
-      //   history,
-      // );
-      // this.logger.debug(`should go next step: ${shouldGoNext}`);
-      // if (shouldGoNext) {
-      //   this.planner.goNextStep();
-      //   await this.startCurrentStep(client, history);
-      // }
-
-      // 基于历史对话/agent消息，判断是否达到目标
       await this.checkAchieved(client, content);
     }
   }
 
-  // 直接调用agent，绕过planner
-  sendTextToSearch = async (
+  sendToSearch = async (
     client: Socket,
     input: string,
-    messages: ChatMessage[],
+    optionInfo?:
+      | CancerOptionInfo
+      | GeneticDisorderInfo
+      | PathogenDrugInfo
+      | SpeciesIdentificationInfo
+      | ProteinMutationInfo,
   ) => {
-    const previewFunctionCall = {
-      name: AgentFunctionByType[AgentType.SEQUENCE_SEARCH],
-      arguments: `{"description":"${input}"}`,
-    };
-    const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
-    const history = await this.chatsService.findAllMessages(
-      this.conversationUUID,
-    );
-    let stage = 1;
-    let search_type: NCBIFunctionType;
-    let protein_mutation_dict = {};
-    const searchAgentMessage = history.filter(
-      (item) =>
-        item.role == Role.Assistant &&
-        item.agentType == AgentType.SEQUENCE_SEARCH &&
-        item.optionInfo,
-    );
-    const stageArr = searchAgentMessage
-      .map((optItem) => optItem.optionInfo.stage)
-      .sort((a, b) => b - a);
-    if (stageArr.length > 0) {
-      stage = stageArr.pop();
-      const optionInfo =
-        searchAgentMessage[searchAgentMessage.length - 1].optionInfo;
-      search_type = optionInfo?.search_type;
-      protein_mutation_dict = optionInfo?.protein_mutation_dict;
+    if (this.chatsService.ncbiSearchs.has(this.conversationUUID)) {
+      const previewFunctionCall = {
+        name: AgentFunctionByType[AgentType.SEQUENCE_SEARCH],
+        arguments: `{"description":"${input}"}`,
+      };
+      if (!optionInfo) {
+        const history = await this.chatsService.findAllMessages(
+          this.conversationUUID,
+        );
+        const searchAgentMessage = history.filter(
+          (item) =>
+            item.role == Role.Assistant &&
+            item.agentType == AgentType.SEQUENCE_SEARCH &&
+            item.optionInfo,
+        );
+        const stageArr = searchAgentMessage
+          .map((optItem) => optItem.optionInfo.stage)
+          .sort((a, b) => a - b);
+        const lastOptionInfo =
+          searchAgentMessage[searchAgentMessage.length - 1]?.optionInfo;
+        const stage = stageArr.length > 0 ? stageArr.pop() : 1;
+        const search_type: NCBIFunctionType = lastOptionInfo?.search_type;
+        const protein_mutation_dict =
+          lastOptionInfo?.protein_mutation_dict || {};
+        const origin_data = lastOptionInfo?.data ?? {};
+        optionInfo = {
+          stage,
+          search_type,
+          protein_mutation_dict,
+          data: origin_data,
+        };
+        this.logger.log(`sendToSearch construct ${JSON.stringify(optionInfo)}`);
+      }
+      const chatHistory = await this.chatsService.findAllMessages(
+        this.conversationUUID,
+      );
+      const chatHistoryArr = chatHistory.map<ChatMessage>((item) => {
+        return { role: item.role, content: item.content };
+      });
+      const operationsObj = {};
+      if (optionInfo?.operations) {
+        optionInfo.operations.forEach((item) => {
+          operationsObj[item.key] = item.value;
+        });
+      }
+      const sumitOption = optionInfo
+        ? {
+            ...optionInfo,
+            ...operationsObj,
+            conversation: chatHistoryArr,
+          }
+        : { ...operationsObj, conversation: chatHistoryArr };
+      const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
+      const agentMessage = await this.chatsService.createMessage(
+        '',
+        '',
+        this.conversationUUID,
+        Role.Assistant,
+        agent.agent.agentType,
+      );
+      this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
+        success: true,
+        data: agentMessage,
+        finishReason: null,
+        conversationUUID: this.conversationUUID,
+      });
+      for await (const msg of this._callFunction(
+        previewFunctionCall,
+        input,
+        sumitOption,
+      )) {
+        if (msg.role === Role.Assistant) {
+          if (msg?.optionInfo) {
+            agentMessage.optionInfo = msg.optionInfo;
+          }
+
+          agentMessage.content += msg.content;
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: null,
+            conversationUUID: this.conversationUUID,
+          });
+          await this.dataSource.manager.update(
+            MessageEntity,
+            agentMessage.id,
+            agentMessage,
+          );
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: 'stop',
+            conversationUUID: this.conversationUUID,
+          });
+          if (msg?.optionInfo?.state == 'stop') {
+            await this.handleNcbiSearchStop(client, msg.optionInfo);
+          }
+        }
+      }
     }
-    const res = await this.chatsService.handleNcbiSearch({
-      option: { stage, search_type, protein_mutation_dict },
-      conversationUUID: this.conversationUUID,
-    });
-    client.emit(TEXT_ANSWER_DONE, {
-      conversationUUID: this.conversationUUID,
-    });
-    if (res.data.state == 'stop' && res.success) {
-      await this.handleNcbiSearchStop(client, res.data);
-    }
-    this.logger.debug('sendTextToSearch====>2');
   };
 
-  sendTextToPrimerDesign = async (
+  sendToPrimerDesign = async (
     client: Socket,
     input: string,
-    messages: ChatMessage[],
+    optionInfo?: SnpPrimerDesignInfo,
   ) => {
-    this.logger.debug('=isPrimerDesign=======>');
-    const previewFunctionCall = {
-      name: AgentFunctionByType[AgentType.PRIMER_DESIGN],
-      arguments: `{"description":"${input}"}`,
-    };
-    const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
-    const agentMessage = await this.chatsService.createMessage(
-      '',
-      '',
-      this.conversationUUID,
-      Role.Assistant,
-      agent.agent.agentType,
-    );
-
-    client.emit(TEXT_ANSWER_CREATE, {
-      success: true,
-      data: agentMessage,
-      finishReason: null,
-    });
-    for await (const msg of this._callFunction(previewFunctionCall, input)) {
-      if (msg.role === Role.Assistant) {
-        // 只有assistant的消息才会返回给AI上下文
-        if (msg?.optionInfo) {
-          agentMessage.optionInfo = msg.optionInfo;
+    if (this.chatsService.primerDesigns.has(this.conversationUUID)) {
+      const previewFunctionCall = {
+        name: AgentFunctionByType[AgentType.PRIMER_DESIGN],
+        arguments: `{"description":"${input}"}`,
+      };
+      const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
+      const agentMessage = await this.chatsService.createMessage(
+        '',
+        '',
+        this.conversationUUID,
+        Role.Assistant,
+        agent.agent.agentType,
+      );
+      this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
+        success: true,
+        data: agentMessage,
+        finishReason: null,
+        conversationUUID: this.conversationUUID,
+      });
+      for await (const msg of this._callFunction(
+        previewFunctionCall,
+        input,
+        optionInfo,
+      )) {
+        if (msg.role === Role.Assistant) {
+          if (msg?.optionInfo) {
+            agentMessage.optionInfo = msg.optionInfo;
+          }
+          agentMessage.content += msg.content;
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: null,
+            conversationUUID: this.conversationUUID,
+          });
+          await this.dataSource.manager.update(
+            MessageEntity,
+            agentMessage.id,
+            agentMessage,
+          );
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: 'stop',
+            conversationUUID: this.conversationUUID,
+          });
+          if (msg?.optionInfo.state == 'stop') {
+            await this.handlePrimerDesignStop(client, msg);
+          }
         }
-        agentMessage.content += msg.content;
-        client.emit(TEXT_ANSWER_GENERATING, {
-          success: true,
-          data: agentMessage,
-          finishReason: null,
-          conversationUUID: this.conversationUUID,
-        });
-        await this.dataSource.manager.update(
-          MessageEntity,
-          agentMessage.id,
-          agentMessage,
-        );
-        client.emit(TEXT_ANSWER_GENERATING, {
-          success: true,
-          data: agentMessage,
-          finishReason: 'stop',
-          conversationUUID: this.conversationUUID,
-        });
+      }
+    }
+  };
 
-        messages.push(agentMessage);
+  async handleProtocolDesignStop(
+    client: Socket,
+    responses: {
+      optionInfo: ProtocolDesignInfo;
+      content: string;
+      role: Role;
+    },
+  ) {
+    if (responses.optionInfo?.stage > 1) {
+      const responsesStr = JSON.stringify(responses);
+      if (responses.optionInfo?.data?.json_file.length > 0) {
+        const history = await this.chatsService.findAllMessages(
+          this.conversationUUID,
+        );
+        const currentStep = this.planner.getCurrentStep();
+        this.updateStepResult(currentStep.stepName, responsesStr);
+        await this.showSummary(client, history);
+        this.planner.goNextStep();
+      } else {
+        const achieved = await this.checkAchieved(client, responsesStr);
+        if (!achieved) {
+          this.logger.debug('=====ProtocolDesignStop=checkAchieved=fail==');
+        }
+      }
+      await this.chatsService.createMessage(
+        INITIATIVE_START_CODE_EXECUTION,
+        'We have now completed the Protocol Design step. Do you want to start the code execution process now?',
+        this.conversationUUID,
+        Role.Assistant,
+      );
+      client.emit(UPDATE_MESSAGE, {
+        conversationUUID: this.conversationUUID,
+      });
+    } else {
+      // search step finished, start normal chat
+      this.logger.debug(
+        'sendToProtocolDesign==>Protocol Design end, start normal chat',
+      );
+    }
+  }
+
+  sendToProtocolDesign = async (
+    client: Socket,
+    input: string,
+    optionInfo?: any,
+  ) => {
+    if (this.chatsService.protocolDesigns.has(this.conversationUUID)) {
+      const previewFunctionCall = {
+        name: AgentFunctionByType[AgentType.PROTOCOL_DESIGN],
+        arguments: `{"description":"${input}"}`,
+      };
+      const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
+      const agentMessage = await this.chatsService.createMessage(
+        '',
+        '',
+        this.conversationUUID,
+        Role.Assistant,
+        agent.agent.agentType,
+      );
+      this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
+        success: true,
+        data: agentMessage,
+        finishReason: null,
+        conversationUUID: this.conversationUUID,
+      });
+      for await (const msg of this._callFunction(
+        previewFunctionCall,
+        input,
+        optionInfo,
+      )) {
+        if (msg.role == Role.Assistant) {
+          if (msg?.optionInfo) {
+            agentMessage.optionInfo = msg.optionInfo;
+          }
+          agentMessage.content += msg.content;
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: null,
+            conversationUUID: this.conversationUUID,
+          });
+          await this.dataSource.manager.update(
+            MessageEntity,
+            agentMessage.id,
+            agentMessage,
+          );
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
+            success: true,
+            data: agentMessage,
+            finishReason: 'stop',
+            conversationUUID: this.conversationUUID,
+          });
+          if (msg?.optionInfo.state == 'stop') {
+            await this.handleProtocolDesignStop(client, msg);
+          }
+        }
       }
     }
   };
@@ -917,37 +1227,46 @@ export class RouterAgents {
   private async handleStreamMessage(
     client: Socket,
     assistantMessage: MessageEntity,
-    events: AsyncIterable<ChatCompletions>,
+    events:
+      | AsyncIterable<ChatCompletions>
+      | AsyncIterable<OpenAI.ChatCompletionChunk>,
   ) {
     for await (const event of events) {
       for (const choice of event.choices) {
-        if (choice.delta?.content) {
-          const delta = choice.delta.content;
+        let finishReason = '';
+        if ('finishReason' in choice) {
+          finishReason = choice.finishReason;
+        } else {
+          finishReason = choice.finish_reason;
+        }
+        let delta = null;
+        if (`delta` in choice) {
+          delta = choice.delta;
+        }
+        if (delta.content) {
+          delta = delta.content;
           assistantMessage.content = assistantMessage.content + delta;
-          // 更新数据库
+          // update database
           await this.dataSource.manager.update(
             MessageEntity,
             assistantMessage.id,
             assistantMessage,
           );
-          // 发送给客户端
-          client.emit(TEXT_ANSWER_GENERATING, {
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
             success: true,
             data: assistantMessage,
-            finishReason: choice.finishReason,
+            finishReason: finishReason,
             conversationUUID: this.conversationUUID,
           });
         }
-        if (choice.finishReason == 'stop') {
-          // 发送给客户端
-          client.emit(TEXT_ANSWER_GENERATING, {
+        if (finishReason == 'stop') {
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
             success: true,
             data: assistantMessage,
-            finishReason: choice.finishReason,
+            finishReason: finishReason,
             conversationUUID: this.conversationUUID,
           });
-
-          // 更新数据库
+          // update database
           await this.dataSource.manager.update(
             MessageEntity,
             assistantMessage.id,
@@ -958,12 +1277,74 @@ export class RouterAgents {
     }
   }
 
+  private async checkIfRestart(input: string) {
+    let content = `
+    # Purpose: Translate user input into English first, then judge "UserInput" means 'restart', 'reboot', 'relaunch', 'reload', 'renew', 'reset', 'regenerate', 'stop', 'finish', 'abort', 'end', 'cancel', 'terminate'. if so, output 'restart' should be true. Especially if UserInput 'start' something, output 'restart' should be false;
+    # UserInput:${input};
+    # Output: Please  output a string of a JSON object({"restart":true,"thought":""},Don't start with \`\`\`json and end width \`\`\`),including the following key:
+    - restart // Boolean type, Whether to achieve the purpose
+    - thought // String type, thinking process
+    #Rule:
+    * You only need to judge directly from what the user says, Don't reason yourself, just understand it directly from the literal meaning
+    * Input is what the user says, out is your output
+    `;
+    // # Examples:
+    // - input:start the conversation again,output:restart should be true
+    // - input:start the dialogue again,output:restart should be true
+    // - input:back to the beginning,output:restart should be true
+    // - input:start Primer Design,output:restart should be false
+    // - input:all params use default value,output:{"restart":false,"thought":""};
+
+    // if (input === 'restart') {
+    //   return true;
+    // } else {
+    //   return false;
+    // }
+    content = removeLeadingSpaces(content);
+    const startTime = performance.now();
+    let events = null;
+    if (this.llm_type == LLMType.Azure) {
+      const messages = [{ role: Role.User, content }];
+      events = await this.openAIClient.getChatCompletions(
+        process.env.OPENAI_API_ENGINE,
+        messages,
+      );
+      this.logger.log(`this.openAIClient.events: ${JSON.stringify(events)}`);
+      this.updateTokens(events.usage);
+    } else {
+      const params: OpenAI.ChatCompletionCreateParams = {
+        model: process.env.OPENAI_API_ENGINE,
+        messages: [{ role: Role.User, content }],
+        stream: false,
+      };
+      events = await this.GPTClient.chat.completions.create(params);
+    }
+    const endTime = performance.now();
+    const executionTime = ((endTime - startTime) / 1000).toFixed(2);
+    this.logger.warn(`Execution checkIfRestart time: ${executionTime} seconds`);
+    let json = { restart: false };
+    if (events.choices && events.choices.length > 0) {
+      const choice = events.choices[0];
+      if (choice.message) {
+        this.logger.debug(`checkIfRestart content: ${choice.message.content}`);
+        try {
+          json = JSON.parse(choice.message.content);
+        } catch {
+          json.restart = choice.message.content.includes('true');
+        }
+      }
+    }
+    return json.restart;
+  }
+
   private async _handleChatCompletions(
     client: Socket,
     text: string,
     assistantMessage: MessageEntity,
     messages: ChatMessage[],
-    events: AsyncIterable<ChatCompletions>,
+    events:
+      | AsyncIterable<ChatCompletions>
+      | AsyncIterable<OpenAI.ChatCompletionChunk>,
   ) {
     const functionCall: FunctionCall = {
       name: '',
@@ -971,29 +1352,39 @@ export class RouterAgents {
     };
     for await (const event of events) {
       for (const choice of event.choices) {
-        // this.logger.log(choice);
-
+        let finishReason = '';
+        if ('finishReason' in choice) {
+          finishReason = choice.finishReason;
+        } else {
+          finishReason = choice.finish_reason;
+        }
         // text chat
+        let fc = null;
+        if ('functionCall' in choice.delta) {
+          fc = choice.delta.functionCall;
+        } else {
+          fc =
+            (choice.delta as any).function_call ??
+            (choice.delta as any).tool_calls;
+        }
         if (choice.delta?.content) {
           const delta = choice.delta.content;
           // this.logger.log(`${assistantMessage.id} Chatbot: ${delta}`);
           assistantMessage.content = assistantMessage.content + delta;
-          // 更新数据库
+          // update database
           await this.dataSource.manager.update(
             MessageEntity,
             assistantMessage.id,
             assistantMessage,
           );
-          // 发送给客户端
-          client.emit(TEXT_ANSWER_GENERATING, {
+          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
             success: true,
             data: assistantMessage,
-            finishReason: choice.finishReason,
+            finishReason: finishReason,
             conversationUUID: this.conversationUUID,
           });
-        } else if (choice.delta?.functionCall) {
+        } else if (fc) {
           // function call
-          const fc = choice.delta.functionCall;
           if (fc.name) {
             functionCall.name += fc.name;
           }
@@ -1002,17 +1393,16 @@ export class RouterAgents {
           }
         }
 
-        // “stop”, “length”, “content_filter”, “function_call” 是完成状态
-        switch (choice.finishReason) {
+        // “stop”, “length”, “content_filter”, “function_call” are finished state
+        switch (finishReason) {
           case 'stop': {
             this.logger.log(
               `choice.finishReason stop :${assistantMessage.id} Chatbot: ${assistantMessage.content}`,
             );
-            // 发送给客户端
-            client.emit(TEXT_ANSWER_GENERATING, {
+            this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
               success: true,
               data: assistantMessage,
-              finishReason: choice.finishReason,
+              finishReason: finishReason,
               conversationUUID: this.conversationUUID,
             });
             break;
@@ -1033,28 +1423,21 @@ export class RouterAgents {
             this.logger.log(
               `${functionCall.name} FunctionCall response: ${response}`,
             );
-            // if (agent.needSummarize) {
-            //
-            // } else {
-            //   // 不需要总结
-            //   // 直接发送FunctionCall的结果到Client
-            //   await this.dataSource.manager.update(
-            //     MessageEntity,
-            //     assistantMessage.id,
-            //     assistantMessage,
-            //   );
-            //   client.emit(TEXT_ANSWER_GENERATING, {
-            //     success: true,
-            //     data: assistantMessage,
-            //     finishReason: 'stop',
-            //   });
-            // }
             // adding assistant response to messages
-            const assistantResponse: ChatMessage = {
-              role: Role.Assistant,
-              functionCall: { ...functionCall },
-              content: undefined,
-            };
+            let assistantResponse = null;
+            if (this.llm_type === LLMType.Azure) {
+              assistantResponse = {
+                role: Role.Assistant,
+                functionCall: { ...functionCall },
+                content: undefined,
+              };
+            } else {
+              assistantResponse = {
+                role: Role.Assistant,
+                function_call: { ...functionCall },
+                content: undefined,
+              };
+            }
             messages.push(assistantResponse);
             // adding function response to messages
             const functionResponse: ChatMessage = {
@@ -1063,27 +1446,41 @@ export class RouterAgents {
               content: response,
             };
             messages.push(functionResponse);
-            // messages.push({
-            //   role: Role.User,
-            //   content:
-            //     '基于上面的函数结果进行思考，为什么使用调用这个函数，并对结果进行评估',
-            // });
 
             // clear function call
             const previewFunctionCall = { ...functionCall };
-            functionCall.name = '';
-            functionCall.arguments = '';
 
-            // const functions = this._getFunctions();
-            const events = await this.openAIClient.listChatCompletions(
-              process.env.OPENAI_API_ENGINE,
-              messages,
-              // 避免反复调用function
-              // {
-              //   functionCall: 'auto',
-              //   functions: functions,
-              // },
-            );
+            // choose LLM according to llm_type
+            let events = null;
+            if (this.llm_type === LLMType.Azure) {
+              events = await this.openAIClient.listChatCompletions(
+                process.env.OPENAI_API_ENGINE,
+                messages,
+              );
+              this.logger.log(
+                `this.openAIClient.events: ${JSON.stringify(events)}`,
+              );
+              this.updateTokens(events.usage);
+            } else if (this.llm_type === LLMType.OpenAI) {
+              const chatCompletionMessages: OpenAI.ChatCompletionMessageParam[] =
+                messages.map((message) => {
+                  if ('name' in message) {
+                    return message;
+                  } else {
+                    return { ...message, name: '' }; // or some other default value
+                  }
+                }) as OpenAI.ChatCompletionMessageParam[];
+              const params: OpenAI.ChatCompletionCreateParams = {
+                model: process.env.OPENAI_API_ENGINE,
+                messages: chatCompletionMessages,
+                stream: true,
+              };
+              this.logger.log('OpenAI ChatCompletionCreateParams', params);
+              events = await this.GPTClient.chat.completions.create(params);
+            } else {
+              events = null;
+            }
+
             await this._handleChatCompletions(
               client,
               text,
@@ -1092,7 +1489,10 @@ export class RouterAgents {
               events,
             );
 
-            // 创建agent消息
+            this.logger.log('===============');
+            this.logger.log(functionCall.name);
+            this.logger.log('===============');
+            // create agent message
             const agentMessage = await this.chatsService.createMessage(
               '',
               '',
@@ -1100,31 +1500,31 @@ export class RouterAgents {
               Role.Assistant,
               agent.agent.agentType,
             );
-
-            client.emit(TEXT_ANSWER_CREATE, {
+            this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
               success: true,
               data: agentMessage,
               finishReason: null,
+              conversationUUID: this.conversationUUID,
             });
 
             for await (const msg of this._callFunction(
               previewFunctionCall,
               text,
+              // {},
             )) {
               this.logger.debug('call function msg', msg);
               if (msg.role === Role.Assistant) {
-                // 只有assistant的消息才会返回给AI上下文
+                // only assistant message return to AI context
                 if (msg?.optionInfo) {
                   agentMessage.optionInfo = msg.optionInfo;
                 }
                 agentMessage.content += msg.content;
-                client.emit(TEXT_ANSWER_GENERATING, {
+                this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
                   success: true,
                   data: agentMessage,
                   finishReason: null,
                   conversationUUID: this.conversationUUID,
                 });
-
                 //execute_ot2_protocol
                 if (
                   previewFunctionCall.name ===
@@ -1152,35 +1552,46 @@ export class RouterAgents {
               } else if (msg.role === Role.None) {
                 if (msg.type === MiddleMessageType.OTAnalysis) {
                   agentMessage.protocolAnalysis = msg.content as any;
-                  // 更新数据库
+                  // update database
                   await this.dataSource.manager.update(
                     MessageEntity,
                     agentMessage.id,
                     agentMessage,
                   );
-                  client.emit(TEXT_ANSWER_GENERATING, {
-                    success: true,
-                    data: agentMessage,
-                    finishReason: null,
-                    conversationUUID: this.conversationUUID,
-                  });
+                  this.chatsService.emitToCliet(
+                    client,
+                    TEXT_ANSWER_GENERATING,
+                    {
+                      success: true,
+                      data: agentMessage,
+                      finishReason: null,
+                      conversationUUID: this.conversationUUID,
+                    },
+                  );
                 } else if (msg.type === MiddleMessageType.OTCurrentCommand) {
                   agentMessage.currentCommandIndex = msg.content as any;
-                  client.emit(TEXT_ANSWER_GENERATING, {
-                    success: true,
-                    data: agentMessage,
-                    finishReason: null,
-                    conversationUUID: this.conversationUUID,
-                  });
+                  this.chatsService.emitToCliet(
+                    client,
+                    TEXT_ANSWER_GENERATING,
+                    {
+                      success: true,
+                      data: agentMessage,
+                      finishReason: null,
+                      conversationUUID: this.conversationUUID,
+                    },
+                  );
                 } else if (msg.type === MiddleMessageType.JetsonFaultCheck) {
                   agentMessage.faultCheckResult = msg.content as any;
-                  // 发送
-                  client.emit(TEXT_ANSWER_GENERATING, {
-                    success: true,
-                    data: agentMessage,
-                    finishReason: null,
-                    conversationUUID: this.conversationUUID,
-                  });
+                  this.chatsService.emitToCliet(
+                    client,
+                    TEXT_ANSWER_GENERATING,
+                    {
+                      success: true,
+                      data: agentMessage,
+                      finishReason: null,
+                      conversationUUID: this.conversationUUID,
+                    },
+                  );
                 }
               } else {
                 this.logger.warn(`unknown msg: ${JSON.stringify(msg)}`);
@@ -1191,13 +1602,12 @@ export class RouterAgents {
               agentMessage.id,
               agentMessage,
             );
-            client.emit(TEXT_ANSWER_GENERATING, {
+            this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
               success: true,
               data: agentMessage,
               finishReason: 'stop',
               conversationUUID: this.conversationUUID,
             });
-
             messages.push(agentMessage);
 
             break;
@@ -1224,31 +1634,40 @@ export class RouterAgents {
       this.logger.log(
         `No matched Agent: ${functionCall.name} response success.`,
       );
-      return { role: Role.Assistant, content: `执行完成，没有发现错误` };
+      return { role: Role.Assistant, content: `execute successfully` };
     }
   }
 
-  private async *_callFunction(functionCall: FunctionCall, text: string) {
+  private async *_callFunction(
+    functionCall: FunctionCall,
+    text: string,
+    optionInfo?: any,
+  ) {
     if (this.functionToAgents[functionCall.name]) {
       const agent: BaseAgents = this.functionToAgents[functionCall.name];
 
       this.logger.log(
-        `Call Agent: "${agent.agent.name}", args: ${functionCall.arguments}`,
+        `Call Agent: "${agent.agent.name}", args: ${
+          functionCall.arguments
+        }, optionInfo: ${JSON.stringify(optionInfo)}`,
       );
       this.logger.debug('functionCall.arguments', functionCall.arguments);
       let badJson = false;
       let description = '';
       try {
-        const ret = JSON.parse(functionCall.arguments);
+        const ret = JSON.parse(functionCall.arguments.replaceAll(`\n`, ''));
         description = ret.description;
       } catch (e) {
         badJson = true;
         this.logger.error(`${e.message}`, e.stack);
       }
-      if (!description || !text || badJson) {
+      if (!text || badJson) {
+        this.logger.debug('_callFunction ==> description', description);
+        this.logger.debug('_callFunction ==> text', text);
+        this.logger.debug('_callFunction ==> badJson', badJson);
         yield {
           role: Role.Assistant,
-          content: `Argument parse error，can not run.`,
+          content: `Argument parse error，please try again.`,
         };
         return;
       }
@@ -1263,21 +1682,24 @@ export class RouterAgents {
       const currentStep = this.planner.getCurrentStep();
       const isDeterminingDNA =
         currentStep.stepName == this.planner.steps[1].stepName;
-      // 添加需要的提示到text
+      // add text to description
       if (!isDeterminingDNA) {
         text = `
           ${stepInfo}
-          
           ${text}
         `;
       }
 
-      yield* agent.send(text, description);
+      yield* agent.send({
+        userInput: text,
+        description,
+        optionInfo,
+      });
     } else {
       this.logger.log(
         `No matched Agent: ${functionCall.name} response success.`,
       );
-      yield { role: Role.Assistant, content: `执行完成，没有发现错误` };
+      yield { role: Role.Assistant, content: `execute successfully, no error` };
     }
   }
 }

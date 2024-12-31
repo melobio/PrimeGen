@@ -1,0 +1,26 @@
+Code block name: ATOPlexDNA_Second round PCR
+
+Description: Perform the second round of PCR experiment
+
+Required solutions:
+
+(1)Purified_1st_PCR_product: The solution obtained after the first round of PCR product purification.
+
+(2)2nd_PCR_mix: A mixture of 12.5μL PCR Enzyme Mix, 0.5μL PCR Clean Enzyme, 0.5μL PCR Additive and 1μL Custom Panel PCR Block. Each sample requires 14.5μL.
+
+(3)PCR_Barcode: PCR primer label. Each sample requires 4μL.
+
+Layout:
+
+(1)Place the 20μL pipette tip rack in slots 2 and 4.
+
+(2)Place the temperature control module in slot 3 and place a 200μL Bio-Rad 96-well PCR plate on the temperature control module.
+
+(3)Place a 200μL Bio-Rad 96-well PCR plate in slot 1.
+(4) Place the thermal cycler module in slots 7, 8, 10, and 11, and place a 200μL Bio-Rad 96-well PCR plate on the thermal cycler module.
+(5) Use a P20 multichannel pipette, mounted on the left side, and use the tip racks in slots 2 and 4.
+
+Liquid loading:
+(1) Place the Purified_1st_PCR_product solution in the 96-well PCR plate in the thermal cycler module, in columns, with the number of wells equal to the number of samples, and 6.5μL per well.
+(2) Place the PCR_Barcode solution in the 96-well PCR plate in slot 1, in columns, with the number of wells equal to the number of samples, and 30μL per well.
+(3) Place the 2nd_PCR_mix solution in the first 8 wells (A1 to H1) of the 96-well PCR plate in the thermal control module.

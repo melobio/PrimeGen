@@ -29,7 +29,7 @@ class Singleton(type):
 
 
 def get_current_datetime_str() -> str:
-    """获取当前时间字符串"""
+    """Get current datetime string"""
     return datetime.now().astimezone(TIMEZONE).isoformat(" ", "seconds")
 
 
@@ -82,7 +82,7 @@ def init_redis_cli() -> redis.ConnectionPool:
 
 
 def get_redis_conn():
-    """获取redis连接"""
+    """Get redis connection"""
     global REDIS_POOL
     init_redis_cli()
     if REDIS_POOL:

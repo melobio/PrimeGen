@@ -3,12 +3,48 @@
     "userName": "admin",
     "phone": "123456",
     "email": "xpcr@com",
-    "password": "admin"
+    "password": "Mgi_010203"
   },
   {
     "userName": "admin1",
     "phone": "123456",
     "email": "xpcr@com",
-    "password": "admin1"
+    "password": "Mgi_010203"
+  },
+  {
+    "userName": "admin2",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "Mgi_010203"
+  },
+  {
+    "userName": "admin3",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "Mgi_010203"
+  },
+  {
+    "userName": "admin4",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "Mgi_010203"
+  },
+  {
+    "userName": "admin5",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "Mgi_010203"
+  },
+  {
+    "userName": "admin6",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "Mgi_010203"
+  },
+  {
+    "userName": "user",
+    "phone": "123456",
+    "email": "xpcr@com",
+    "password": "Mgi_010203"
   }
 ]

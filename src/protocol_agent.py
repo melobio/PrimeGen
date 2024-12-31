@@ -17,26 +17,26 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 from llm_utils.utils import get_llm_chat_completion
 
 
-all_protocol_name = ["ATOPlex DNA建库试剂盒",
-"ATOPlex RNA建库试剂盒","ATOPlex HIV建库试剂盒","ATOPlex MPXV建库试剂盒","MGIEasy Fast酶切DNA文库制备试剂盒","MGIEasy Fast PCR-FREE酶切文库制备试剂盒","MGIEasy通用DNA文库制备试剂盒","MGIEasy酶切DNA文库制备试剂盒","MGIEasy 游离DNA文库制备试剂盒","MGIEasy外显子组酶切文库制备试剂盒","MGICare染色体拷贝数变异检测试剂盒","MGIEasy Fast RNA文库制备试剂盒","MGIEasy RNA方向性文库制备试剂盒","MGICare单细胞染色体拷贝数变异检测试剂盒"]
+all_protocol_name = ["ATOPlex DNA Library Prep Kit",
+"ATOPlex RNA Library Prep Kit","ATOPlex HIV Library Prep Kit","ATOPlex MPXV Library Prep Kit","MGIEasy Fast Enzymatic DNA Library Prep Kit","MGIEasy Fast PCR-FREE Enzymatic Library Prep Kit","MGIEasy Universal DNA Library Prep Kit","MGIEasy Enzymatic DNA Library Prep Kit","MGIEasy Cell-free DNA Library Prep Kit","MGIEasy Exome Enzymatic Library Prep Kit","MGICare Chromosomal Copy Number Variation Detection Kit","MGIEasy Fast RNA Library Prep Kit","MGIEasy Directional RNA Library Prep Kit","MGICare Single Cell Chromosomal Copy Number Variation Detection Kit"]
 
-all_protocol_file_dict = {"ATOPlex DNA建库试剂盒":'H-T-126ATOPlex_DNA建库试剂盒套装说明书中文受控版24_4_9.txt',
-"ATOPlex RNA建库试剂盒":'H-T-127ATOPlex_RNA建库试剂盒套装说明书中文受控版24_4_9.txt',
-"ATOPlex HIV建库试剂盒":'ATOPlexHIV-1建库试剂盒套装使用说明书_中文_RUO_SZ24_3_13.txt',                          
-"ATOPlex MPXV建库试剂盒":'ATOPlex_MPXV引物池V2_0使用说明书-非受控版24_3_13.txt',
-"MGIEasy Fast酶切DNA文库制备试剂盒":'940-001193-00_940-001194-00_940-001196-00_MGIEasy_Fast酶切⽂库制备试剂套装使用说明书3_0.txt',
-"MGIEasy Fast PCR-FREE酶切文库制备试剂盒":'940-000886-0_940-000884-00_940-000882-00_MGIEasy_Fast_PCR-FREE酶切文库制备试剂套装使用说明书1_0.txt',
-"MGIEasy酶切DNA文库制备试剂盒":'1000006987_1000006988_1000017572-MGIEasy酶切DNA文库制备试剂套装使用说明书B6.txt',
-"MGIEasy 游离DNA文库制备试剂盒":'940-000184-0_940-000185-00_MGIEasy_游离DNA文库制备试剂套装使用说明书1_0.txt',
-"MGIEasy外显子组酶切文库制备试剂盒":'1000009658-MGIEasy外显子组酶切文库制备试剂套装使用说明书-B3.txt',
-"MGICare染色体拷贝数变异检测试剂盒":'',
-"MGIEasy Fast RNA文库制备试剂盒":'',
-"MGIEasy RNA方向性文库制备试剂盒":'',
-"MGICare单细胞染色体拷贝数变异检测试剂盒":''}
+all_protocol_file_dict = {"ATOPlex DNA Library Prep Kit":'H-T-126ATOPlex_DNA建库试剂盒套装说明书中文受控版24_4_9.txt',
+"ATOPlex RNA Library Prep Kit":'H-T-127ATOPlex_RNA建库试剂盒套装说明书中文受控版24_4_9.txt',
+"ATOPlex HIV Library Prep Kit":'ATOPlexHIV-1建库试剂盒套装使用说明书_中文_RUO_SZ24_3_13.txt',                          
+"ATOPlex MPXV Library Prep Kit":'ATOPlex_MPXV引物池V2_0使用说明书-非受控版24_3_13.txt',
+"MGIEasy Fast Enzymatic DNA Library Prep Kit":'940-001193-00_940-001194-00_940-001196-00_MGIEasy_Fast酶切⽂库制备试剂套装使用说明书3_0.txt',
+"MGIEasy Fast PCR-FREE Enzymatic Library Prep Kit":'940-000886-0_940-000884-00_940-000882-00_MGIEasy_Fast_PCR-FREE酶切文库制备试剂套装使用说明书1_0.txt',
+"MGIEasy Enzymatic DNA Library Prep Kit":'1000006987_1000006988_1000017572-MGIEasy酶切DNA文库制备试剂套装使用说明书B6.txt',
+"MGIEasy Cell-free DNA Library Prep Kit":'940-000184-0_940-000185-00_MGIEasy_游离DNA文库制备试剂套装使用说明书1_0.txt',
+"MGIEasy Exome Enzymatic Library Prep Kit":'1000009658-MGIEasy外显子组酶切文库制备试剂套装使用说明书-B3.txt',
+"MGICare Chromosomal Copy Number Variation Detection Kit":'',
+"MGIEasy Fast RNA Library Prep Kit":'',
+"MGIEasy Directional RNA Library Prep Kit":'',
+"MGICare Single Cell Chromosomal Copy Number Variation Detection Kit":''}
 
 
 def modify_code_file(code_file_path,param_dict):
-    #output = ''
+    # Output string
     new_str = []
     with open(code_file_path,'r') as f:
         lines = f.readlines()
@@ -64,8 +64,8 @@ def modify_code_file(code_file_path,param_dict):
 
     return new_path
 
-#获取代码中的传参变量
-#获取代码中的传参变量
+# Get parameter variables from code
+# Get parameter variables from code 
 def get_param_name(code_name_list):
     template_code_path = '/reference_data/protocol_block_code_alphatool'
     param_name_list = []
@@ -102,38 +102,38 @@ def get_param_name(code_name_list):
 
 def template_protocol_design(instruction: dict, stage=1):
 
-    # 初始化protocol设计类型
+    # Initialize protocol design type
     protocol_design_type = 'template_protocol_design'
 
-    all_protocol_param_dict={"ATOPlex DNA建库试剂盒":{"sample_nums":96,
+    all_protocol_param_dict={"ATOPlex DNA Library Prep Kit":{"sample_nums":96,
                         "spike_in_control_pcr_block":False,
                         "amplicon_multiplicity":50,
                         "panel_amp_length":300,
                          "barcode_type":'single_pcr_barcode'},      
-                      "ATOPlex RNA建库试剂盒":{"sample_nums":96,
+                      "ATOPlex RNA Library Prep Kit":{"sample_nums":96,
                         "spike_in_control_pcr_block":False,
                         "amplicon_multiplicity":50,
                         "panel_amp_length":300,
                          "barcode_type":'single_pcr_barcode'},       
-                      "ATOPlex HIV建库试剂盒":{"sample_nums":96,},
-                      "ATOPlex MPXV建库试剂盒":{"sample_nums":96,},
-                      "MGIEasy外显子组酶切文库制备试剂盒":{"sample_nums":96,},
-                      "MGIEasy 游离DNA文库制备试剂盒":{"sample_nums":96,},
-                      "MGICare单细胞染色体拷贝数变异检测试剂盒":{"sample_nums":96,},
-                      "MGIEasy通用DNA文库制备试剂盒":{"sample_nums":96,},       
-                      "MGIEasy酶切DNA文库制备试剂盒":{"sample_nums":96,},       
-                      "MGICare染色体拷贝数变异检测试剂盒":{"sample_nums":96,},       
-                      "MGIEasy Fast酶切DNA文库制备试剂盒":{"sample_nums":96,},       
-                      "MGIEasy Fast PCR-FREE酶切文库制备试剂盒":{"sample_nums":96,}, 
-                      "MGIEasy Fast RNA文库制备试剂盒":{"sample_nums":96,},      
-                      "MGIEasy RNA方向性文库制备试剂盒":{"sample_nums":96,},       
+                      "ATOPlex HIV Library Prep Kit":{"sample_nums":96,},
+                      "ATOPlex MPXV Library Prep Kit":{"sample_nums":96,},
+                      "MGIEasy Exome Enzymatic Library Prep Kit":{"sample_nums":96,},
+                      "MGIEasy Cell-free DNA Library Prep Kit":{"sample_nums":96,},
+                      "MGICare Single Cell Chromosomal Copy Number Variation Detection Kit":{"sample_nums":96,},
+                      "MGIEasy Universal DNA Library Prep Kit":{"sample_nums":96,},       
+                      "MGIEasy Enzymatic DNA Library Prep Kit":{"sample_nums":96,},       
+                      "MGICare Chromosomal Copy Number Variation Detection Kit":{"sample_nums":96,},       
+                      "MGIEasy Fast Enzymatic DNA Library Prep Kit":{"sample_nums":96,},       
+                      "MGIEasy Fast PCR-FREE Enzymatic Library Prep Kit":{"sample_nums":96,}, 
+                      "MGIEasy Fast RNA Library Prep Kit":{"sample_nums":96,},      
+                      "MGIEasy Directional RNA Library Prep Kit":{"sample_nums":96,},       
                              
      }
-    describe_dict = {"sample_nums": "样本数量",
-                     "spike_in_control_pcr_block": "是否加入质控扩增试剂",
-                     "amplicon_multiplicity": "Panel扩增子重数",
-                     "panel_amp_length": "Panel扩增子长度",
-                     "barcode_type": "PCR barcode 类别"}
+    describe_dict = {"sample_nums": "Sample quantity",
+                     "spike_in_control_pcr_block": "Whether to add quality control amplification reagent",
+                     "amplicon_multiplicity": "Panel amplicon multiplicity",
+                     "panel_amp_length": "Panel amplicon length",
+                     "barcode_type": "PCR barcode type"}
     if stage ==1:
         stage += 1
         response = f'Next is the protocol design stage. Please select the library construction kit you want to use from the following. If there is no kit that suits you, you can also manually upload your kit description file.'
@@ -160,18 +160,18 @@ def template_protocol_design(instruction: dict, stage=1):
             protocol_design_type = 'template_protocol_design'
         response_dict = {}
         if protocol_design_type == 'template_protocol_design':
-            #根据所选择的模板protocol，找到对应的执行步骤
-            #直接让用户提供所有参数
+            # Find corresponding execution steps based on selected template protocol
+            # Let users provide all parameters directly
             template_protocol_name = instruction['selected_protocol'][0]
             protocol_file_name = all_protocol_file_dict[template_protocol_name]
             protocol_file_path = os.path.join('/reference_data/pdf_to_txt',protocol_file_name)
             txt_file = ''
             with open(protocol_file_path,'r')as f:
                 lines = f.readlines()
-                txt_file =' '.join(lines)#也要去掉，只保留最主要的内容，比如”第一轮PCR反应“则保留成‘PCR反应’即可
+                txt_file =' '.join(lines)# Also remove, keep only the main content, e.g. "First round PCR reaction" becomes 'PCR reaction'
                 f.close()
-            #提取建库流程信息，并提取出每一步骤内容的摘要
-            experiment_type_prompt = '请仔细分析用户提供的文本内容，这是一个文库构建的protocol。请提取目录中能够在OT-2上执行的步骤，并保留每个步骤的摘要描述（包括所有移液信息）。如果有单标签和双标签模块，请仅保留单标签步骤。如果目录中包含以下步骤，也请加入流程：杂交后PCR和杂交后PCR产物纯化，但不要重复加入。对于磁珠双选和磁珠单选，采用磁珠双选的方法。如果目录中的步骤名称有“第一轮”、“第二轮”等修饰词，请保留，但去掉括号内的内容。若目录中有“磁珠片段筛选”步骤，则根据前一步修改名称：如果前一步是酶切打断，则修改为“打断产物纯化”；如果前一步是PCR反应，则修改为“PCR产物纯化”。请跳过质检、文库混合、酶切消化、环化和试剂配制的步骤，并按先后顺序存放在JSON中，返回一个JSON。JSON格式如下：{‘第一步’：{"名称"：步骤的名称，"描述"：该步骤的具体内容，包括所使用到的试剂类别和使用的体积，以及每次度溶液的操作步骤}，‘第二步’：{"名称"：，"描述"：}}，注意：不能出现名称和描述都完全一样的两个步骤，具体例子如下：{‘第一步’：{"名称"：“RT-PCR 及多重扩增”，“描述”：首先使用25 μL RT-PCR Buffer ,2.5 μL RT-PCR Enzyme Mix, 2 μL ATOPlex HIV-1 Drug Resistance Primer Pool, 0.5 μL Nuclease-Free Water混合制备成RT-PCR 及多重扩增反应液 单个反应体积为30 μL。接着吸取20μL样本到新的样本管中，再吸取30μL反应液到样本管，最后进行反应，条件为50℃ 30 min，94℃ 3 min，1个循环；94℃ 30 s，58℃ 45 s，72℃ 2 min，42个循环；72℃ 5 min，12℃ Hold。1个循环；}'
+            # Extract library construction process information and extract summary of each step content
+            experiment_type_prompt = '请仔细分析用户提供的文本内容，这是一个文库构建的protocol。请提取目录中能够在OT-2上执行的步骤，并保留每个步骤的摘要描述（包括所有移液信息）。如果有单标签和双标签模块，请仅保留单标签步骤。如果目录中包含以下步骤，也请加入流程：杂交后PCR和杂交后PCR产物纯化，但不要重复加入。对于磁珠双选和磁珠单选，采用磁珠双选的方法。如果目录中的步骤名称有"第一轮"、"第二轮"等修饰词，请保留，但去掉括号内的内容。若目录中有"磁珠片段筛选"步骤，则根据前一步修改名称：如果前一步是酶切打断，则修改为"打断产物纯化"；如果前一步是PCR反应，则修改为"PCR产物纯化"。请跳过质检、文库混合、酶切消化、环化和试剂配制的步骤，并按先后顺序存放在JSON中，返回一个JSON。JSON格式如下：{'第一步'：{"名称"：步骤的名称，"描述"：该步骤的具体内容，包括所使用到的试剂类别和使用的体积，以及每次度溶液的操作步骤}，'第二步'：{"名称"：，"描述"：}}，注意：不能出现名称和描述都完全一样的两个步骤，具体例子如下：{'第一步'：{"名称"："RT-PCR 及多重扩增"，"描述"：首先使用25 μL RT-PCR Buffer ,2.5 μL RT-PCR Enzyme Mix, 2 μL ATOPlex HIV-1 Drug Resistance Primer Pool, 0.5 μL Nuclease-Free Water混合制备成RT-PCR 及多重扩增反应液 单个反应体积为30 μL。接着吸取20μL样本到新的样本管中，再吸取30μL反应液到样本管，最后进行反应，条件为50℃ 30 min，94℃ 3 min，1个循环；94℃ 30 s，58℃ 45 s，72℃ 2 min，42个循环；72℃ 5 min，12℃ Hold。1个循环；}'
             experiment_info_response = get_llm_chat_completion(
                messages=[
                     {"role": "system", "content": experiment_type_prompt},
@@ -189,9 +189,9 @@ def template_protocol_design(instruction: dict, stage=1):
             logging.info(f'*************Total tokens used*******：\n{total_tokens}')
             # experiment_process = json.loads(experiment_process)
             process_list = get_protocol_process(template_protocol_name)
-            #直接一次性让用户提供所有参数
+            # Let users provide all parameters at once
             option_list = []
-            #获取该试剂盒所需要的参数字典
+            # Get parameter dictionary needed for this kit
             temp_parm_dict = all_protocol_param_dict[template_protocol_name]
 
             for param in temp_parm_dict.keys():
@@ -200,7 +200,7 @@ def template_protocol_design(instruction: dict, stage=1):
             new_list = [x.split('.')[0] for x in process_list]
             
 
-            response = f'采用{template_protocol_name}来构建文库，主要可以分为{len(process_list)}个步骤，具体如下所示：{experiment_process}，接下来我将为您设计每一步的执行代码，根据{template_protocol_name}的实验需求，需要您确定以下实验参数。'
+            response = f'Using {template_protocol_name} to construct library, it can be divided into {len(process_list)} steps as shown below: {experiment_process}. Next I will design the execution code for each step. According to the experimental requirements of {template_protocol_name}, you need to determine the following experimental parameters.'
             response_dict = {
                 "response":response,
                 'protocol_design_type': protocol_design_type,
@@ -215,10 +215,10 @@ def template_protocol_design(instruction: dict, stage=1):
             txt_file = ''
             with open(protocol_file, 'r') as f:
                 lines = f.readlines()
-                txt_file = ' '.join(lines)  # 也要去掉，只保留最主要的内容，比如”第一轮PCR反应“则保留成‘PCR反应’即可
+                txt_file = ' '.join(lines)  # Also remove, keep only the main content
                 f.close()
-            # 提取建库流程信息，并提取出每一步骤内容的摘要
-            experiment_type_prompt = '请仔细分析用户提供的文本内容，这是一个文库构建的protocol。请提取目录中能够在OT-2上执行的步骤，并保留每个步骤的摘要描述（包括所有移液信息）。如果有单标签和双标签模块，请仅保留单标签步骤。如果目录中包含以下步骤，也请加入流程：杂交后PCR和杂交后PCR产物纯化，但不要重复加入。对于磁珠双选和磁珠单选，采用磁珠双选的方法。如果目录中的步骤名称有“第一轮”、“第二轮”等修饰词，请保留，但去掉括号内的内容。若目录中有“磁珠片段筛选”步骤，则根据前一步修改名称：如果前一步是酶切打断，则修改为“打断产物纯化”；如果前一步是PCR反应，则修改为“PCR产物纯化”。请跳过质检、文库混合、酶切消化、环化和试剂配制的步骤，并按先后顺序存放在JSON中，返回一个JSON。JSON格式如下：{‘第一步’：{"名称"：步骤的名称，"描述"：该步骤的具体内容，包括所使用到的试剂类别和使用的体积，以及每次度溶液的操作步骤}，‘第二步’：{"名称"：，"描述"：}}，注意：不能出现名称和描述都完全一样的两个步骤，具体例子如下：{‘第一步’：{"名称"：“RT-PCR 及多重扩增”，“描述”：首先使用25 μL RT-PCR Buffer ,2.5 μL RT-PCR Enzyme Mix, 2 μL ATOPlex HIV-1 Drug Resistance Primer Pool, 0.5 μL Nuclease-Free Water混合制备成RT-PCR 及多重扩增反应液 单个反应体积为30 μL。接着吸取20μL样本到新的样本管中，再吸取30μL反应液到样本管，最后进行反应，条件为50℃ 30 min，94℃ 3 min，1个循环；94℃ 30 s，58℃ 45 s，72℃ 2 min，42个循环；72℃ 5 min，12℃ Hold。1个循环；}'
+            # Extract library construction process information and extract summary of each step content
+            experiment_type_prompt = '请仔细分析用户提供的文本内容，这是一个文库构建的protocol。请提取目录中能够在OT-2上执行的步骤，并保留每个步骤的摘要描述（包括所有移液信息）。如果有单标签和双标签模块，请仅保留单标签步骤。如果目录中包含以下步骤，也请加入流程：杂交后PCR和杂交后PCR产物纯化，但不要重复加入。对于磁珠双选和磁珠单选，采用磁珠双选的方法。如果目录中的步骤名称有"第一轮"、"第二轮"等修饰词，请保留，但去掉括号内的内容。若目录中有"磁珠片段筛选"步骤，则根据前一步修改名称：如果前一步是酶切打断，则修改为"打断产物纯化"；如果前一步是PCR反应，则修改为"PCR产物纯化"。请跳过质检、文库混合、酶切消化、环化和试剂配制的步骤，并按先后顺序存放在JSON中，返回一个JSON。JSON格式如下：{'第一步'：{"名称"：步骤的名称，"描述"：该步骤的具体内容，包括所使用到的试剂类别和使用的体积，以及每次度溶液的操作步骤}，'第二步'：{"名称"：，"描述"：}}，注意：不能出现名称和描述都完全一样的两个步骤，具体例子如下：{'第一步'：{"名称"："RT-PCR 及多重扩增"，"描述"：首先使用25 μL RT-PCR Buffer ,2.5 μL RT-PCR Enzyme Mix, 2 μL ATOPlex HIV-1 Drug Resistance Primer Pool, 0.5 μL Nuclease-Free Water混合制备成RT-PCR 及多重扩增反应液 单个反应体积为30 μL。接着吸取20μL样本到新的样本管中，再吸取30μL反应液到样本管，最后进行反应，条件为50℃ 30 min，94℃ 3 min，1个循环；94℃ 30 s，58℃ 45 s，72℃ 2 min，42个循环；72℃ 5 min，12℃ Hold。1个循环；}'
             experiment_info_response = get_llm_chat_completion(
                 messages=[
                     {"role": "system", "content": experiment_type_prompt},
@@ -235,7 +235,7 @@ def template_protocol_design(instruction: dict, stage=1):
             logging.info(f'*************Total tokens used*******：\n{total_tokens}')
 
             experiment_process = json.loads(experiment_response)
-            # 根据每一步骤的内容，将其用embedding转化成向量，并在向量库中检索出匹配度最高的向量，返回该向量对应的代码块。
+            # Convert each step content into vectors using embedding and retrieve the best matching vector from vector database to return corresponding code block
             query_text_list = []
             name_list = []
             for process in experiment_process.keys():
@@ -250,12 +250,12 @@ def template_protocol_design(instruction: dict, stage=1):
             url = "http://10.49.60.23:8010/upload/"
             files = []
             files.append(('files', (os.path.basename(query_file_path), open(query_file_path, 'rb'))))
-            # 发送POST请求
+            # Send POST request
             response = requests.post(url, files=files)
 
-            # 将 Python 对象转换为 DataFrame
+            # Convert Python object to DataFrame
             match_df = pd.read_json(response.json())
-            # 打印返回的结果
+            # Print returned results
             # print('response',response.json())
             # script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'embedding_app.py')
             # cmd = f'python {script_path} --query_file_path {query_file_path}'
@@ -264,12 +264,12 @@ def template_protocol_design(instruction: dict, stage=1):
             # output = process.read()
             # process.close()
             # match_df = pd.read_csv(query_file_path)
-            # 获得最终匹配到的公用代码块
+            # Get final matched common code blocks
             code_list = list(match_df['code_block'])
             code_block_str = ','.join(code_list)
             code_block_path = '/reference_data/protocol_block_code_alphatool'
             code_path_list = [os.path.join(code_block_path, x) for x in code_list]
-            # 提取出用户需要传递的参数
+            # Extract parameters that need to be passed by users
             all_user_list = []
             for ii in range(len(code_list)):
                 temp = [code_list[ii]]
@@ -280,7 +280,7 @@ def template_protocol_design(instruction: dict, stage=1):
                             all_user_list.append(xx)
 
 
-            response = f'您提供的文本中文库构建步骤内容如下：{experiment_response}，我们针对每个步骤的具体操作匹配到了代码库中相对应的代码块，具体如下:{code_block_str}，请您进行进行确认并提供相应的输入参数。'
+            response = f'The library construction steps in your provided text are as follows: {experiment_response}. We have matched corresponding code blocks from the code library for each specific operation, as shown below: {code_block_str}. Please confirm and provide the corresponding input parameters.'
             option_list = []
             for param in all_user_list:
                 option_list.append(
@@ -298,7 +298,7 @@ def template_protocol_design(instruction: dict, stage=1):
         stage+=1
         protocol_design_type = instruction["protocol_design_type"]
         if protocol_design_type == 'template_protocol_design':
-            #根据用户上传参数修改参数字典
+            # Modify parameter dictionary based on user uploaded parameters
             temp_parm_dict = instruction['data']['protocol_param_dict']
             new_param_dict ={}
             for kk in temp_parm_dict.keys():
@@ -307,7 +307,7 @@ def template_protocol_design(instruction: dict, stage=1):
             process_list = instruction['data']['operation_steps']
             new_param_dict = calculating_solution_volume(new_param_dict,template_protocol_name)
             print('new_param_dict',new_param_dict)
-            #提取所有步骤的版面布局信息
+            # Extract layout information for all steps
             Layout_info_dict =[]
             for temp_process in process_list:
                 txt_filename = temp_process.replace('py','txt')
@@ -315,7 +315,7 @@ def template_protocol_design(instruction: dict, stage=1):
                 txt_file = os.path.join(txt_path, txt_filename)
                 Layout_info_dict.append(txt_file)
 
-            #根据参数字典修改block代码
+            # Modify block code based on parameter dictionary
             code_path = '/reference_data/template_protocol_code'
             all_code_dict = []
             for temp_p in process_list:
@@ -323,7 +323,7 @@ def template_protocol_design(instruction: dict, stage=1):
                 new_code_path = modify_code_file(code_file, new_param_dict)
                 all_code_dict.append(new_code_path)
 
-            response = f"以下是该实验每个步骤的起始布局安排以及对应的执行代码，请您按照版位布局来放置您的实验耗材和器具，并在确保按要求摆放之后，开始按照对应步骤的代码开始执行。"
+            response = f"Below are the initial layout arrangements and corresponding execution code for each step of the experiment. Please place your experimental consumables and equipment according to the layout requirements, and start executing according to the code for each step after ensuring proper placement."
             response_dict = {
                 "response":response,
                 'protocol_design_type': protocol_design_type,
@@ -334,8 +334,8 @@ def template_protocol_design(instruction: dict, stage=1):
             }
         elif protocol_design_type == 'auto_protocol_design':
 
-            code_list = instruction['data']['code_block']
-            print('开始进行参数提取，以及溶液计算')
+            code_list = instruction['data']['new_code']
+            print('Start parameter extraction and solution calculation')
             name_list = instruction['data']['operation_name']
             protocol_file = instruction['data']['protocol_file_path']
             user_input_list = instruction['data']['user_input_list']
@@ -352,7 +352,7 @@ def template_protocol_design(instruction: dict, stage=1):
                 temp_name = name_list[ii]
                 para_list, _ = get_param_name(temp)
 
-                print('需要提取的参数', para_list)
+                print('Parameters to extract', para_list)
                 experiment_type_prompt = (
                     f'请仔细阅读和分析文档中的内容，这是一个构建标准文库实验的protocol，目录中是文库构建的执行步骤，现在你需要聚焦于步骤{temp_name}中的所有内容，提取出该步骤中吸取（移液）溶剂的体积和样本体积。需要抽取的溶液参数列表如下：{para_list}\n'
                     f'User将会提供文档，你需要基于文档内容，找到当前步骤下参数列表中每种溶液吸取的体积。注意：参数input_Single_sample_volume 指的是上一个步骤样本管中剩余的溶液体积，input_final_transfer_volume指的是当前步骤最终移取上清液的体积，如果热循环中的温度是hold，则把他修改为60秒，如果参数是MIX的混合液，则只提取total的总体积，并以JSON格式返回。'
@@ -379,7 +379,7 @@ def template_protocol_design(instruction: dict, stage=1):
             user_input_dict = {}
             for user_input in user_input_list:
                 user_input_dict[user_input] = instruction[user_input][0]
-            # 获取用户的样本数量
+            # Get the number of samples from user
             Sample_num = int(instruction['user_sample_nums'][0])
             new_para_list = []
             for ii in range(len(all_param_list)):
@@ -400,7 +400,7 @@ def template_protocol_design(instruction: dict, stage=1):
                     option_list.append(
                         {"title": step_str + param, "options": [], "type": ["single", "input"], "key": step_str + param,
                          "value": [temp_dict[param]]})
-            response = f'我们根据用户提供的样本参数，计算出了每个代码块所需要的溶液体积参数，具体如下,请用户确认。'
+            response = f'Based on the sample parameters provided by the user, we have calculated the required liquid volume parameters for each code block as follows, please confirm.'
             response_dict = {"response": response,
                              'data':{"new_code": code_list, 'new_para_list': new_para_list,'user_input_dict': user_input_dict},
                              "operations": option_list,
@@ -413,7 +413,7 @@ def template_protocol_design(instruction: dict, stage=1):
 
     elif stage == 4:
         stage += 1
-        print('根据参数列表修改代码')
+        print('Modifying code according to parameter list')
         code_list = instruction['data']['new_code']
         new_modify_para_list = []
         new_para_list = instruction['data']['new_para_list']
@@ -438,12 +438,11 @@ def template_protocol_design(instruction: dict, stage=1):
             temp_dict = new_modify_para_list[ii]
             temp_dict.update(user_input_dict)
             experiment_type_prompt = (
-                f'你需要完成一个关键字替换的任务，用户会提供一段代码和一个替换用的字典。\n'
-                f'任务是将代码中的关键字用字典中相应的值替换。代码的其它部分保持不变，并返回修改后的代码。\n'
-                f'注意：务必只返回修改后的代码，其余说明一概不要\n'
-                f'替换字典为：{temp_dict}\n'
-                f'以下是一个例子：\n'
-                f'原始代码：\n'
+                f'You need to complete a keyword replacement task. The user will provide a code snippet and a replacement dictionary.\n'
+                f'The task is to replace keywords in the code with corresponding values from the dictionary. Keep other parts of the code unchanged and return the modified code.\n'
+                f'Note: Only return the modified code, no other explanations needed\n'
+                f'Replacement dictionary：{temp_dict}\n'
+                f'Here is an example：\n'
                 '''
                 Sample_nums = input_sample_nums
                 MIX_volume = input_PCR_MIX_volume
@@ -462,8 +461,8 @@ def template_protocol_design(instruction: dict, stage=1):
                 thermocycler_module = protocol.load_module('thermocycler', '7')
                 thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
                 '''
-                f'替换字典：{{"input_sample_nums": 96, "input_PCR_MIX_volume": 3224, "input_Single_sample_volume": 50, "input_thermocycler_param":[{{"temper_time": [[37, 1800], [65, 900], [4, 60]], "repetition": 1}}]}}\n'
-                f'替换后的结果：\n'
+                f'Replacement dictionary：{{"input_sample_nums": 96, "input_PCR_MIX_volume": 3224, "input_Single_sample_volume": 50, "input_thermocycler_param":[{{"temper_time": [[37, 1800], [65, 900], [4, 60]], "repetition": 1}}]}}\n'
+                f'Result after replacement：\n'
                 '''
                 Sample_nums = 96
                 MIX_volume = 3224
@@ -503,7 +502,7 @@ def template_protocol_design(instruction: dict, stage=1):
                         f.write(ll + '\n')
                 f.close()
 
-        #使用LLM获取版面信息
+        # Use LLM to get layout information
         layout_info_list = []
         for ii in range(len(new_code_path)):
             code_path = new_code_path[ii]
@@ -514,10 +513,10 @@ def template_protocol_design(instruction: dict, stage=1):
                 f.close()
 
             experiment_type_prompt = (
-                f'你需要根据用户提供的实验代码，将实验所需要的版位信息提取出来并用语言总结返回一个版位布局信息\n'
-                f'注意：要按照示例的模板进行返回\n'
-                f'以下是一个例子：\n'
-                f'实验代码：\n'
+                f'You need to extract the layout information from the experimental code provided by the user and return a layout information summary in natural language\n'
+                f'Note: Please follow the template in the example\n'
+                f'Here is an example：\n'
+                f'Experimental code：\n'
                 '''
                 Sample_nums = user_sample_nums
                 Beads_volume = input_DNA_Beads_volume
@@ -532,7 +531,7 @@ def template_protocol_design(instruction: dict, stage=1):
                 if Sample_nums%8 !=0:
                     use_col_nums = use_col_nums+1
         
-                # 加载200ul滤芯吸头架
+                # Load 200ul filter tip rack
                 tips200_1 = ctx.load_labware('mdk_96_filtertiprack_200ul', 4)
                 tips200_2 = ctx.load_labware('mdk_96_filtertiprack_200ul', 5)
                 tips200_3 = ctx.load_labware('mdk_96_filtertiprack_200ul', 6)
@@ -543,7 +542,7 @@ def template_protocol_design(instruction: dict, stage=1):
                 tips200_8 = ctx.load_labware('mdk_96_filtertiprack_200ul', 11)
         
                 plate1 = ctx.load_labware('biorad_96_wellplate_200ul_pcr', 3)
-                # 加载磁性模块和在磁性模块上加载PCR板
+                # Load magnetic module and PCR plate on it
                 mag_module = ctx.load_module("magneticModuleV2", 1)
                 mag_plate = mag_module.load_labware('biorad_96_wellplate_200ul_pcr')
                 reservoir_plate = ctx.load_labware('usascientific_12_reservoir_22ml', 2)
@@ -551,8 +550,8 @@ def template_protocol_design(instruction: dict, stage=1):
                 # Pipettes
                 right_pipette = ctx.load_pipette("p200_multi", "left")
         
-                #执行指令
-                # 移液
+                # Execute instructions
+                # Transfer
                 transfer_times = use_col_nums
                 transfer_info_right1 = []
                 for ii in range(transfer_times):
@@ -582,14 +581,14 @@ def template_protocol_design(instruction: dict, stage=1):
         
                 transfer_all(right_pipette, mag_plate, reservoir_plate, tips200_1, transfer_info_right4)
                 '''
-                f'返回的版位布局信息为：\n'
+                f'Return layout information：\n'
                 '''
-                版位布局：
-                    (1)将200ul的mdk_96_filtertiprack_200ul吸头架放在4、5、6、7、8、9、10、11号槽位。
-                    (2)将磁性模块放在1号槽位，并在磁性模块上放一个200μL的biorad_96_wellplate_200ul_pcr板。
-                    (3)将一个200μL的biorad_96_wellplate_200ul_pcr孔板放在3号槽位。
-                    (4)将一个22ml的usascientific_12_reservoir_22ml储液槽放在2号槽位。
-                    (5)使用P200多通道移液器，装在左侧，并使用4、5、6、7、8、9、10、11号槽位的吸头架。
+                Layout:
+                    (1)Place 200ul mdk_96_filtertiprack_200ul tip racks in slots 4,5,6,7,8,9,10,11.
+                    (2)Place magnetic module in slot 1, with a 200μL biorad_96_wellplate_200ul_pcr plate on it.
+                    (3)Place a 200μL biorad_96_wellplate_200ul_pcr plate in slot 3.
+                    (4)Place a 22ml usascientific_12_reservoir_22ml reservoir in slot 2.
+                    (5)Use P200 multichannel pipette on the left side, using tip racks from slots 4,5,6,7,8,9,10,11.
                 '''
             )
             experiment_info_response = get_llm_chat_completion(
@@ -607,7 +606,7 @@ def template_protocol_design(instruction: dict, stage=1):
                 f.write(experiment_process)
                 f.close()
             layout_info_list.append(temp_txt_path)
-        #将python转成json
+        # Convert python to json
         json_file_list =[]
         for ii in range(len(new_code_path)):
             new_code = new_code_path[ii]
@@ -618,7 +617,7 @@ def template_protocol_design(instruction: dict, stage=1):
             output = process.read()
             print(output)
             process.close()
-        response = '以下是根据用户的需求生成的可执行代码和版面布局信息，用户可以导入OT-2机器中，开始进行建库实验。'
+        response = 'Below are the executable code and layout information generated according to user requirements. Users can import them into OT-2 machine to start the library construction experiment.'
 
         response_dict = {"response": response, 'data':{"new_code": new_code_path,'layout_info':layout_info_list,'json_file':json_file_list}, "stage": stage, 'state': 'stop'}
 
@@ -627,12 +626,12 @@ def template_protocol_design(instruction: dict, stage=1):
 
 app = FastAPI()
 
-# 解析输入数据
+# Parse input data
 class InputModel(BaseModel):
-    instruction: str #用户输入
-    conversation: list #上下文对话
+    instruction: str #user input
+    conversation: list #context dialogue
     type: int
-    stage: int #对话轮次
+    stage: int #dialogue rounds
     upload_file_flag: bool
     species_identification_dict: dict
     experiment_select_strain: list
@@ -640,7 +639,7 @@ class InputModel(BaseModel):
     select_target_gene: list
     strain_select: list
 
-#心跳测试，保证服务器连接状态
+# Heartbeat test to ensure server connection status
 async def heartbeat(websocket: WebSocket):
     while True:
         await asyncio.sleep(30)
@@ -674,15 +673,15 @@ async def websocket_endpoint(websocket: WebSocket):
         try:
             await websocket.close()
         except RuntimeError:
-            # 如果连接已经关闭，忽略这个异常
+            # Ignore this exception if connection is already closed
             pass
             
 if __name__ == "__main__":
     openai.api_type = "azure"
-    openai.api_base = "https://xmgi-chat8.openai.azure.com/"
-    openai.api_version = "2024-02-15-preview"
-    openai.api_key = "2d4b3509a9904372be2a75f45a12203f"
+    openai.api_base = ""
+    openai.api_version = ""
+    openai.api_key = ""
 
     os.system('rm log')
-    #开启服务
+    # Start service
     uvicorn.run(app, host="0.0.0.0", port=8032,timeout_keep_alive=300)

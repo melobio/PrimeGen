@@ -1,66 +1,45 @@
 import { BaseAgents } from './base-agents';
 import { ChatMessage } from '@azure/openai/types/src';
-import { AgentFunctions } from '@xpcr/common';
+import { AgentFunctions, AgentType } from '@xpcr/common';
 import { Logger } from '@nestjs/common';
 import { Agents } from '../../tools/agents/entities/agents.entity';
 import { DataSource } from 'typeorm';
+import { ConversationService } from '../conversation.service';
+import { CacheService } from 'src/cache/cache.service';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Role } from '../entities/message.entity';
+import { MessageEntity, Role } from '../entities/message.entity';
+import {
+  ProtocolDesignInfo,
+  ProtocolDesign,
+  ProtocolDesignResultInfo,
+} from './ext/protocol-design';
 
-const mockResult = `
-  根据你的输入"{{INPUT}}",
-  设计出的Protocol如下:
-  
-\`\`\`python
-from opentrons.types import Point
-metadata = {
-    'protocolName': 'Fault detection demo',
-    'author': 'MGI-X',
-    'apiLevel': '2.11'
-}
+const createFileListString = (key, responses) => {
+  const fileList = responses[key] || [];
+  if (fileList.filter((a) => a).length === 0) return '';
+  const keyName = key?.replaceAll('_', ' ').toUpperCase() || '';
+  const fileListLinks = fileList.map((p) => {
+    const url = path.join('/v1/files/xsearchdev', p);
+    return `[${path.basename(url)}](${url.replaceAll(' ', '%20')})`;
+  });
 
-def run(ctx):
-    # Modules
-    mag_mod = ctx.load_module('magnetic module gen2', '1')
-    mag_rack = mag_mod.load_labware('biorad_96_wellplate_200ul_pcr') 
-    tmp_mod = ctx.load_module('temperature module gen2', '3')
-    tmp_rack=tmp_mod.load_labware('biorad_96_wellplate_200ul_pcr') 
-    tc_mod = ctx.load_module(module_name='thermocyclerModuleV1')
-    tc_rack = tc_mod.load_labware(name='biorad_96_wellplate_200ul_pcr')
-    # pipette and tiprack
-    tiprack = [ctx.load_labware('opentrons_96_filtertiprack_20ul', slot) for slot in ['2','5']]
-    pip20_multi = ctx.load_instrument('p20_multi_gen2', 'left', tip_racks=[*tiprack])
-    pip20_single = ctx.load_instrument('p20_single_gen2', 'right', tip_racks=[*tiprack])
-    # well plates
-    plate_4 = ctx.load_labware('nest_96_wellplate_2ml_deep', '4', 'reg4')
-    plate_6 = ctx.load_labware('biorad_96_wellplate_200ul_pcr', '6', 'reg6')
-    plate_9 = ctx.load_labware('biorad_96_wellplate_200ul_pcr', '9', 'reg9')
-    # protocol
-    for well_name in ['A1','B1','C1']:
-        pip20_single.transfer(10,
-                            mag_rack.wells_by_name()[well_name],
-                            tmp_rack.wells_by_name()[well_name],
-                            new_tip='always',
-                            blow_out=True,
-                            blowout_location='destination well')
-    for well_name in ['A1','A2','A3']:
-        pip20_multi.transfer(10,
-                            mag_rack.wells_by_name()[well_name],
-                            tmp_rack.wells_by_name()[well_name],
-                            new_tip='always',
-                            blow_out=True,
-                            blowout_location='destination well')
-\`\`\`
-`;
+  return `**${keyName}**:\n${fileListLinks.join('\n')};\n`;
+};
 
 export class ProtocolDesignAgents extends BaseAgents {
   initMessages: ChatMessage[] = [];
+  protocolDesign: ProtocolDesign;
   availableFunctions = {
-    [AgentFunctions.DESIGN_PRIMER]: this.designProtocol.bind(this),
+    [AgentFunctions.DESIGN_PROTOCOL]: this.callProtocolDesign.bind(this),
   };
 
-  constructor(readonly agent: Agents, readonly dataSource: DataSource) {
+  constructor(
+    readonly agent: Agents,
+    readonly dataSource: DataSource,
+    readonly cacheService: CacheService,
+    readonly chatsService: ConversationService,
+) {
     super(agent, dataSource);
     this.needSummarize = false;
   }
@@ -81,21 +60,49 @@ export class ProtocolDesignAgents extends BaseAgents {
       },
     ];
     await super.init(conversationUUID);
+    this.protocolDesign = new ProtocolDesign(
+      this.dataSource,
+      this.cacheService,
+      this.conversationUUID,
+    );
+    this.chatsService.setProtocolDesign(
+      this.protocolDesign,
+      this.conversationUUID,
+    );
   }
 
-  // 引物设计不需要子Agent内部的LLM进行总结，提升反馈的效率
-  async *send(
-    userInput: string,
-    description: string,
-  ): AsyncGenerator<any, void, any> {
-    // yield* this.mockGenerating(`[${this.agent.name}]\n`);
+
+  async *send({
+    userInput,
+    description,
+    optionInfo,
+  }: {
+    userInput: string;
+    description?: string;
+    optionInfo?: ProtocolDesignInfo;
+  }): AsyncGenerator<any, void, any> {
+    // Send User Input to Protocol Design Agent
+    this.logger.debug(
+      `send ==> userInput: ${userInput} description: ${description} optionInfo: ${JSON.stringify(
+        optionInfo,
+      )}`,
+    );
+
     let content = '';
+    let newOptionInfo = {
+      state: 'stop',
+      // stage: 1,
+      operations: [],
+    };
     for (const key in this.availableFunctions) {
       const queryFunc = this.availableFunctions[key];
       for await (const msg of queryFunc({
         query: `${userInput} ${description}`,
+        optionInfo,
       })) {
-        // 将用户完整的输入传给Seq Agent
+        if (msg?.optionInfo) {
+          newOptionInfo = msg?.optionInfo;
+        }
         if (msg.role === Role.Assistant) {
           content += msg.content;
         } else {
@@ -106,42 +113,74 @@ export class ProtocolDesignAgents extends BaseAgents {
     yield {
       role: Role.Assistant,
       content: content,
+      optionInfo: newOptionInfo,
     };
     await this.saveMessage(`${userInput} ${description}`, Role.User);
     await this.saveMessage(content, Role.Assistant);
   }
 
-  private async *designProtocol({ query }: { query: string }) {
-    this.logger.debug(`designProtocol ${query}`);
+  private async *callProtocolDesign({
+    query,
+    optionInfo,
+  }: {
+    query: string;
+    optionInfo?: ProtocolDesignInfo;
+  }) {
     let success = true;
-    let protocolResult = '';
-    let python: string;
+    let protocolResultString = '';
+    let protocolResultContentData;
+    let protocolResultContentResponse: ProtocolDesignResultInfo;
+    let protocolResultContent;
 
     try {
-      protocolResult = mockResult
-        .replace('{{INPUT}}', query)
-        .replace(/^\s+/gm, '');
-      this.logger.debug('protocolResult\n' + protocolResult);
+      protocolResultContentResponse = await this.protocolDesign.call(
+        query,
+        this.history,
+        optionInfo,
+      );
 
-      // 提取python代码块
-      // const codeBlockRegex = /```(?:\w+)?\s*([\s\S]+?)\s*```/g;
-      // const codeBlocks = mockResult.match(codeBlockRegex);
-      // if (codeBlocks) {
-      //   codeBlocks.forEach((codeBlock, index) => {
-      //     this.logger.debug(codeBlock);
-      //     python = JSON.parse(codeBlock.replace(/```python|```/g, ''));
-      //   });
-      // }
+      if (typeof protocolResultContent == 'string') {
+        protocolResultString = `We apologize to the failure to help immediately;It seems that our assistants have encountered a little problem;Please try to check if there is an unsubmitted operation, our assistant will be happy to serve you.`;
+      } else {
+        protocolResultContent =
+          protocolResultContentResponse?.responses || null;
+        protocolResultContentData = protocolResultContent.data;
+        protocolResultString = protocolResultContent?.response || '';
+
+        if (protocolResultContentData?.new_code) {
+          protocolResultString += '\n';
+          protocolResultString += createFileListString(
+            'new_code',
+            protocolResultContentData,
+          );
+        }
+
+        if (protocolResultContentData?.json_file) {
+          protocolResultString += '\n';
+          protocolResultString += createFileListString(
+            'json_file',
+            protocolResultContentData,
+          );
+        }
+
+        if (protocolResultContentData?.layout_info) {
+          protocolResultString += '\n';
+          protocolResultString += createFileListString(
+            'layout_info',
+            protocolResultContentData,
+          );
+        }
+      }
     } catch (e) {
       this.logger.error(`designProtocol error: ${e}`, e.stack);
-      protocolResult = e.message;
+      protocolResultString = e.message;
       success = false;
     }
 
     yield {
-      content: protocolResult,
+      optionInfo: protocolResultContent,
       role: Role.Assistant,
-      protocol: python,
+      content: protocolResultString,
     };
   }
 

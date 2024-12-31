@@ -1,8 +1,8 @@
 from opentrons import protocol_api
 ##
-##本代码块适用于单细胞染色体拷贝数变异,染色体拷贝数变异,游离DNA,
-##外显子组酶切,通用DNA,酶切DNA,RNA方向性_PCR反应_7.py等protocol的PCR扩增反应。
+## This code block is suitable for PCR amplification reactions in protocols such as single-cell chromosomal copy number variation, chromosomal copy number variation, free DNA, exome digestion, general DNA, digested DNA, and RNA directional_PCR reaction_7.py.
 ##
+
 metadata = {
     'protocolName': 'PCR扩增_1',
     'author': 'MGIX',
@@ -10,16 +10,16 @@ metadata = {
     'apiLevel': '2.14'
 }
 
-# 移液函数
+# Liquid handling function
 def transfer_all(pipette, source_plate, dest_plate, transfer_info, mix_flag=0, mix_value=[]):
     """
-    传输样本的通用函数。
+    General function for transferring samples.
     Args:
-    - pipette: 使用的移液器
-    - source_plate: 源板
-    - dest_plate: 目标板
-    - transfer_info: 包含移液信息的列表，每个元素为一个元组 (源列名, 目标列名, 体积)
-    - mix_value: 混液信息，是一个列表，[次数，体积]
+    - pipette: Pipette used
+    - source_plate: Source plate
+    - dest_plate: Destination plate
+    - transfer_info: List containing transfer information, each element is a tuple (source column name, destination column name, volume)
+    - mix_value: Mixing information, a list [times, volume]
     """
     source_map = source_plate.columns_by_name()
     dest_map = dest_plate.columns_by_name()
@@ -112,7 +112,7 @@ def run(protocol: protocol_api.ProtocolContext):
     
     transfer_volume = PCR_MIX_volume/(Sample_nums+8)
 
-    #     酶切DNA
+    #     Digestion DNA
 #     DNA_quality = 50
 #     DNA_Final_quality = 300
 #     repet_times = get_PCR_repet(DNA_quality,DNA_quality)
@@ -120,19 +120,19 @@ def run(protocol: protocol_api.ProtocolContext):
     use_col_nums = int(Sample_nums / 8)
     if Sample_nums % 8 != 0:
         use_col_nums = use_col_nums + 1
-    # 加载200ul吸头架
+    # Load 200μL tip rack
     tips200_1 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
     temp_module = protocol.load_module('temperature module', '3')
     temp_plate = temp_module.load_labware('biorad_96_wellplate_200ul_pcr')
-    # 加载热循环仪模块，确保指定一个正确的位置编号
+    # Load thermocycler module, ensure a correct slot number is specified
     thermocycler_module = protocol.load_module('thermocycler', '7')
     thermocycler_plate = thermocycler_module.load_labware('biorad_96_wellplate_200ul_pcr')
     # Pipettes
     right_pipette = protocol.load_instrument('p300_multi_gen2', mount='right', tip_racks=[tips200_1])
     right_pipette.flow_rate.aspirate = 46.43  # Set aspirate speed to 50 μL/s
     right_pipette.flow_rate.dispense = 92.86
-    # 定义液体
-    # labeling liquids in wells
+    # Define liquids
+    # Labeling liquids in wells
     sample = protocol.define_liquid(
         name="sample",
         description="sample",
@@ -143,7 +143,7 @@ def run(protocol: protocol_api.ProtocolContext):
         description="PCR_MIX",
         display_color="#00FF00",
     )
-    # 加载液体
+    # Load liquids
     all_plate_well = [f"{chr(65 + i)}{j}" for j in range(1, 12 + 1) for i in range(8)]
     if use_col_nums > 6:
         half_volume = (PCR_MIX_volume/(Sample_nums+8))*6.5
@@ -161,14 +161,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for well_name in use_plate_well:
         thermocycler_plate.wells_by_name()[well_name].load_liquid(liquid=sample, volume=Single_sample_volume)
 
-    # 执行指令
-    # 1. 将温控模块设置为4度并暂停等待达到设定温度
+    # Execute commands
+    # 1. Set the temperature module to 4°C and pause until the target temperature is reached
     temp_module.set_temperature(4)
     temp_module.await_temperature(4)
-    # 开启热循环
+    # Start thermocycler
     thermocycler_module.open_lid()
     thermocycler_module.set_block_temperature(4)
-    # 移液
+    # Liquid handling
     transfer_times = use_col_nums
     transfer_info_right1 = []
     for ii in range(transfer_times):

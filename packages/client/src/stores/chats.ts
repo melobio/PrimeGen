@@ -1,20 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import type { Chat, Message, ConversationUUIDtoPrimerFileID, GeneticDisorderInfo, CancerOptionInfo, ProteinMutationInfo, PathogenDrugInfo,SpeciesIdentificationInfo } from '@/stores/chat-types'
-import { chats as getChats, messages as getMessages , deleteConversationByUUID} from '@/api';
+import type { Chat, Message, ConversationUUIDtoPrimerFileID, GeneticDisorderInfo, CancerOptionInfo, ProteinMutationInfo, ProteinMutationLength, PathogenDrugInfo,SpeciesIdentificationInfo, SnpPrimerDesignInfo, ProtocolDesignInfo } from '@/stores/chat-types'
+import { chats as getChats, messages as getMessages , deleteConversationByUUID,reNameConversationByUUID} from '@/api';
 import { io, Socket } from "socket.io-client";
 import * as _ from 'lodash';
 import {
   TEXT_ANSWER_CREATE,
   TEXT_ANSWER_DONE,
   TEXT_ANSWER_GENERATING,
+  STOP_GENERATING_MESSAGE,
   TEXT_QUESTION,
   JETSON_BAD_TIP,
   UPLOAD_PRIMER_EXCEL,
   VOICE_QUESTION,
   SEND_OPTION_NCBI_SEARCH,
+  RESTART_CONVERSATION,
+  UPDATE_CONVERSATIONS,
+  UPDATE_MESSAGE,
+  SEND_OPTION_PRIMER_DESIGN,
+  SEND_OPTION_PROTOCOL_DESIGN
 } from "@/stores/chat-types";
+import { useExperimentsStore } from '@/stores/experiments';
 
+import pako from 'pako';
 export interface BadTipInfo {
   runId: string,
   bad_tip: number,
@@ -35,7 +43,7 @@ interface GeneratingMessage {
 
 function initSocket() {
   // const socketOptions = {
-  //   path: '/pcr-ws',
+  //   path: '/xpcr-ws',
   //   autoConnect: false,
   //   transportOptions: {
   //     polling: {
@@ -58,6 +66,8 @@ export const useChatStore = defineStore('chat', () => {
   const currentChat = ref<Chat>({} as Chat);
   const currentChatMessages = ref<Message[]>([]);
   const isRecordingAudio = ref(false);
+  const restartConversationUUID = ref<string>('');
+  const hideChatList = ref(false);
   const badTipInfo = ref<BadTipInfo>({
     runId: '',
     bad_tip: 0,
@@ -69,10 +79,9 @@ export const useChatStore = defineStore('chat', () => {
   });
 
   const generatingMessages: GeneratingMessage[] = [];
-  // const isGenerating = ref(false);
   const cvstoexper = ref<ConversationUUIDtoPrimerFileID[]>([])
 
-  // 消息更新时，是否滚动到底部
+  // scroll to bottom when new message comes
   const scrollBottom = ref(false);
   const shouldScrollToBottomWhileGenerating = ref(false);
 
@@ -85,32 +94,45 @@ export const useChatStore = defineStore('chat', () => {
   async function init() {
     socket.value?.disconnect();
     socket.value = initSocket();
-    socket.value.on(TEXT_ANSWER_GENERATING, async (generatingMessage: GeneratingMessage) => {
-      if (generatingMessage.success) {
-        generatingMessages.push(generatingMessage);
-        if (generatingMessage.finishReason == 'stop') {
-          scrollBottom.value = true;
-          await getAllMessages(currentChat.value.uuid);        
-        }else{
-          updateGenerating(generatingMessage.data.uuid,true,false)
-        }
-      }
-    });
     socket.value.on(TEXT_ANSWER_CREATE, (generatingMessage: GeneratingMessage) => {
       if (generatingMessage.success) {
         generatingMessages.push({ ...generatingMessage, isCreate: true });
+        if(generatingMessage.conversationUUID == currentChat.value.uuid){
+          scrollBottom.value = true;
+        }
       }
     });
+    socket.value.on(TEXT_ANSWER_GENERATING, async (generatingMessage: GeneratingMessage) => {
+      if (generatingMessage.success) {
+        generatingMessages.push(generatingMessage);
+        updateGenerating(generatingMessage.data.uuid,true)
+        if(generatingMessage.conversationUUID == currentChat.value.uuid){
+          scrollBottom.value = true;
+        }
+      }
+    });
+
     socket.value.on(TEXT_ANSWER_DONE,async ({ conversationUUID }: { conversationUUID: string }) => {
-      console.log('TEXT_ANSWER_DONE', conversationUUID);
-      await getAllChats();
-      await getAllMessages(currentChat.value.uuid);        
-      updateGenerating(currentChat.value.uuid,false,true)
+      updateGenerating(conversationUUID,false)
+      // await getAllMessages(conversationUUID);        
     })
+    
+    socket.value.on(UPDATE_CONVERSATIONS,async () => {
+      getAllChats();
+    })
+    
+    socket.value.on(UPDATE_MESSAGE,async ({ conversationUUID }: { conversationUUID: string }) => {
+      getAllMessages(conversationUUID);        
+    })
+    
     socket.value.on(JETSON_BAD_TIP, ({ conversationUUID, bad_tip, pcr, tip, data, plot, runId }: BadTipInfo) => {
       setBadTipInfo({ runId, conversationUUID, bad_tip, pcr, tip, data, plot });
     })
 
+    socket.value.on(RESTART_CONVERSATION, ({ conversationUUID }) => {
+      restartConversationUUID.value = conversationUUID;
+    })
+    
     socket.value.on(UPLOAD_PRIMER_EXCEL, (generatingMessage: GeneratingMessage) => {
       console.log('recieve message, ready to upload primer excel');
       console.log(generatingMessage)
@@ -124,8 +146,8 @@ export const useChatStore = defineStore('chat', () => {
   function setBadTipInfo(info: BadTipInfo) {
     badTipInfo.value = info;
   }
-  // 每50ms检查一次，是否有新的生成消息，有的话就显示出来
-  // 目的是为了让用户看到生成的过程
+  // check every 50ms, if there is a new message, then update the message
+  // to let user know the message is generating
   function startRefreshGeneratingMessages() {
     setInterval(() => {
       if (generatingMessages.length) {
@@ -157,13 +179,15 @@ export const useChatStore = defineStore('chat', () => {
     }, 50);
   }
 
- async function updateGenerating(uuid: string,isGenerating:boolean,setCurrent:boolean){
-  if(setCurrent){currentChat.value.isGenerating = isGenerating;}
+ async function updateGenerating(chatUUID: string,isGenerating:boolean){
     chats.value.forEach((item:Chat,index:number)=>{
-      if(item.uuid == uuid){
+      if(item.uuid == chatUUID){
         chats.value[index].isGenerating = isGenerating;
       }
     });
+    if(chatUUID === currentChat.value.uuid){
+      currentChat.value.isGenerating = isGenerating;
+    }
   }
   async function getAllChats() {
     const { data = [], success } = await getChats<Chat[]>()
@@ -183,14 +207,17 @@ export const useChatStore = defineStore('chat', () => {
       chats.value = newChats;
       if (data?.length && !currentChat.value?.uuid) {
         currentChat.value = data[0];
-      }
+       }
     }
   }
   async function getAllMessages(conversationUUID: string) {
     getMessages<Message[]>(conversationUUID).then(({ data, success }) => {
       if (success) {
-        data?.forEach((item) => item.generating = false);
-        currentChatMessages.value = data || [];
+        const generatingMsgs = currentChatMessages.value.filter(item=>item.generating).map(subItem=>subItem.uuid)
+        data?.forEach((item) => item.generating = generatingMsgs.includes(item.uuid));
+        if(conversationUUID == currentChat.value.uuid){
+          currentChatMessages.value = data || [];
+        }
         scrollBottom.value = true;
       }
     });
@@ -205,12 +232,12 @@ export const useChatStore = defineStore('chat', () => {
       console.warn('socket empty or disconnected');
       return;
     }
-    updateGenerating(currentChat.value.uuid,true,true)
+    updateGenerating(currentChat.value.uuid,true)
     const { success, data }: { success: boolean, data: Message[] } =
       await socket.value.emitWithAck(TEXT_QUESTION, { text, conversationUUID: currentChat.value?.uuid });
 
     if (success) {
-      data[data.length - 1].generating = false; // 正在生成中
+      data[data.length - 1].generating = false; // generating
       currentChatMessages.value = [...currentChatMessages.value, ...data];
       scrollBottom.value = true;
     }
@@ -230,30 +257,76 @@ export const useChatStore = defineStore('chat', () => {
 
     console.log('base64Voice', base64Voice.substring(0, 100) + '...');
     const [_, base64] = base64Voice.split(';base64,');
-    updateGenerating(currentChat.value.uuid,true,true)
+    updateGenerating(currentChat.value.uuid,true)
     const { success, data }: { success: boolean, data: Message[] } =
       await socket.value.emitWithAck(VOICE_QUESTION, { voice: base64, conversationUUID: currentChat.value?.uuid });
 
     if (success) {
-      data[data.length - 2].generating = false; // 用户发出的直接标记为生成结束
-      data[data.length - 1].generating = true; // 正在生成中
+      if(data[data.length - 2]) data[data.length - 2].generating = false; // user input, mark as not generating
+      if(data[data.length - 1]) data[data.length - 1].generating = true; // generating
       currentChatMessages.value = [...currentChatMessages.value, ...data];
       scrollBottom.value = true;
     }
   }
+
+  async function stopGeneratingMessage(){
+    if (!currentChat.value?.uuid) {
+      console.warn('currentChat empty');
+      return;
+    }
+    if (!socket.value || socket.value?.connected === false) {
+      console.warn('socket empty or disconnected');
+      return;
+    }
+    const res:{success:boolean} = await socket.value.emitWithAck(STOP_GENERATING_MESSAGE, { conversationUUID: currentChat.value?.uuid });
+    if(res.success){
+      //clear generating
+      updateGenerating(currentChat.value.uuid,false)
+      currentChatMessages.value = currentChatMessages.value.map(item=>({...item,generating:false})) 
+    }
+  }
+
   async function handleDeleteConversationByUUID(uuid: string){
     const res =  await deleteConversationByUUID(uuid)
     if(res.code == 200){
       await getAllChats();
       if(currentChat.value.uuid === uuid){
-        currentChat.value = chats.value[chats.value.length-1]
+        currentChat.value = chats.value[0]
       }
     }
   }
 
+  async function handleReNameConversationByUUID(uuid:string,name:string){
+    const res =  await reNameConversationByUUID(uuid,name)
+    if(res.code == 200){
+      await getAllChats();
+      if(currentChat.value.uuid === uuid){
+        currentChat.value.name = name
+      }
+    }
+  }
+  
+  async function handleRestartConversation(restart: boolean){
+    if(restart){
+      // dele con
+      const res =  await deleteConversationByUUID(currentChat.value?.uuid)
+      if(res.code == 200){
+        const experimentsStore = useExperimentsStore();
+        // add con & select
+        const res =await experimentsStore.handleAddConWithExp()
+        if(res.code == 200){
+          await experimentsStore.getAllExperiments();
+          await getAllChats();
+          currentChat.value = chats.value[0];
+        }
+      }
+    }
+    restartConversationUUID.value = ''
+  }
+
   async function sendSelectOptionToNcbiSearch(
     text: string,
-    info: ProteinMutationInfo| CancerOptionInfo | GeneticDisorderInfo | PathogenDrugInfo | SpeciesIdentificationInfo,
+    info: ProteinMutationInfo| CancerOptionInfo | GeneticDisorderInfo | PathogenDrugInfo | SpeciesIdentificationInfo | ProteinMutationLength | any,
     message: Message) {
     if (!currentChat.value?.uuid) {
       console.warn('currentChat empty');
@@ -263,9 +336,64 @@ export const useChatStore = defineStore('chat', () => {
       console.warn('socket empty or disconnected');
       return;
     }
-    updateGenerating(currentChat.value.uuid,true,true)
+    updateGenerating(currentChat.value.uuid,true)
     let res:{ success: boolean, data: Message[] }= {success:false,data:[]};
-      res= await socket.value.emitWithAck(SEND_OPTION_NCBI_SEARCH, {
+    const optionsMsg = {
+      text,
+      conversationUUID: currentChat.value?.uuid,
+      option: info,
+      messageId: message.id,
+    }
+    // console.info(optionsMsg);
+    const compressed = pako.deflate(JSON.stringify(optionsMsg));
+    res= await socket.value.emitWithAck(SEND_OPTION_NCBI_SEARCH,compressed);
+    if (res.success) {
+      currentChatMessages.value = [...currentChatMessages.value, ...res.data];
+      scrollBottom.value = true;
+    }
+  }
+
+  async function sendSelectOptionToPrimerDesign(
+    text: string,
+    info: SnpPrimerDesignInfo,
+    message: Message) {
+    if (!currentChat.value?.uuid) {
+      console.warn('currentChat empty');
+      return;
+    }
+    if (!socket.value || socket.value?.connected === false) {
+      console.warn('socket empty or disconnected');
+      return;
+    }
+    updateGenerating(currentChat.value.uuid,true)
+    let res:{ success: boolean, data: Message[] }= {success:false,data:[]};
+      res= await socket.value.emitWithAck(SEND_OPTION_PRIMER_DESIGN, {
+          text,
+          conversationUUID: currentChat.value?.uuid,
+          option: info,
+          messageId: message.id,
+        });
+    if (res.success) {
+      currentChatMessages.value = [...currentChatMessages.value, ...res.data];
+      scrollBottom.value = true;
+    }
+  }
+
+  async function sendOptionToProtocolDesign(
+    text: string,
+    info: ProtocolDesignInfo,
+    message: Message) {
+    if (!currentChat.value?.uuid) {
+      console.warn('currentChat empty');
+      return;
+    }
+    if (!socket.value || socket.value?.connected === false) {
+      console.warn('socket empty or disconnected');
+      return;
+    }
+    updateGenerating(currentChat.value.uuid,true)
+    let res:{ success: boolean, data: Message[] }= {success:false,data:[]};
+      res= await socket.value.emitWithAck(SEND_OPTION_PROTOCOL_DESIGN, {
           text,
           conversationUUID: currentChat.value?.uuid,
           option: info,
@@ -318,21 +446,26 @@ export const useChatStore = defineStore('chat', () => {
     currentChat,
     currentChatMessages,
     isRecordingAudio,
+    hideChatList,
     badTipInfo,
     getAllChats,
     getAllMessages,
     sendText,
     sendOption,
     handleDeleteConversationByUUID,
+    handleReNameConversationByUUID,
     sendSelectOptionToNcbiSearch,
+    sendSelectOptionToPrimerDesign,
+    sendOptionToProtocolDesign,
     sendVoice,
-    // updateUploadSequenceFileMessage,
+    stopGeneratingMessage,
     scrollBottom,
     shouldScrollToBottomWhileGenerating,
     logout,
     setRecordingAudioState,
     setBadTipInfo,
-    // isGenerating,
+    restartConversationUUID,
+    handleRestartConversation,
     cvstoexper
   }
 });

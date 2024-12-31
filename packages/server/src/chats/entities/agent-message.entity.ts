@@ -28,11 +28,11 @@ export class AgentMessageEntity {
   role: Role;
 
   @Column('text', {
-    default: '',
+    // default: '',
   })
   content: string;
   @Column('text', {
-    default: '',
+    // default: '',
   })
   agentType: string;
 

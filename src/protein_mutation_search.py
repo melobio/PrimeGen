@@ -13,7 +13,7 @@ from llm_utils.utils import get_llm_chat_completion
 
 
 Entrez.email = "912837656@qq.com"
-Entrez.api_key = "24e5b06635f7b32dbd9b89c178a3caf3f009"#"db4b31edb00e220c3dd378908403eddbc308"
+Entrez.api_key = "24e5b06635f7b32f009"#"db4b08403eddbc308"
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 # protein engineering search tool
 def protein_mutation_search(instruction, stage):
@@ -106,7 +106,7 @@ Example is shown below:
         protein_mutation_dict["Organism"] = instruction['instruction']["Organism"]
         protein_mutation_dict["Gene_Names"] = instruction['instruction']["Gene_name"]
         protein_mutation_dict["Length"] = instruction['instruction']["Protein_length"]
-        logging.info(f'protein_mutation_dict：{protein_mutation_dict}')
+        logging.info(f'protein_mutation_dict: {protein_mutation_dict}')
 
         temp_O = protein_mutation_dict["Organism"][0]
         temp_n = protein_mutation_dict["Gene_Names"][0]
@@ -114,7 +114,7 @@ Example is shown below:
         print('protein_name',protein_name)
         
         protein_info, data_list = search_uniprot_one(protein_name,temp_O,temp_n)
-        logging.info(f'搜索结果数量 {len(data_list)}')
+        logging.info(f'Number of search results: {len(data_list)}')
         
         if len(data_list) == 0:
             response = f'Sorry, the current search results for the protein {protein_name} on uniprot are empty. You can manually upload the plasmid-modified gene file related to the protein {protein_name} or adjust the name and search again.'
@@ -141,7 +141,7 @@ Example is shown below:
             try:
                 aa_dna_content, download_path = user_select_protein_ncbi_download(data_list)
             except Exception as e:
-                raise Exception('文件下载失败')
+                raise Exception('File download failed')
             response = f"Protein gene selection has been completed as needed, the details are as follows: {aa_dna_content} "
             
             if download_path == []:
@@ -215,7 +215,7 @@ def user_select_protein_ncbi_download(data_list):
                                     dna_define, dna_seq, pro_id, pro_name, pro_seq))
                 break
 
-    # 一方面要前端展示，一方面要后端保存供给引物设计
+    # Need to display on frontend and save on backend for primer design
     aa_dna_content = 'Based on your final choice, I give the following DNA sequence and amino acid sequence information:\n'
     download_path = []
     for idx, aa_dna_info in enumerate(aa_dna_list):
@@ -234,7 +234,7 @@ def user_select_protein_ncbi_download(data_list):
     return aa_dna_content, download_path
     
 def extract_json_response(response):
-    # 从response中提取JSON内容
+    # Extract JSON content from response
     experiment_info_dict = response.choices[0].message.content
     try:
         #if json.loads(experiment_info_dict):
@@ -245,13 +245,13 @@ def extract_json_response(response):
             experiment_info_json_str = match.group(1)
             experiment_info_json_data = json.loads(experiment_info_json_str)
         else:
-            print("GPT构造JSON错误，情况如下所示：\n",experiment_info_dict)
+            print("GPT JSON construction error, details shown below:\n",experiment_info_dict)
             exit()
         return experiment_info_json_data
 
 
 def get_nucleotide_info(name, aa_seq):
-    # 搜索nucleotide数据库
+    # Search nucleotide database
     query = f"{name}"
     handle = Entrez.esearch(db="nucleotide", term=query, retmax=100000)
     record = Entrez.read(handle)
@@ -259,7 +259,7 @@ def get_nucleotide_info(name, aa_seq):
     nucleotide_ids = record["IdList"]
     print('nucleotide_ids', nucleotide_ids)
 
-    # 根据uniport提供的序列和名称来判断，取出真正的DNA序列
+    # Use UniProt provided sequence and name to determine and extract the actual DNA sequence
     for nucleotide_id in nucleotide_ids:
         handle = Entrez.efetch(db="nucleotide", id=nucleotide_id, retmode="xml")
         records = Entrez.read(handle)
