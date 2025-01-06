@@ -98,7 +98,7 @@ You can experience it through this website. The account and password are as foll
 web: https://chat.mgi-tech.com/xpcr/login
 ```
 #### 1.1 Login 
-Before logging in, you can register an account and then you 
+Before logging in, you can register an account and then you can enjoy it.
 
 ![alt text](./docs/login.jpg)
 
