@@ -95,15 +95,11 @@ python ./src/app_dev.py
 You can experience it through this website. The account and password are as follows
 
 ```
-web: http://localhost:4433
+web: https://chat.mgi-tech.com/xpcr/login
 ```
 #### 1.1 Login 
-Login account:
+Before logging in, you can register an account and then you 
 
-```
-account: admin
-password: admin
-```
 ![alt text](./docs/login.jpg)
 
 
