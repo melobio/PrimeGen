@@ -6,7 +6,6 @@ import {
   ChatMessage,
   OpenAIClient,
 } from '@azure/openai';
-import { OpenAI } from 'openai';
 import { Agents } from '../../tools/agents/entities/agents.entity';
 import { LLMFields, LLMType, NodeTypes } from '@xpcr/common';
 import { LlmsEntity } from '../../tools/llms/entities/llms.entity';
@@ -18,10 +17,8 @@ export abstract class BaseAgents implements AgentInterface {
   get logger(): Logger {
     return this.getLogger();
   }
-  needSummarize = true; // if need Router LLM to summarize
+  needSummarize = true; // agent 返回的内容是否需要上次Router LLM进行总结
   client: OpenAIClient;
-  GPTClient: OpenAI;
-  llm_type: LLMType;
   conversationUUID: string;
   history: AgentMessageEntity[] = [];
   abstract getAvailableFunctions(): {
@@ -34,7 +31,7 @@ export abstract class BaseAgents implements AgentInterface {
     readonly dataSource: DataSource,
   ) {}
   protected *mockGenerating(text: string) {
-    // mock generating
+    // 一个一个文字生成
     for (let i = 0; i < text.length; i++) {
       yield {
         content: text[i],
@@ -76,16 +73,7 @@ export abstract class BaseAgents implements AgentInterface {
     this.logger.log(`open ai key: ${apiKey}`);
     this.logger.log(`open ai base: ${apiBase}`);
     this.logger.log(`open ai engine: ${apiEngine}`);
-    if (process.env.LLM_TYPE.toLowerCase() == 'azure') {
-      this.llm_type = LLMType.Azure;
-      this.client = new OpenAIClient(apiBase, new AzureKeyCredential(apiKey));
-    } else if (process.env.LLM_TYPE.toLowerCase() == 'openai') {
-      this.llm_type = LLMType.OpenAI;
-      this.GPTClient = new OpenAI({
-        baseURL: apiBase,
-        apiKey: apiKey,
-      });
-    }
+    this.client = new OpenAIClient(apiBase, new AzureKeyCredential(apiKey));
     this.logger.log(`init openai success.`);
     const agentMessages = await this.dataSource.manager.find(
       AgentMessageEntity,
@@ -122,8 +110,10 @@ export abstract class BaseAgents implements AgentInterface {
     description?: string;
     optionInfo?: any;
   }) {
+    // message = `请执行Opentrons的Protocol:\n ${message}`; // 添加提示，提高准确性
     this.logger.log(`> userInput: ${JSON.stringify(userInput)}`);
     this.logger.log(`> description: ${description}`);
+    // yield* this.mockGenerating(`[${this.agent.name}]\n`);
     const messages = [
       ...this.getInitMessages(),
       ...this.history.map<ChatMessage>((message) => {
@@ -134,35 +124,17 @@ export abstract class BaseAgents implements AgentInterface {
       }),
       { role: Role.User, content: userInput },
     ];
-    // save user input
+    // 保存用户输入
     await this.saveMessage(userInput, Role.User);
     const functions = this.agent.functions;
-    let chatCompletions = null;
-    if (this.llm_type == LLMType.Azure) {
-      chatCompletions = await this.client.getChatCompletions(
-        process.env.OPENAI_API_ENGINE,
-        messages,
-        {
-          functionCall: 'auto',
-          functions: functions,
-        },
-      );
-    } else {
-      const chatCompletionMessages: OpenAI.ChatCompletionMessageParam[] =
-        messages.map((message) => {
-          if ('name' in message) {
-            return message;
-          } else {
-            return { ...message, name: '' }; // or some other default value
-          }
-        }) as OpenAI.ChatCompletionMessageParam[];
-      const params: OpenAI.ChatCompletionCreateParams = {
-        model: process.env.OPENAI_API_ENGINE,
-        messages: chatCompletionMessages,
-        stream: false,
-      };
-      chatCompletions = await this.GPTClient.chat.completions.create(params);
-    }
+    const chatCompletions = await this.client.getChatCompletions(
+      process.env.OPENAI_API_ENGINE,
+      messages,
+      {
+        functionCall: 'auto',
+        functions: functions,
+      },
+    );
     // this.logger.log(`> ${JSON.stringify(message)}`);
     // for await (const resp of this._handleChatCompletions(
     //   messages,
@@ -191,7 +163,6 @@ export abstract class BaseAgents implements AgentInterface {
     messages: ChatMessage[],
     chatCompletions: ChatCompletions,
   ) {
-    // parse OpenAI response ChatCompletions, call AvailableFunctions
     const responseMessage = chatCompletions.choices[0].message;
     if (responseMessage.functionCall) {
       const functionName = responseMessage.functionCall.name;
@@ -209,7 +180,7 @@ export abstract class BaseAgents implements AgentInterface {
         JSON.parse(responseMessage.functionCall.arguments),
       )) {
         if (msg.role === Role.Assistant) {
-          // Agent message as AI response
+          // 助理消息作为AI输入
           functionResponse = msg.content;
           continue;
         }
@@ -232,32 +203,14 @@ export abstract class BaseAgents implements AgentInterface {
         content: functionResponse,
       });
 
-      let chatCompletions = null;
-      if (this.llm_type == LLMType.Azure) {
-        chatCompletions = await this.client.getChatCompletions(
-          process.env.OPENAI_API_ENGINE,
-          messages,
-          {
-            functionCall: 'auto',
-            functions: this.agent.functions,
-          },
-        );
-      } else {
-        const chatCompletionMessages: OpenAI.ChatCompletionMessageParam[] =
-          messages.map((message) => {
-            if ('name' in message) {
-              return message;
-            } else {
-              return { ...message, name: '' }; // or some other default value
-            }
-          }) as OpenAI.ChatCompletionMessageParam[];
-        const params: OpenAI.ChatCompletionCreateParams = {
-          model: process.env.OPENAI_API_ENGINE,
-          messages: chatCompletionMessages,
-          stream: false,
-        };
-        chatCompletions = await this.GPTClient.chat.completions.create(params);
-      }
+      const chatCompletions = await this.client.getChatCompletions(
+        process.env.OPENAI_API_ENGINE,
+        messages,
+        {
+          functionCall: 'auto',
+          functions: this.agent.functions,
+        },
+      );
 
       // yield await this._handleChatCompletions(messages, chatCompletions);
       for await (const msg of this._handleChatCompletions(
@@ -271,7 +224,7 @@ export abstract class BaseAgents implements AgentInterface {
     }
   }
 
-  // For query Agent
+  // 仅检索类型的Agent使用
   protected async *sendQueryResult(searchResult: string, success: boolean) {
     if (success) {
       const content = {

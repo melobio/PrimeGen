@@ -107,7 +107,7 @@ const submitOption = async () => {
         search_type,
         pathogen_drug_resistance_dict,
         operations: operations.value,
-        // last response data
+        // 上一次返回的值
         data: props?.optionInfo?.data ?? {},
     }
     await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)

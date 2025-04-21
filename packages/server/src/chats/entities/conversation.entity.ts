@@ -3,7 +3,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  IntegerType,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -32,15 +31,6 @@ export class ConversationEntity {
 
   @Column('text')
   desc: string;
-
-  @Column('int', { default: 0 })
-  completionTokens: IntegerType;
-
-  @Column('int', { default: 0 })
-  promptTokens: IntegerType;
-
-  @Column('int', { default: 0 })
-  totalTokens: IntegerType;
 
   @Column('varchar', {
     default: '',

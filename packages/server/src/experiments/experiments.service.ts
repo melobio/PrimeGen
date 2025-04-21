@@ -61,9 +61,6 @@ export class ExperimentsService implements OnModuleInit {
     let azureLLM = allLlmTemps.find(
       (llmTemp) => llmTemp.llmType === LLMType.Azure,
     );
-    let openaiLLM = allLlmTemps.find(
-      (llmTemp) => llmTemp.llmType === LLMType.OpenAI,
-    );
     if (azureLLM) {
       azureLLM = await this.dataSource.manager.save(azureLLM);
       nodeChildren.push({
@@ -72,17 +69,6 @@ export class ExperimentsService implements OnModuleInit {
         uuid: azureLLM.uuid,
         functionName: azureLLM.name,
         functionDesc: azureLLM.desc,
-        required: true,
-      });
-    }
-    if (openaiLLM) {
-      openaiLLM = await this.dataSource.manager.save(openaiLLM);
-      nodeChildren.push({
-        type: openaiLLM.type,
-        name: 'LLM',
-        uuid: openaiLLM.uuid,
-        functionName: openaiLLM.name,
-        functionDesc: openaiLLM.desc,
         required: true,
       });
     }

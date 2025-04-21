@@ -1,6 +1,6 @@
 <template>
     <div class="protein-mutation-options" v-if="operations.length">
-        <!-- let user choose -->
+        <!-- 用户输入要做哪一种 -->
         <template v-if="props?.optionInfo?.stage == 2">
             <v-form ref="formRef">
                 <div class="option-item" v-for="(item, index) in operations" :key="item.title">
@@ -170,8 +170,8 @@ const rules = ref([
 ],);
 
 
-// 1. start position
-// 2. end position
+// 1. start 开始序列
+// 2. end 结束序列
 const optionRules = [
     {
         key: "start_pos",
@@ -252,7 +252,7 @@ const lengthCanSubmit = computed(() => {
     return (!chatStore.currentChat.isGenerating) && !isSubmited.value && operations.value[0].value[0] > 0 && operations.value[1].value[0] > 0;
 })
 
-// single selection
+// 设置为单选
 const selectedChange = (index: number) => {
     selected.value = [index]
 }

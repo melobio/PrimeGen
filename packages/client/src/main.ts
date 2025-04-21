@@ -54,6 +54,7 @@ app.use(createPinia())
 app.use(vuetify)
 app.use(router)
 app.use(I18NextVue, { i18next })
+// 去掉警告消息
 app.config.warnHandler = () => null;
 
 app.mount('#app')

@@ -1,8 +1,8 @@
 <template>
   <div class='login-card' :style="{'width': width + 'px', 'height': height + 'px'}">
     <img class='user-icon' src='@/assets/user.png' alt=''>
-    <span class='primegen'>
-      PrimeGen
+    <span class='x-agents'>
+      X-Agents
     </span>
     <div class='input-container'>
       <CustomInput
@@ -31,15 +31,9 @@
         Login
       </span>
     </v-btn>
-    <v-btn color='#292B3C' width='320px' height='44px' class='mt-11'
-      @click='doRegisterPage'>
-      <span style='text-transform: none;'>
-        Register
-      </span>
-    </v-btn>
     <div class='flex-1-1'/>
     <div class='copy-right'>
-      Copyright © 2024 MGI Inc.
+      Copyright © 2023 MGI Inc.
     </div>
   </div>
 </template>
@@ -73,9 +67,6 @@ async function doLogin() {
     await router.push({ name: 'Home' })
   }
 }
-async function doRegisterPage(){
-  await router.push({name:'Register'})
-}
 </script>
 
 <style scoped lang='scss'>
@@ -90,7 +81,7 @@ async function doRegisterPage(){
     width: 50px;
     height: 50px;
   }
-  .primegen {
+  .x-agents {
     color: #ECECEC;
     margin-top: 15px;
     margin-bottom: 60px;

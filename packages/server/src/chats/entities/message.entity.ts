@@ -21,7 +21,7 @@ export enum Role {
   OTCurrentCommand = 'current_command',
   JetsonFaultCheck = 'jetson_fault_check',
 
-  None = 'none',
+  None = 'none', // 中间消息
 }
 export enum MiddleMessageType {
   OTAnalysis = 'ot_analysis',
@@ -90,7 +90,6 @@ export class MessageEntity {
     primer_design_prompt?: string;
     primer_design_dict?: Record<string, string>;
     primer_type?: PrimerDesignFunctionType | string;
-    data?: any;
     operations?: {
       title: string;
       key: string;

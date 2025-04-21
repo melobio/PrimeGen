@@ -9,8 +9,7 @@ import {
   FunctionDefinition,
   OpenAIClient,
 } from '@azure/openai';
-import { OpenAI } from 'openai';
-import { DataSource, IntegerType } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ExperimentEntity } from '../../experiments/entities/experiment.entity';
 import {
   AgentFunctionByType,
@@ -30,11 +29,11 @@ import {
   SnpPrimerDesignInfo,
   SpeciesIdentificationInfo,
 } from '../agents/ext/ncbi-search';
-import { ProtocolDesignInfo } from '../agents/ext/protocol-design';
+import { ProtocolDesignResultInfo } from '../agents/ext/protocol-design';
 import { LlmsEntity } from '../../tools/llms/entities/llms.entity';
 import { Agents } from '../../tools/agents/entities/agents.entity';
 import { FaultAgents } from './fault-agents';
-import { CodeExecutionAgent } from './code-execution-agent';
+import { CodeExecutionAgents } from './code-execution-agents';
 import { BaseAgents } from './base-agents';
 import { Socket } from 'socket.io';
 import {
@@ -53,7 +52,6 @@ import {
   UPDATE_CONVERSATIONS,
   UPDATE_MESSAGE,
   SUMMARY_MESSAGE,
-  INITIATIVE_START_CODE_EXECUTION,
 } from '../conversation.constant';
 import { InternetSearchAgents } from './internet-search-agents';
 import { SequenceSearchAgents } from './sequence-search-agents';
@@ -73,28 +71,28 @@ interface jasonType {
   wantTips?: string;
 }
 function removeLeadingSpaces(str) {
-  // use regex to remove leading spaces
+  // 使用正则表达式替换每一行开头的空格
   return str.replace(/^\s+/gm, '');
 }
 
 function removeLineBreaks(str) {
-  // use regex to remove line breaks
+  // 使用正则表达式替换换行符
   return str.replace(/\n/g, '');
 }
 
 function checkGeneFile(inputString: string) {
-  // use regex to match file name
+  // 正则表达式用于匹配文件名
   const fileRegex = /\.(fasta|fastq|fna|csv)\b/;
   return fileRegex.test(inputString);
 }
-// use regex to match gene info if purpose is not achieved
+// 正则判断search 是否达到目的(输出序列文件或提供基因信息)
 function checkStringForFileOrGeneInfo(inputString: string) {
-  // regex to match gene info file
+  // 正则表达式用于匹配基因信息字段
   const geneInfoRegex1 =
     /\b(?=.*chrom)(?=.*start)(?=.*end)(?=.*gene)(?=.*type)(?=.*HGNC)\b/;
   const geneInfoRegex2 =
     /\b(?=.*Gene name)(?=.*Chromosome)(?=.*Gene start)(?=.*Gene end)(?=.*Start position in gene)(?=.*End position in gene)\b/;
-  // check if input string matches file name or gene info fields
+  // 检查输入字符串是否匹配文件名或基因信息字段
   if (
     checkGeneFile(inputString) ||
     geneInfoRegex1.test(inputString) ||
@@ -110,8 +108,6 @@ export class RouterAgents {
   logger = new Logger(RouterAgents.name);
   planner: Planner;
   openAIClient: OpenAIClient;
-  GPTClient: OpenAI;
-  llm_type: LLMType;
   initMessages: ChatMessage[] = [];
   // FUNCTION to sub agent
   functionToAgents: { [key: string]: BaseAgents } = {};
@@ -128,26 +124,7 @@ export class RouterAgents {
     private readonly conversationUUID: string,
   ) {}
 
-  async updateTokens(usage) {
-    if (!usage) {
-      return;
-    }
-    this.cvs.completionTokens += usage.completionTokens;
-    this.cvs.promptTokens += usage.promptTokens;
-    this.cvs.totalTokens += usage.totalTokens;
-    console.log(
-      `[${this.conversationUUID}] completionTokens: ${this.cvs.completionTokens}`,
-    );
-    console.log(
-      `[${this.conversationUUID}] promptTokens: ${this.cvs.promptTokens}`,
-    );
-    console.log(
-      `[${this.conversationUUID}] totalTokens: ${this.cvs.totalTokens}`,
-    );
-    this.dataSource.manager.update(ConversationEntity, this.cvs.id, this.cvs);
-  }
-
-  // update step result
+  // 更新步骤为StepName的结果
   updateStepResult(stepName: string, result: string) {
     this.cvs.stepsResult[stepName] = result;
     this.dataSource.manager
@@ -166,7 +143,7 @@ export class RouterAgents {
       this.cvs.stepsResult = {};
     }
 
-    // read check-purpose template content
+    // 读取check-purpose模板内容
     this.checkPurpose = fs
       .readFileSync(
         path.join(process.cwd(), 'assets', 'plans', 'check-purpose.txt'),
@@ -174,19 +151,19 @@ export class RouterAgents {
       .toString('utf-8');
     // this.logger.debug(`checkPurpose: ${String(this.checkPurpose)}`);
 
-    // read next template content
+    // 读取next模板内容
     this.next = fs
       .readFileSync(path.join(process.cwd(), 'assets', 'plans', 'next.txt'))
       .toString('utf-8');
     // this.logger.debug(`next: ${String(this.next)}`);
 
-    // read summary template content
+    // 读取summary模板内容
     this.summary = fs
       .readFileSync(path.join(process.cwd(), 'assets', 'plans', 'summary.txt'))
       .toString('utf-8');
     // this.logger.debug(`summary: ${String(this.summary)}`);
 
-    // read PCR experiment preset data, initialize planner, and set cvs's currentStep
+    // 读取PCR实验的预设数据,并初始化planner,并设置cvs的currentStep
     this.planner = Planner.parse(
       fs
         .readFileSync(path.join(process.cwd(), 'assets', 'plans', 'plan.json'))
@@ -246,19 +223,10 @@ export class RouterAgents {
     this.logger.log(`open ai key: ${apiKey}`);
     this.logger.log(`open ai base: ${apiBase}`);
     this.logger.log(`open ai engine: ${apiEngine}`);
-    if (process.env.LLM_TYPE.toLowerCase() == 'azure') {
-      this.llm_type = LLMType.Azure;
-      this.openAIClient = new OpenAIClient(
-        apiBase,
-        new AzureKeyCredential(apiKey),
-      );
-    } else if (process.env.LLM_TYPE.toLowerCase() == 'openai') {
-      this.llm_type = LLMType.OpenAI;
-      this.GPTClient = new OpenAI({
-        baseURL: apiBase,
-        apiKey: apiKey,
-      });
-    }
+    this.openAIClient = new OpenAIClient(
+      apiBase,
+      new AzureKeyCredential(apiKey),
+    );
     this.logger.log(`init openai success.`);
   }
 
@@ -282,7 +250,7 @@ export class RouterAgents {
             );
             break;
           case AgentType.CODE_EXECUTION:
-            newAgent = new CodeExecutionAgent(
+            newAgent = new CodeExecutionAgents(
               agent,
               this.dataSource,
               this.cacheService,
@@ -348,6 +316,7 @@ export class RouterAgents {
         name: funcName,
         description: agent.agent.desc,
         parameters: {
+          // 一个字符串传递Agent需要做的事情，TODO 应对每种Agent增加特定参数，更准确
           type: 'object',
           properties: {
             description: {
@@ -362,7 +331,7 @@ export class RouterAgents {
     return funcDefs;
   }
 
-  // finish the first step of the STEP, need to prompt the user the next step
+  // 完成了STEP的第一步，需要提示用户下一步的步骤
   async showSummary(client: Socket, history: MessageEntity[]) {
     const nextStep = this.planner.getNextStep();
 
@@ -372,7 +341,7 @@ export class RouterAgents {
       this.conversationUUID,
       Role.Assistant,
     );
-    // send to client
+    // 发送给客户端
     this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
       success: true,
       data: assistantMessage,
@@ -397,7 +366,6 @@ export class RouterAgents {
       * Please use English to reply.
     `;
     content = removeLeadingSpaces(content);
-    this.logger.debug(`content: ${content}`);
 
     const currentStepIndex = this.planner.steps.indexOf(
       this.planner.getCurrentStep(),
@@ -413,38 +381,105 @@ export class RouterAgents {
         '{{PURPOSE}}',
         this.cvs.stepsResult[this.planner.steps[0].stepName],
       );
+    const messages = [
+      { role: Role.System, content: system },
+      { role: Role.User, content },
+    ];
     const startTime = performance.now();
-    let events = null;
-    if (this.llm_type === LLMType.Azure) {
-      const messages = [
-        { role: Role.System, content: system },
-        { role: Role.User, content },
-      ];
-      this.logger.debug(`summary messages:${JSON.stringify(messages)}`);
-      events = await this.openAIClient.listChatCompletions(
-        process.env.OPENAI_API_ENGINE,
-        messages,
-      );
-      this.logger.debug(`this.openAIClient.events: ${JSON.stringify(events)}`);
-      this.updateTokens(events.usage);
-      await this.handleStreamMessage(client, assistantMessage, events);
-    } else if (this.llm_type === LLMType.OpenAI) {
-      const messages: OpenAI.ChatCompletionMessageParam[] = [
-        { role: Role.System, content: system, name: 'system' },
-        { role: Role.User, content, name: 'user' },
-      ];
-      const params: OpenAI.ChatCompletionCreateParams = {
-        model: process.env.OPENAI_API_ENGINE,
-        messages: messages,
-        stream: true,
-      };
-      events = await this.GPTClient.chat.completions.create(params);
-      await this.handleStreamMessage(client, assistantMessage, events);
-    }
+    this.logger.debug(`summary messages:${JSON.stringify(messages)}`);
+    const events = await this.openAIClient.listChatCompletions(
+      process.env.OPENAI_API_ENGINE,
+      messages,
+    );
+    await this.handleStreamMessage(client, assistantMessage, events);
 
     const endTime = performance.now();
     const executionTime = ((endTime - startTime) / 1000).toFixed(2);
     this.logger.warn(`Execution summary time: ${executionTime} seconds`);
+
+    // if (events.choices && events.choices.length > 0) {
+    //   const choice = events.choices[0];
+
+    //   if (choice.message) {
+    //     assistantMessage.content = choice.message.content;
+    //     this.logger.warn(`Summary message: ${choice.message.content}`);
+    //   }
+    // }
+
+    ////////////////////// auto next
+    // let canGoNext = false;
+    // let goNextText = '';
+    // content = `
+    //   #目标: 帮助用户判断是否能进行下一步实验
+    //   #思考: 分析实验的SOP和提供的信息，判断是否具备了进行下一步实验的条件，如果具备了条件，那么将进行下一步。
+    //   #输出：请输出一个JSON对象的字符串，包括以下字段:
+    //   - goNextText // String类型，用一个句子描述，描述的内容类似 "进行xxx"，其中xxx表示下一步具体的内容
+    //   - canGoNext // Boolean类型，是否可以进行下一步
+    //   - thought // String类型，思考过程
+    // `;
+    // content = removeLeadingSpaces(content);
+    //
+    // this.logger.debug(`auto next content: ${content}`);
+    //
+    // chatHistory.push({
+    //   role: Role.Assistant,
+    //   content: assistantMessage.content,
+    // });
+    //
+    // messages = [
+    //   { role: Role.System, content: system },
+    //   ...chatHistory,
+    //   { role: Role.User, content },
+    // ];
+    //
+    // events = await this.openAIClient.getChatCompletions(
+    //   process.env.OPENAI_API_ENGINE,
+    //   messages,
+    // );
+    //
+    // if (events.choices && events.choices.length > 0) {
+    //   const choice = events.choices[0];
+    //
+    //   if (choice.message) {
+    //     console.log(messages);
+    //     // assistantMessage.content = choice.message.content;
+    //     const text = choice.message.content.replace(/```json|```/g, '');
+    //     this.logger.warn(`Auto next message: ${text}`);
+    //     try {
+    //       const json = JSON.parse(text);
+    //       canGoNext = json.canGoNext;
+    //       goNextText = json.goNextText;
+    //     } catch (e) {
+    //       this.logger.warn(`Auto next JSON parse error: ${e.message}`);
+    //     }
+    //   }
+    // }
+
+    //////////////////////
+
+    /////////////////// auto next
+    // if (canGoNext) {
+    //   history = [...history, assistantMessage];
+    //   assistantMessage = await this.chatsService.createMessage(
+    //     '',
+    //     '',
+    //     this.conversationUUID,
+    //     Role.Assistant,
+    //   );
+    //   // 发送给客户端
+    //   client.emit(TEXT_ANSWER_CREATE, {
+    //     success: true,
+    //     data: assistantMessage,
+    //     finishReason: null,
+    //   });
+    //
+    //   await this.sendText(
+    //     client,
+    //     { content: goNextText, role: Role.User } as MessageEntity,
+    //     assistantMessage,
+    //     history,
+    //   );
+    // }
   }
 
   async checkAchieved(client: Socket, input?: string) {
@@ -458,7 +493,7 @@ export class RouterAgents {
     const history = await this.chatsService.findAllMessages(
       this.conversationUUID,
     );
-    // remove the opening remarks
+    // 去除掉开场白
     history.splice(0, 1);
     let json: jasonType = {
       output: '',
@@ -475,7 +510,7 @@ export class RouterAgents {
         .join('\n');
     }
     this.logger.warn(`checkAchieved cvs:${JSON.stringify(cvs)}`);
-    // extract the experimental purpose
+    // 就提取具体的实验目的(具体的实验类型和实验对象)是什么/具体的文件列表是什么/具体的Protocol脚本等等
     let content = `
     #Purpose:  Careful and comprehensive confirm: ${
       currentStep.purpose
@@ -524,32 +559,16 @@ export class RouterAgents {
     }
     this.logger.debug(`system: ${system}`);
 
+    const messages = [
+      { role: Role.System, content: system },
+      { role: Role.User, content },
+    ];
     const startTime = performance.now();
-    let events = null;
-    if (this.llm_type == LLMType.Azure) {
-      const messages = [
-        { role: Role.System, content: system },
-        { role: Role.User, content },
-      ];
-      this.logger.warn(`checkAchieved messages:${JSON.stringify(messages)}`);
-      events = await this.openAIClient.getChatCompletions(
-        process.env.OPENAI_API_ENGINE,
-        messages,
-      );
-      this.logger.log(`this.openAIClient.events: ${JSON.stringify(events)}`);
-      this.updateTokens(events.usage);
-    } else {
-      const params: OpenAI.ChatCompletionCreateParams = {
-        model: process.env.OPENAI_API_ENGINE,
-        messages: [
-          { role: 'system', content: system, name: 'system' },
-          { role: 'user', content: content, name: 'user' },
-        ],
-        stream: false,
-      };
-      this.logger.warn(`checkAchieved messages: ${JSON.stringify(params)}`);
-      events = await this.GPTClient.chat.completions.create(params);
-    }
+    this.logger.warn(`checkAchieved messages:${JSON.stringify(messages)}`);
+    const events = await this.openAIClient.getChatCompletions(
+      process.env.OPENAI_API_ENGINE,
+      messages,
+    );
     const endTime = performance.now();
     const executionTime = ((endTime - startTime) / 1000).toFixed(2);
     this.logger.warn(`Execution checkAchieved time: ${executionTime} seconds`);
@@ -580,17 +599,17 @@ export class RouterAgents {
     }
     if (json.achieved) {
       this.updateStepResult(currentStep.stepName, json.output);
-      // await this.showSummary(client, history);
+      await this.showSummary(client, history);
       this.planner.goNextStep();
       if (isConfirmExperObj && json.objective) {
-        // update conversation name
+        // 更新会话名称
         this.cvs.name = json.objective;
         this.dataSource.manager.update(
           ConversationEntity,
           this.cvs.id,
           this.cvs,
         );
-        // update experiment name
+        // 更新实验名称
         const experiment = await this.dataSource.manager.findOne(
           ExperimentEntity,
           {
@@ -606,7 +625,7 @@ export class RouterAgents {
           experiment,
         );
         client.emit(UPDATE_CONVERSATIONS);
-        // after knowing the purpose, send to search agent
+        // 确定实验目的后自动调用search
         await this.sendToSearch(client, input);
       }
     }
@@ -625,8 +644,7 @@ export class RouterAgents {
         );
         const currentStep = this.planner.getCurrentStep();
         this.updateStepResult(currentStep.stepName, responsesStr);
-        // 24.12.19 remove Reflection
-        // await this.showSummary(client, history);
+        await this.showSummary(client, history);
         this.planner.goNextStep();
       } else {
         const achieved = await this.checkAchieved(client, responsesStr);
@@ -634,10 +652,11 @@ export class RouterAgents {
           this.logger.debug('=====ncbi-search=checkAchieved=fail==');
         }
       }
-      // next step: primer-design, create primer-design tips
+      // 下一步引物设计，创建开始引物设计的提示气泡
       await this.createPrimerDesignTips(client);
     } else {
-      this.logger.debug('sendTextToSearch==>search end, start normal chat');
+      // search阶段结束，开始闲聊
+      this.logger.debug('sendTextToSearch==>search阶段结束，开始闲聊');
     }
   }
 
@@ -665,16 +684,15 @@ export class RouterAgents {
         }
       }
     } else {
-      this.logger.debug(
-        'sendTextToSearch ==>primer-design end, start normal chat',
-      );
+      // primer-design阶段结束，开始闲聊
+      this.logger.debug('sendTextToSearch ==>primer-design阶段结束，开始闲聊');
     }
   }
-  // create start PrimerDesign tip message
+  // 创建start PrimerDesign提示消息
   async createPrimerDesignTips(client: Socket) {
     await this.chatsService.createMessage(
       INITIATIVE_START_PRIMER_DESIGN,
-      "We have now completed the 'Determining DNA Sequence' step. Would you like to start the primer design process now?",
+      'We have now completed the Determing DNA Sequence step. Do you want to start the primer design process now?',
       this.conversationUUID,
       Role.Assistant,
     );
@@ -683,113 +701,19 @@ export class RouterAgents {
     });
   }
 
-  async sendToCodeExecution(client: Socket, msg: string, optionInfo?: any) {
-    const previewFunctionCall = {
-      name: AgentFunctionByType[AgentType.CODE_EXECUTION],
-      arguments: `{"description":"${msg}"}`,
-    };
-    const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
-    const agentMessage = await this.chatsService.createMessage(
-      '',
-      '',
-      this.conversationUUID,
-      Role.Assistant,
-      agent.agent.agentType,
-    );
-    this.chatsService.emitToCliet(client, TEXT_ANSWER_CREATE, {
-      success: true,
-      data: agentMessage,
-      finishReason: null,
-      conversationUUID: this.conversationUUID,
-    });
-    for await (const response of this._callFunction(
-      previewFunctionCall,
-      msg,
-      optionInfo,
-    )) {
-      if (response.role == Role.Assistant) {
-        // this.logger.log(
-        //   `CodeExecution response-optionInfo: ${JSON.stringify(
-        //     response.optionInfo,
-        //   )}`,
-        // );
-        if (response?.optionInfo) {
-          agentMessage.optionInfo = response.optionInfo;
-        }
-        // string content
-        agentMessage.content = response.content;
-        this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
-          success: true,
-          data: agentMessage,
-          finishReason: null,
-          conversationUUID: this.conversationUUID,
-        });
-        if (!response?.optionInfo?.data?.generating) {
-          // need user to choose what to do next
-          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
-            success: true,
-            data: agentMessage,
-            finishReason: 'stop',
-            conversationUUID: this.conversationUUID,
-          });
-          client.emit(UPDATE_MESSAGE, {
-            conversationUUID: this.conversationUUID,
-          });
-          client.emit(TEXT_ANSWER_DONE, {
-            conversationUUID: this.conversationUUID,
-          });
-        }
-        // store in database
-        await this.dataSource.manager.update(
-          MessageEntity,
-          agentMessage.id,
-          agentMessage,
-        );
-        // experiment result
-        if (response?.optionInfo?.data.state == 'stop') {
-          this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
-            success: true,
-            data: agentMessage,
-            finishReason: 'stop',
-            conversationUUID: this.conversationUUID,
-          });
-          const responsesStr = JSON.stringify(response);
-          const history = await this.chatsService.findAllMessages(
-            this.conversationUUID,
-          );
-          const currentStep = this.planner.getCurrentStep();
-          this.updateStepResult(currentStep.stepName, responsesStr);
-          const achieved = await this.checkAchieved(client, responsesStr);
-          if (!achieved) {
-            this.logger.debug('=====code-execution=checkAchieved=fail==');
-          } else {
-            await this.showSummary(client, history);
-            this.planner.goNextStep();
-          }
-        }
-      }
-    }
-  }
-
   async sendText(
     client: Socket,
     userMessageContent: string,
     history: MessageEntity[],
   ) {
-    let content = removeLeadingSpaces(userMessageContent);
-    // replace " with '
-    content = content.replace(/"/g, "'");
+    const content = removeLeadingSpaces(userMessageContent);
 
     const restart = await this.checkIfRestart(content);
     if (restart) {
-      // restart the experiment
+      // 重新开始实验
       client.emit(RESTART_CONVERSATION, {
         conversationUUID: this.conversationUUID,
       });
-      this.cvs.totalTokens =
-        this.cvs.completionTokens =
-        this.cvs.promptTokens =
-          0;
       return;
     }
 
@@ -823,7 +747,14 @@ export class RouterAgents {
         this.initMessages[index].content = embeddedContent;
       }
     });
-    const messages = [...this.initMessages, ..._.slice(chatHistory, -50)];
+    const messages = [
+      ...this.initMessages,
+      ..._.slice(chatHistory, -50), // TODO 应该计算token能覆盖到前面几条记录，而不是直接取最后50条
+      {
+        role: Role.User,
+        content,
+      },
+    ];
     this.logger.log(`messages: ${JSON.stringify(messages)}`);
     const isDeterminingDNA =
       currentStep.stepName == this.planner.steps[1].stepName;
@@ -832,9 +763,6 @@ export class RouterAgents {
     // stepName == 'Protocol Design'
     const isProtocolDesign =
       currentStep.stepName == this.planner.steps[3].stepName;
-    // stepName == 'Code Execution'
-    const isCodeExecution =
-      currentStep.stepName == this.planner.steps[4].stepName;
     const searchAgentMessages = history.filter(
       (item) =>
         item.role == Role.Assistant &&
@@ -850,21 +778,15 @@ export class RouterAgents {
         item.role == Role.Assistant &&
         item.agentType == AgentType.PROTOCOL_DESIGN,
     );
-    const codeExecutionMessages = history.filter(
-      (item) => item.agentType == AgentType.CODE_EXECUTION,
-    );
     if (isDeterminingDNA && searchAgentMessages.length > 0) {
-      // enter `determine gene` step, invoke Search agent, ignore planner
+      // 进入`确定基因`步骤后 直接调用Search，绕过planner
       await this.sendToSearch(client, content);
     } else if (isPrimerDesign && primerAgentMessages.length > 0) {
-      // enter `primer design` step, invoke PrimerDesign agent，ignore planner
+      // 进入`引物设计`步骤后 直接调用PrimerDesign，绕过planner
       await this.sendToPrimerDesign(client, content);
     } else if (isProtocolDesign && protocolDesignMessages.length > 0) {
-      // enter `Protocol Design` step, invoke ProtocolDesign agent, ignore planner
+      // 进入OT-2的Protocol Design步骤, 直接调用ProtocolDesign, 绕过planner
       await this.sendToProtocolDesign(client, content);
-    } else if (isCodeExecution) {
-      // enter `Code Execution` step, invoke CodeExecution agent, ignore planner
-      await this.sendToCodeExecution(client, content);
     } else {
       this.logger.debug('=normal_talk=======>');
       const functions = this._getFunctions();
@@ -881,43 +803,18 @@ export class RouterAgents {
         finishReason: null,
         conversationUUID: this.conversationUUID,
       });
-      // choose LLM according to llm_type
-      let events = null;
-      if (this.llm_type === LLMType.Azure) {
-        events = await this.openAIClient.listChatCompletions(
-          process.env.OPENAI_API_ENGINE,
-          messages,
-          functions.length > 0
-            ? {
-                functionCall: 'auto',
-                functions: functions,
-              }
-            : null,
-        );
-        this.logger.log(`this.openAIClient.events: ${JSON.stringify(events)}`);
-        this.updateTokens(events.usage);
-      } else if (this.llm_type === LLMType.OpenAI) {
-        const chatCompletionMessages: OpenAI.ChatCompletionMessageParam[] =
-          messages.map((message) => {
-            if ('name' in message) {
-              return message;
-            } else {
-              return { ...message, name: '' }; // or some other default value
+      const events = await this.openAIClient.listChatCompletions(
+        process.env.OPENAI_API_ENGINE,
+        messages,
+        functions.length > 0
+          ? {
+              functionCall: 'auto',
+              functions: functions,
             }
-          }) as OpenAI.ChatCompletionMessageParam[];
-        const params: OpenAI.ChatCompletionCreateParams = {
-          model: process.env.OPENAI_API_ENGINE,
-          messages: chatCompletionMessages,
-          function_call: 'auto',
-          functions: functions,
-          stream: true,
-        };
-        events = await this.GPTClient.chat.completions.create(params);
-      } else {
-        events = null;
-      }
+          : null,
+      );
 
-      // try catch get openai result
+      // try catch 是处理openai的关键词
       try {
         await this._handleChatCompletions(
           client,
@@ -928,7 +825,7 @@ export class RouterAgents {
         );
       } catch (e) {
         assistantMessage.content = e.message;
-        // update database
+        // 更新数据库
         await this.dataSource.manager.update(
           MessageEntity,
           assistantMessage.id,
@@ -949,10 +846,33 @@ export class RouterAgents {
         });
         throw e;
       }
+
+      // 判断是否应该进入下一步，如果需要，提示用户
+      // this.logger.debug(`ask whether go next step`);
+      // await this.askWhetherGoNextStep(client, [
+      //   ...history,
+      //   userMessage,
+      //   assistantMessage,
+      // ]);
+
+      // 判断用户是否已同意进入到下一步
+      // const shouldGoNext = await this.checkGoNext(
+      //   client,
+      //   userMessage.content,
+      //   history,
+      // );
+      // this.logger.debug(`should go next step: ${shouldGoNext}`);
+      // if (shouldGoNext) {
+      //   this.planner.goNextStep();
+      //   await this.startCurrentStep(client, history);
+      // }
+
+      // 基于历史对话/agent消息，判断是否达到目标
       await this.checkAchieved(client, content);
     }
   }
 
+  // 直接调用agent，绕过planner
   sendToSearch = async (
     client: Socket,
     input: string,
@@ -980,21 +900,18 @@ export class RouterAgents {
         );
         const stageArr = searchAgentMessage
           .map((optItem) => optItem.optionInfo.stage)
-          .sort((a, b) => a - b);
+          .sort((a, b) => b - a);
         const lastOptionInfo =
           searchAgentMessage[searchAgentMessage.length - 1]?.optionInfo;
         const stage = stageArr.length > 0 ? stageArr.pop() : 1;
         const search_type: NCBIFunctionType = lastOptionInfo?.search_type;
         const protein_mutation_dict =
           lastOptionInfo?.protein_mutation_dict || {};
-        const origin_data = lastOptionInfo?.data ?? {};
         optionInfo = {
           stage,
           search_type,
           protein_mutation_dict,
-          data: origin_data,
         };
-        this.logger.log(`sendToSearch construct ${JSON.stringify(optionInfo)}`);
       }
       const chatHistory = await this.chatsService.findAllMessages(
         this.conversationUUID,
@@ -1008,13 +925,16 @@ export class RouterAgents {
           operationsObj[item.key] = item.value;
         });
       }
+      // 上一步原封不动返回
+      const origin_data = optionInfo?.data ?? {};
       const sumitOption = optionInfo
         ? {
             ...optionInfo,
             ...operationsObj,
             conversation: chatHistoryArr,
+            data: origin_data,
           }
-        : { ...operationsObj, conversation: chatHistoryArr };
+        : { ...operationsObj, conversation: chatHistoryArr, data: origin_data };
       const agent: BaseAgents = this.functionToAgents[previewFunctionCall.name];
       const agentMessage = await this.chatsService.createMessage(
         '',
@@ -1126,15 +1046,11 @@ export class RouterAgents {
 
   async handleProtocolDesignStop(
     client: Socket,
-    responses: {
-      optionInfo: ProtocolDesignInfo;
-      content: string;
-      role: Role;
-    },
+    responses: ProtocolDesignResultInfo['responses'],
   ) {
-    if (responses.optionInfo?.stage > 1) {
+    if (responses.stage > 1) {
       const responsesStr = JSON.stringify(responses);
-      if (responses.optionInfo?.data?.json_file.length > 0) {
+      if (checkStringForFileOrGeneInfo(responsesStr)) {
         const history = await this.chatsService.findAllMessages(
           this.conversationUUID,
         );
@@ -1145,22 +1061,15 @@ export class RouterAgents {
       } else {
         const achieved = await this.checkAchieved(client, responsesStr);
         if (!achieved) {
-          this.logger.debug('=====ProtocolDesignStop=checkAchieved=fail==');
+          this.logger.debug('=====protocol-design=checkAchieved=fail==');
         }
       }
-      await this.chatsService.createMessage(
-        INITIATIVE_START_CODE_EXECUTION,
-        'We have now completed the Protocol Design step. Do you want to start the code execution process now?',
-        this.conversationUUID,
-        Role.Assistant,
-      );
-      client.emit(UPDATE_MESSAGE, {
-        conversationUUID: this.conversationUUID,
-      });
+      // 下一步引物设计，创建开始引物设计的提示气泡
+      await this.createPrimerDesignTips(client);
     } else {
-      // search step finished, start normal chat
+      // search阶段结束，开始闲聊
       this.logger.debug(
-        'sendToProtocolDesign==>Protocol Design end, start normal chat',
+        'sendToProtocolDesign==>Protocol Design阶段结束, 开始闲聊',
       );
     }
   }
@@ -1227,26 +1136,14 @@ export class RouterAgents {
   private async handleStreamMessage(
     client: Socket,
     assistantMessage: MessageEntity,
-    events:
-      | AsyncIterable<ChatCompletions>
-      | AsyncIterable<OpenAI.ChatCompletionChunk>,
+    events: AsyncIterable<ChatCompletions>,
   ) {
     for await (const event of events) {
       for (const choice of event.choices) {
-        let finishReason = '';
-        if ('finishReason' in choice) {
-          finishReason = choice.finishReason;
-        } else {
-          finishReason = choice.finish_reason;
-        }
-        let delta = null;
-        if (`delta` in choice) {
-          delta = choice.delta;
-        }
-        if (delta.content) {
-          delta = delta.content;
+        if (choice.delta?.content) {
+          const delta = choice.delta.content;
           assistantMessage.content = assistantMessage.content + delta;
-          // update database
+          // 更新数据库
           await this.dataSource.manager.update(
             MessageEntity,
             assistantMessage.id,
@@ -1255,18 +1152,18 @@ export class RouterAgents {
           this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
             success: true,
             data: assistantMessage,
-            finishReason: finishReason,
+            finishReason: choice.finishReason,
             conversationUUID: this.conversationUUID,
           });
         }
-        if (finishReason == 'stop') {
+        if (choice.finishReason == 'stop') {
           this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
             success: true,
             data: assistantMessage,
-            finishReason: finishReason,
+            finishReason: choice.finishReason,
             conversationUUID: this.conversationUUID,
           });
-          // update database
+          // 更新数据库
           await this.dataSource.manager.update(
             MessageEntity,
             assistantMessage.id,
@@ -1279,13 +1176,14 @@ export class RouterAgents {
 
   private async checkIfRestart(input: string) {
     let content = `
-    # Purpose: Translate user input into English first, then judge "UserInput" means 'restart', 'reboot', 'relaunch', 'reload', 'renew', 'reset', 'regenerate', 'stop', 'finish', 'abort', 'end', 'cancel', 'terminate'. if so, output 'restart' should be true. Especially if UserInput 'start' something, output 'restart' should be false;
+    # Purpose:You need to judge whether the user Direct and clear say back to the beginning or restarting the experiment/chat;
     # UserInput:${input};
-    # Output: Please  output a string of a JSON object({"restart":true,"thought":""},Don't start with \`\`\`json and end width \`\`\`),including the following key:
-    - restart // Boolean type, Whether to achieve the purpose
+    # Output：Please  output a string of a JSON object({"restart":true,"thought":""},Don't start with \`\`\`json and end width \`\`\`),including the following key:
+    - restart // Boolean type,Whether to achieve the purpose
     - thought // String type, thinking process
     #Rule:
     * You only need to judge directly from what the user says, Don't reason yourself, just understand it directly from the literal meaning
+    * As long as there is no clear restart or return to the beginning restart should be false;
     * Input is what the user says, out is your output
     `;
     // # Examples:
@@ -1294,31 +1192,13 @@ export class RouterAgents {
     // - input:back to the beginning,output:restart should be true
     // - input:start Primer Design,output:restart should be false
     // - input:all params use default value,output:{"restart":false,"thought":""};
-
-    // if (input === 'restart') {
-    //   return true;
-    // } else {
-    //   return false;
-    // }
     content = removeLeadingSpaces(content);
+    const messages = [{ role: Role.User, content }];
     const startTime = performance.now();
-    let events = null;
-    if (this.llm_type == LLMType.Azure) {
-      const messages = [{ role: Role.User, content }];
-      events = await this.openAIClient.getChatCompletions(
-        process.env.OPENAI_API_ENGINE,
-        messages,
-      );
-      this.logger.log(`this.openAIClient.events: ${JSON.stringify(events)}`);
-      this.updateTokens(events.usage);
-    } else {
-      const params: OpenAI.ChatCompletionCreateParams = {
-        model: process.env.OPENAI_API_ENGINE,
-        messages: [{ role: Role.User, content }],
-        stream: false,
-      };
-      events = await this.GPTClient.chat.completions.create(params);
-    }
+    const events = await this.openAIClient.getChatCompletions(
+      process.env.OPENAI_API_ENGINE,
+      messages,
+    );
     const endTime = performance.now();
     const executionTime = ((endTime - startTime) / 1000).toFixed(2);
     this.logger.warn(`Execution checkIfRestart time: ${executionTime} seconds`);
@@ -1342,9 +1222,7 @@ export class RouterAgents {
     text: string,
     assistantMessage: MessageEntity,
     messages: ChatMessage[],
-    events:
-      | AsyncIterable<ChatCompletions>
-      | AsyncIterable<OpenAI.ChatCompletionChunk>,
+    events: AsyncIterable<ChatCompletions>,
   ) {
     const functionCall: FunctionCall = {
       name: '',
@@ -1352,26 +1230,14 @@ export class RouterAgents {
     };
     for await (const event of events) {
       for (const choice of event.choices) {
-        let finishReason = '';
-        if ('finishReason' in choice) {
-          finishReason = choice.finishReason;
-        } else {
-          finishReason = choice.finish_reason;
-        }
+        // this.logger.log(choice);
+
         // text chat
-        let fc = null;
-        if ('functionCall' in choice.delta) {
-          fc = choice.delta.functionCall;
-        } else {
-          fc =
-            (choice.delta as any).function_call ??
-            (choice.delta as any).tool_calls;
-        }
         if (choice.delta?.content) {
           const delta = choice.delta.content;
           // this.logger.log(`${assistantMessage.id} Chatbot: ${delta}`);
           assistantMessage.content = assistantMessage.content + delta;
-          // update database
+          // 更新数据库
           await this.dataSource.manager.update(
             MessageEntity,
             assistantMessage.id,
@@ -1380,11 +1246,12 @@ export class RouterAgents {
           this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
             success: true,
             data: assistantMessage,
-            finishReason: finishReason,
+            finishReason: choice.finishReason,
             conversationUUID: this.conversationUUID,
           });
-        } else if (fc) {
+        } else if (choice.delta?.functionCall) {
           // function call
+          const fc = choice.delta.functionCall;
           if (fc.name) {
             functionCall.name += fc.name;
           }
@@ -1393,8 +1260,8 @@ export class RouterAgents {
           }
         }
 
-        // “stop”, “length”, “content_filter”, “function_call” are finished state
-        switch (finishReason) {
+        // “stop”, “length”, “content_filter”, “function_call” 是完成状态
+        switch (choice.finishReason) {
           case 'stop': {
             this.logger.log(
               `choice.finishReason stop :${assistantMessage.id} Chatbot: ${assistantMessage.content}`,
@@ -1402,7 +1269,7 @@ export class RouterAgents {
             this.chatsService.emitToCliet(client, TEXT_ANSWER_GENERATING, {
               success: true,
               data: assistantMessage,
-              finishReason: finishReason,
+              finishReason: choice.finishReason,
               conversationUUID: this.conversationUUID,
             });
             break;
@@ -1423,21 +1290,28 @@ export class RouterAgents {
             this.logger.log(
               `${functionCall.name} FunctionCall response: ${response}`,
             );
+            // if (agent.needSummarize) {
+            //
+            // } else {
+            //   // 不需要总结
+            //   // 直接发送FunctionCall的结果到Client
+            //   await this.dataSource.manager.update(
+            //     MessageEntity,
+            //     assistantMessage.id,
+            //     assistantMessage,
+            //   );
+            //   client.emit(TEXT_ANSWER_GENERATING, {
+            //     success: true,
+            //     data: assistantMessage,
+            //     finishReason: 'stop',
+            //   });
+            // }
             // adding assistant response to messages
-            let assistantResponse = null;
-            if (this.llm_type === LLMType.Azure) {
-              assistantResponse = {
-                role: Role.Assistant,
-                functionCall: { ...functionCall },
-                content: undefined,
-              };
-            } else {
-              assistantResponse = {
-                role: Role.Assistant,
-                function_call: { ...functionCall },
-                content: undefined,
-              };
-            }
+            const assistantResponse: ChatMessage = {
+              role: Role.Assistant,
+              functionCall: { ...functionCall },
+              content: undefined,
+            };
             messages.push(assistantResponse);
             // adding function response to messages
             const functionResponse: ChatMessage = {
@@ -1446,41 +1320,27 @@ export class RouterAgents {
               content: response,
             };
             messages.push(functionResponse);
+            // messages.push({
+            //   role: Role.User,
+            //   content:
+            //     '基于上面的函数结果进行思考，为什么使用调用这个函数，并对结果进行评估',
+            // });
 
             // clear function call
             const previewFunctionCall = { ...functionCall };
+            // functionCall.name = '';
+            // functionCall.arguments = '';
 
-            // choose LLM according to llm_type
-            let events = null;
-            if (this.llm_type === LLMType.Azure) {
-              events = await this.openAIClient.listChatCompletions(
-                process.env.OPENAI_API_ENGINE,
-                messages,
-              );
-              this.logger.log(
-                `this.openAIClient.events: ${JSON.stringify(events)}`,
-              );
-              this.updateTokens(events.usage);
-            } else if (this.llm_type === LLMType.OpenAI) {
-              const chatCompletionMessages: OpenAI.ChatCompletionMessageParam[] =
-                messages.map((message) => {
-                  if ('name' in message) {
-                    return message;
-                  } else {
-                    return { ...message, name: '' }; // or some other default value
-                  }
-                }) as OpenAI.ChatCompletionMessageParam[];
-              const params: OpenAI.ChatCompletionCreateParams = {
-                model: process.env.OPENAI_API_ENGINE,
-                messages: chatCompletionMessages,
-                stream: true,
-              };
-              this.logger.log('OpenAI ChatCompletionCreateParams', params);
-              events = await this.GPTClient.chat.completions.create(params);
-            } else {
-              events = null;
-            }
-
+            // const functions = this._getFunctions();
+            const events = await this.openAIClient.listChatCompletions(
+              process.env.OPENAI_API_ENGINE,
+              messages,
+              // 避免反复调用function
+              // {
+              //   functionCall: 'auto',
+              //   functions: functions,
+              // },
+            );
             await this._handleChatCompletions(
               client,
               text,
@@ -1488,11 +1348,10 @@ export class RouterAgents {
               messages,
               events,
             );
-
-            this.logger.log('===============');
+            this.logger.log("===============");
             this.logger.log(functionCall.name);
-            this.logger.log('===============');
-            // create agent message
+            this.logger.log("===============");
+            // 创建agent消息
             const agentMessage = await this.chatsService.createMessage(
               '',
               '',
@@ -1510,11 +1369,10 @@ export class RouterAgents {
             for await (const msg of this._callFunction(
               previewFunctionCall,
               text,
-              // {},
             )) {
               this.logger.debug('call function msg', msg);
               if (msg.role === Role.Assistant) {
-                // only assistant message return to AI context
+                // 只有assistant的消息才会返回给AI上下文
                 if (msg?.optionInfo) {
                   agentMessage.optionInfo = msg.optionInfo;
                 }
@@ -1552,7 +1410,7 @@ export class RouterAgents {
               } else if (msg.role === Role.None) {
                 if (msg.type === MiddleMessageType.OTAnalysis) {
                   agentMessage.protocolAnalysis = msg.content as any;
-                  // update database
+                  // 更新数据库
                   await this.dataSource.manager.update(
                     MessageEntity,
                     agentMessage.id,
@@ -1582,6 +1440,7 @@ export class RouterAgents {
                   );
                 } else if (msg.type === MiddleMessageType.JetsonFaultCheck) {
                   agentMessage.faultCheckResult = msg.content as any;
+                  // 发送
                   this.chatsService.emitToCliet(
                     client,
                     TEXT_ANSWER_GENERATING,
@@ -1634,7 +1493,7 @@ export class RouterAgents {
       this.logger.log(
         `No matched Agent: ${functionCall.name} response success.`,
       );
-      return { role: Role.Assistant, content: `execute successfully` };
+      return { role: Role.Assistant, content: `执行完成，没有发现错误` };
     }
   }
 
@@ -1647,9 +1506,7 @@ export class RouterAgents {
       const agent: BaseAgents = this.functionToAgents[functionCall.name];
 
       this.logger.log(
-        `Call Agent: "${agent.agent.name}", args: ${
-          functionCall.arguments
-        }, optionInfo: ${JSON.stringify(optionInfo)}`,
+        `Call Agent: "${agent.agent.name}", args: ${functionCall.arguments}, optionInfo: ${JSON.stringify(optionInfo)}`,
       );
       this.logger.debug('functionCall.arguments', functionCall.arguments);
       let badJson = false;
@@ -1682,10 +1539,11 @@ export class RouterAgents {
       const currentStep = this.planner.getCurrentStep();
       const isDeterminingDNA =
         currentStep.stepName == this.planner.steps[1].stepName;
-      // add text to description
+      // 添加需要的提示到text
       if (!isDeterminingDNA) {
         text = `
           ${stepInfo}
+          
           ${text}
         `;
       }
@@ -1699,7 +1557,7 @@ export class RouterAgents {
       this.logger.log(
         `No matched Agent: ${functionCall.name} response success.`,
       );
-      yield { role: Role.Assistant, content: `execute successfully, no error` };
+      yield { role: Role.Assistant, content: `执行完成，没有发现错误` };
     }
   }
 }

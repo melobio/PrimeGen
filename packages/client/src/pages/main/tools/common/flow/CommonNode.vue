@@ -58,7 +58,7 @@ watch(() => localData, () => {
   // console.log('localData', localData);
   updateCommonToolItem(localData.value.uuid, props.type, localData.value).then((res) => {
     if (res.success) {
-      // update success
+      // 更新成功！
     }
   })
 }, { deep: true })

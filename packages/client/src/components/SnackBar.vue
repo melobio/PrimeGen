@@ -1,7 +1,7 @@
 <template>
-    <v-snackbar style="white-space: preserve" location="top" text v-model="visible" :color="color">
+    <v-snackbar location="top" text v-model="visible" :color="color">
         {{ msg }}
-        <!-- close button -->
+        <!-- 关闭按钮 -->
         <template v-slot:actions v-if="showClose">
             <v-btn color="#ffffff" variant="text" @click="close" size="large">
                 <span class="mdi mdi-close-circle-outline"></span>

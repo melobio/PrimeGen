@@ -1,4 +1,3 @@
-
 import os
 
 import json
@@ -13,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi import FastAPI, File, UploadFile, HTTPException, WebSocketDisconnect
-# API requests have rate limits, TODO: Multiple account mixing, delay mechanism
 from protocol_agent import modify_code_file,template_protocol_design,get_param_name
 from primer_design import snp_primer_design,redesign_primer
 from SNP_Genotyping_search import SNP_Genotyping_search
@@ -24,6 +22,7 @@ from whole_genome_search import whole_genome_search
 from protein_mutation_search import protein_mutation_search
 from species_identification_search import species_identification_search
 from pathogen_drug_resistance_search import pathogen_drug_resistance_search
+from direct_protein_gene_search import direct_protein_gene_search
 import traceback
 
 import logging
@@ -53,8 +52,10 @@ def parse_llm_response(response: ChatCompletion) -> ChatCompletionMessage:
 
 
 primer_functions= [
-{
-        "name": "download_files",  # Gene typing search
+    {
+        "type": "function",
+        "function":{
+        "name": "download_files",  # 基因分型检索
         "description": " If you are downloading files now, this tool can help you download the relevant files.",
         "parameters": {
             "type": "object",
@@ -67,10 +68,12 @@ primer_functions= [
             },
             "required": ["name_list"]
         }
-    },
+    }},
     {
+        "type": "function",
+        "function":{
         "name": "snp_primer_design",
-        "description": " ",
+        "description": "when user want to start primer design,please choose this function",
         "parameters": {
             "type": "object",
             "properties": {
@@ -82,10 +85,12 @@ primer_functions= [
             },
             "required": ["instruction"]
         }
-    },
+    }},
     {
+        "type": "function",
+        "function":{
         "name": "redesign_primer",
-        "description": " redesign primer",
+        "description": "when user want to redesign primer ,please choose this function",
         "parameters": {
             "type": "object",
             "properties": {
@@ -97,26 +102,49 @@ primer_functions= [
             },
             "required": ["instruction"]
         }
-    },
+    }},
 ]
-functions= [  
+
+tools = [
     {
-        "name": "protein_mutation_search",# Protein mutation search
+        "type": "function",
+        "function":{
+        "name": "direct_protein_gene_search",
+        "description": "If you want to search for protein and gene information directly without performing specific experiments like protein mutation search, whole genome search, genetic disorder search, or cancer search, you can use this tool. This is a general-purpose search tool suitable for basic protein and gene information queries.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "instruction": {
+                    "type": "string",
+                    "description": "The search query or terms. When the user has multiple information terms(like species name and protein name), \"AND\" should be used for splicing. For example, if you get \"luciferase and Gaussia\", you need to extract \"luciferase AND Gaussia\"."
+                }
+            },
+            "required": ["instruction"]
+        }
+    }},
+
+    {
+        "type": "function",
+        "function":{
+        "name": "protein_mutation_search", 
         "description": "If you want to use multiplex PCR methods for tNGS library construction and sequencing on various enzyme mutant libraries obtained through protein engineering, you can use this tool to obtain protein and gene information.",
         "parameters": {
             "type": "object",
-            "properties":{
-                "term":{
-                    "type":"string",
-                    "description":"The search query or terms. When the user has multiple information terms(like species name and protein name), "AND" should be used for splicing. For example, if you get "luciferase and Gaussia", you need to extract "luciferase AND Gaussia".",
+            "properties": {
+                "term": {
+                    "type": "string",
+                    "description": "The search query or terms. When the user has multiple information terms(like species name and protein name), \"AND\" should be used for splicing. For example, if you get \"luciferase and Gaussia\", you need to extract \"luciferase AND Gaussia\".",
                 },
-                
+
             },
-            "required":["term"]
+            "required": ["term"]
         }
-    },
+    }},
+
     {
-        "name": "whole_genome_search",  # Whole genome search
+        "type": "function",
+        "function":{
+        "name": "whole_genome_search", 
         "description": "If you want to use multiplex PCR methods for tNGS library construction and sequencing on whole genome detection of viruses, you can use this tool to obtain gene information.",
         "parameters": {
             "type": "object",
@@ -129,9 +157,12 @@ functions= [
             },
             "required": ["term"]
         }
-    },
-	{
-        "name": "genetic_disorder_search",# Genetic disorder search
+    }},
+
+    {
+        "type": "function",
+        "function":{
+        "name": "genetic_disorder_search",
         "description": "If the ongoing experiment is a multiplex PCR experiment for genetic disorder analysis, this tool can be used to obtain target gene sequence and snp information. ",
         "parameters": {
             "type": "object",
@@ -140,42 +171,48 @@ functions= [
                     "type": "string",
                     "description": "the genetic disease name."
                 },
-                
+
             },
             "required": ["genetic_disease"]
         }
-    },
+    }},
     {
-        "name":"cancer_search", # Cancer search
-        "description":"If the ongoing experiment is a multiplex PCR experiment for cancer analysis, this tool can be used to obtain target gene sequence and snp information. ",
-        "parameters":{
-            "type":"object",
-            "properties":{
-                "term":{
-                    "type":"string",
-                    "description":"Extract cancer-related terms from the user's input, which may be the name of the cancer.",
+        "type": "function",
+        "function":{
+        "name": "cancer_search", 
+        "description": "If the ongoing experiment is a multiplex PCR experiment for cancer analysis, this tool can be used to obtain target gene sequence and snp information. ",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "term": {
+                    "type": "string",
+                    "description": "Extract cancer-related terms from the user's input, which may be the name of the cancer.",
                 },
             },
-            "required":["term"]
+            "required": ["term"]
         }
-    },
-    {
-        "name":"pathogen_drug_resistance_search", # Pathogen drug resistance search
-        "description":"If the ongoing experiment is a multiplex PCR experiment for pathogen drug resistance analysis, this tool can be used to obtain target gene sequence and snp information. ",
-        "parameters":{
-            "type":"object",
+    }},
+        {
+            "type": "function",
+            "function":{
+        "name": "pathogen_drug_resistance_search",
+        "description": "If the ongoing experiment is a multiplex PCR experiment for pathogen drug resistance analysis, this tool can be used to obtain target gene sequence and snp information. ",
+        "parameters": {
+            "type": "object",
             "properties": {
                 "instruction": {
-                    "type":"string",
-                    "description":"the species name,When the user provides an abbreviation of the species name, you need to convert it to the full name of the species.",
-                    },
+                    "type": "string",
+                    "description": "the species name,When the user provides an abbreviation of the species name, you need to convert it to the full name of the species.",
                 },
-            "required":["instruction"]
-            }
-    },
+            },
+            "required": ["instruction"]
+        }
+    }},
     {
-        "name":"species_identification_search", # Species identification search
-        "description":"If the ongoing experiment is a multiplex PCR experiment for Species Identification analysis, this tool can be used to obtain target gene sequence and snp information. ",
+        "type": "function",
+        "function":{
+        "name": "species_identification_search",
+        "description": "If the ongoing experiment is a multiplex PCR experiment for Species Identification analysis, this tool can be used to obtain target gene sequence and snp information. ",
         "parameters": {
             "type": "object",
             "properties": {
@@ -183,13 +220,15 @@ functions= [
                     "type": "string",
                     "description": "the specified species name.If the user provides an abbreviation, please help me change it to the full name."
                 },
-                
+
             },
             "required": ["instruction"]
-            }
-    },
+        }
+    }},
     {
-        "name": "SNP_Genotyping_search",  # Gene typing search
+        "type": "function",
+        "function":{
+        "name": "SNP_Genotyping_search",
         "description": "If the ongoing experiment is a multiplex PCR experiment for SNP typing, you can use this tool to obtain the target gene sequence and SNP information. ",
         "parameters": {
             "type": "object",
@@ -202,9 +241,11 @@ functions= [
             },
             "required": ["specie_name"]
         }
-    },
+    }},
     {
-        "name": "download_files",  # Gene typing search
+        "type": "function",
+        "function":{
+        "name": "download_files", 
         "description": " If you are downloading files now, this tool can help you download the relevant files.",
         "parameters": {
             "type": "object",
@@ -217,8 +258,10 @@ functions= [
             },
             "required": ["name_list"]
         }
-    },
+    }},
     {
+        "type": "function",
+        "function":{
         "name": "snp_primer_design",
         "description": " ",
         "parameters": {
@@ -249,156 +292,106 @@ functions= [
                     "description": "the Maximum length of a primer. "
                 },
             },
-            "required": ["max_amp_len","min_amp_len","temperature","min_GC","max_GC","max_len"]
+            "required": ["max_amp_len", "min_amp_len", "temperature", "min_GC", "max_GC", "max_len"]
         }
-    },
+    }},
 ]
 
-
-# Define X-chat conversation logic
 def predict(input_data, stage=1, search_type=None, search_prompt=""):
+    logging.info(f'-----------start stage: {stage}')
+    logging.info(f'-----------input_data: {input_data}')
     history_conversation = input_data["conversation"]
+    logging.info(f'-----------history_conversation: {history_conversation}')
     window_history = history_conversation[-50:]
+    logging.info(f'-----------window_history: {window_history}')
     try:
         if search_type==None:
             system_prompt = [{'role':'system','content':"""You are an artificial intelligence assistant designed to help users retrieve biometric information sequences. 
-    When a user requests protein mutant testing, 
-    you should call the protein_mutation_search function to obtain protein and gene information; when a user requests a multiplex PCR experiment for genetic disease analysis, 
-    you should call the genetic_disorder_search function to obtain the target gene sequence and SNP information; When a user requests cancer analysis or wants to obtain cancer-related genes, 
-    you should call the cancer_search function to obtain the target gene sequence and SNP information; 
-    when the user requests a  antimicrobial resistance research When performing a multiplex PCR experiment, 
-    you should call the pathogen_drug_resistance_search function to obtain the target gene sequence and SNP information; 
+    When a user requests protein and gene information directly, you should call the direct_protein_gene_search function to obtain protein and gene information;
+    When a user requests protein mutant testing, you should call the protein_mutation_search function to obtain protein and gene information; 
+    when a user requests a multiplex PCR experiment for genetic disease analysis, you should call the genetic_disorder_search function to obtain the target gene sequence and SNP information; 
+    When a user requests cancer analysis or wants to obtain cancer-related genes, you should call the cancer_search function to obtain the target gene sequence and SNP information; 
+    when the user requests a  antimicrobial resistance research When performing a multiplex PCR experiment, you should call the pathogen_drug_resistance_search function to obtain the target gene sequence and SNP information; 
     When users want to do virus-related whole genome testing,you should call the whole_genome_search function to obtain the target gene sequence ;
     When a user wants to obtain or download a gene sequence or genome sequence, you should  call the download_files to meet the user's needs;
     when the user requests a multiplex PCR experiment for pathogen species identification analysis, you should call the species_identification_search function；In addition, the language in which you reply to the user should be consistent with the language used by the user."""
                             }]
-            messages = system_prompt + window_history
+            # window_history = [{'role': 'user', 'content': 'Hi!'},] +window_history
+            user_input = []
+            for his in window_history:
+                if his['role'] == 'user':
+                    user_input.append(his)
+            # messages = system_prompt + window_history
+            messages = user_input
             response = get_llm_chat_completion(
                 messages=messages,
                 temperature=0.7,
                 top_p=0.95,
                 max_tokens=4096,
                 stream=False,
-                functions=functions,
-                function_call="auto",
+                tools=tools,
+                # functions=functions,
+                tool_choice="required",
+                # function_call="auto",
             )
             search_response = parse_llm_response(response)
-            if search_response.function_call:
-                print('*******************Successful activate function*******************')
+            logger.info(f'*******************search_response:{search_response}*******************')
+            # if search_response.function_call:
+            if search_response.tool_calls:
+                logger.info('*******************Successful activate function*******************')
                 # Call the function. The JSON response may not always be valid so make sure to handle errors
-                function_name = search_response.function_call.name
-                available_functions = {"protein_mutation_search": protein_mutation_search,
+                # function_name = search_response.function_call.name
+                function_name = search_response.tool_calls[0].function.name
+                available_functions = {"direct_protein_gene_search": direct_protein_gene_search,
+                                    "protein_mutation_search": protein_mutation_search,
                                     "genetic_disorder_search": genetic_disorder_search,
                                     "cancer_search": cancer_search,
                                     "download_files": download_files,
                                     "pathogen_drug_resistance_search":pathogen_drug_resistance_search,
                                     "whole_genome_search":whole_genome_search,
                                     "species_identification_search":species_identification_search,
-                                     "snp_primer_design":snp_primer_design,
+                                    "snp_primer_design":snp_primer_design,
                                     }
-                function_to_call = available_functions[function_name]
-                print("Function name: ",search_response.function_call.name)
-                print("Function input: ",search_response.function_call.arguments)
+                logger.info(f'*******************function_name {function_name}*******************')
+                # print("Function name: ",search_response.function_call.name)
+                # print("Function input: ",search_response.function_call.arguments)
                 
                 
                 
-                if search_response.function_call.name == "protein_mutation_search":
-                
-                    function_args = json.loads(search_response.function_call.arguments)
-                
-                    #instruction = function_args['term']
-                        #user_input = window_history[-1]['content']#function_args['user_input']
-                        #data_info_dict = function_to_call(stage=1,instruction=instruction,user_input=user_input)
+                if function_name == "protein_mutation_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
                     responses = protein_mutation_search(input_data,stage=1)
-                    #user_response = pathogen_drug_resistance_search(stage=1,instruction=species_name)
-                    #responses = user_response
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
-                        #messages.append( # adding assistant response to messages
-                        #        {
-                        #            "role": search_response["role"],
-                        #            "function_call": {
-                       #                 "name": function_name,
-                       #                 "arguments": search_response.function_call.arguments,
-                       #                 },
-                       #             "content": None
-                       #             }
-                       #         )
-                       # messages.append( # adding assistant response to messages
-                       #         {
-                       #             "role": "function",
-                       #             "name":function_name,
-                       #             "content": data_info_dict["data_list"],
-                       #             }
-                       #         )
-                        
-                        # Modify user query in multiple rounds of self-reflection
-                       # if data_info_dict["data_list"]==[]:
-                           # i=1
-                            #query_now = function_args["term"]
-                            ##while True:
-                                #print(f"""If no NCBI results are retrieved, it may be that the query is too long or too short. The current query is {query_now}. 
-                                #Please reflect on the modification. You only need to return my new term without unnecessary description.""")
-                                #messages.append({"role":'user','content':f"""If no NCBI results are retrieved, it may be that the query is too long or too short. The current query is {query_now}. 
-                                #Please reflect on the modification. You only need to return my new term without unnecessary description."""})
-                                #second_response = openai.ChatCompletion.create(
-                                #                messages=messages,
-                                #                deployment_id="XMGI-Chat1-GPT4"
-                                #                )
-                                #print(f'The modified term after the {i}-th round of reflection is:',second_response["choices"][0]["message"]['content'])
-                                #data_info_dict = function_to_call(instruction=second_response["choices"][0]["message"]['content'], stage=1)
-                                #if data_info_dict["data_list"]!=[]:
-                                #    break
-                                #i+=1
-                                #if i >5:
-                                #    break
-                                # print(f'The search results of round {i} are:',data_info_dict["data_list"])
-                                # query_now=second_response["choices"][0]["message"]['content']
-    
-    
-                        # responses = 'Based on your question, I searched for the relevant sequences as follows, please select according to your needs:\n'+str(data_info_dict["options"])
-    
-                        #history_conversation.append({'role':'assistant','content':data_info_dict})
-                        #responses_dict = {'responses':data_info_dict,'history_conversation':history_conversation}
-                        #return responses_dict
-                        # return data_info_dict
-                elif search_response.function_call.name == "download_files":
-                    function_args = json.loads(search_response.function_call.arguments)
-                    name = function_args['name_list']
-                    user_response = download_files(stage=1, instruction=name)
-                    responses = user_response
+                
+                elif function_name == "direct_protein_gene_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
+                    responses = direct_protein_gene_search(input_data,stage=1)
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
 
-                elif search_response.function_call.name == "whole_genome_search":
-                    function_args = json.loads(search_response.function_call.arguments)
-
+                elif function_name == "whole_genome_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
                     user_response = whole_genome_search(stage=1, instruction=input_data)
                     responses = user_response
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
-                    # responses_dict={'target_cds_path':[],'non_target_cds_path':[],'fna_file':[fna_path],'snp_file':[snp_path],'download_path':[],'responses':responses,'history_conversation':history_conversation}
                     return responses_dict
 
-                elif search_response.function_call.name == "pathogen_drug_resistance_search":
-                    function_args = json.loads(search_response.function_call.arguments)
-                    #species_name = function_args['instruction']
+                elif function_name == "pathogen_drug_resistance_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
                     responses = pathogen_drug_resistance_search(input_data,stage=1)
-                    #user_response = pathogen_drug_resistance_search(stage=1,instruction=species_name)
-                    #responses = user_response
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
     
-                elif search_response.function_call.name == "snp_primer_design":
-                    print('Successfully called primer design')
-                    function_args = json.loads(search_response.function_call.arguments)
+                elif function_name == "snp_primer_design":
+                    print('successful calling primer design')
+                    # function_args = json.loads(search_response.function_call.arguments)
                     print('xxx',history_conversation[-1]['content'])
                     instruction = ast.literal_eval(history_conversation[-1]['content'])
-                    # history_conversation = json.loads()
-                    # instruction = history_conversation
                     print('xxxxinstruction',instruction)
 
                     responses = snp_primer_design(instruction, stage)
@@ -406,9 +399,9 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
 
-                elif search_response.function_call.name == "genetic_disorder_search":
-                    function_args = json.loads(search_response.function_call.arguments)
-                    genetic_disease = function_args['genetic_disease']
+                elif function_name == "genetic_disorder_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
+                    # genetic_disease = function_args['genetic_disease']
 
                     user_response = genetic_disorder_search(input_data,stage=1)
                     responses = user_response
@@ -416,8 +409,8 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
 
-                elif search_response.function_call.name == "cancer_search":
-                    function_args = json.loads(search_response.function_call.arguments)
+                elif function_name == "cancer_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
                     #instruction = function_args['term']
                     
                     user_response = cancer_search(stage=1, instruction=input_data)
@@ -427,9 +420,9 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                     # responses_dict={'target_cds_path':[],'non_target_cds_path':[],'fna_file':[fna_path],'snp_file':[snp_path],'download_path':[],'responses':responses,'history_conversation':history_conversation}
                     return responses_dict
 
-                elif search_response.function_call.name =="species_identification_search":
-                    function_args = json.loads(search_response.function_call.arguments)
-                    instruction = history_conversation#function_args['instruction']++++++++++++++++++++++++++
+                elif function_name =="species_identification_search":
+                    # function_args = json.loads(search_response.function_call.arguments)
+                    # instruction = history_conversation#function_args['instruction']++++++++++++++++++++++++++
 
                     responses = species_identification_search(input_data,stage=1)
                     history_conversation.append({'role':'assistant','content':responses})
@@ -443,21 +436,23 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
             else:
                 responses = search_response.content
                 history_conversation.append({'role':'assistant','content':responses})
-                responses_dict={'responses': 'No function called', 'history_conversation': history_conversation}
+                responses_dict={'responses': '没有调用函数', 'history_conversation': history_conversation}
                 return responses_dict
 
         else:
             system_prompt = [{'role':'system','content':f"""You are an artificial intelligence assistant designed to help users retrieve biometric information sequences. {search_prompt}"""}]
             if search_type=="cancer_type":
-
-                  #instruction = json.loads(history_conversation[-1]['content'])
-                  #instruction = instruction['selected_options']
                   responses = cancer_search(input_data,stage)
-                  #responses = cancer_search(instruction, stage)
                   history_conversation.append({'role': 'assistant', 'content': responses})
                   responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                   return responses_dict
-
+            
+            elif search_type=="direct_protein_gene_search_type":
+                responses = direct_protein_gene_search(input_data,stage)
+                history_conversation.append({'role': 'assistant', 'content': responses})
+                responses_dict = {'responses': responses, 'history_conversation': history_conversation}
+                return responses_dict
+            
             elif search_type=="genetic_disorder_type":
 
                   responses = genetic_disorder_search(input_data, stage)
@@ -472,25 +467,17 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
                   responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                   return responses_dict
             elif search_type=="protein_mutation_type":
-                #if stage==2:
-                  #instruction = json.loads(history_conversation[-1]['content'])
-                  #instruction = instruction['selected_options']
                 responses = protein_mutation_search(input_data,stage)
                 history_conversation.append({'role':'assistant','content':responses})
                 responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                 return responses_dict
 
             elif search_type == "download_type":
-                print('Start downloading files')
-                #instruction = json.loads(history_conversation[-1]['content'])
-                #instruction = instruction['selected_options']
+                print('开始正式下载文件')
                 responses = download_files(input_data,stage)
-                #responses = download_files(instruction, stage)
                 history_conversation.append({'role': 'assistant', 'content': responses})
                 responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                 return responses_dict
-
-
 
             elif search_type=="pathogen_drug_resistance_type":
                 instruction = history_conversation
@@ -511,46 +498,57 @@ def predict(input_data, stage=1, search_type=None, search_prompt=""):
     except Exception as e:
         print("Exception:"+str(e))
         print("Traceback:")
-        traceback.print_exc()  # Print exception call stack
+        traceback.print_exc()
         return "Exception:"+str(e)
 
-# Define X-chat conversation logic
 def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
     history_conversation = input_data["conversation"]
     window_history = history_conversation[-50:]
+
+    logging.info(f'-------- primer window_history: {window_history}')
     try:
         if primer_type == None:
             system_prompt = [{'role': 'system', 'content': """You are an artificial intelligence assistant designed to help users design specific primers. 
-    When the user asks for follow-up work or subsequent primer design , 
+    When the user asks for follow-up work or start primer design in the history conversation , 
     you should call the snp_primer_design function to design primers;
     When the user replies "redesign Primer" in the history conversation, you should call the redesign_primer function to redesign primers;
     """ }]
-            messages = system_prompt + window_history
-            response = get_llm_chat_completion(messages=messages, functions=primer_functions)
-            search_response = parse_llm_response(response)
 
-            if search_response.function_call:
-                print('*******************Successful activate function*******************')
+            # messages = system_prompt + window_history
+            user_input = []
+            for his in window_history:
+                if his['role'] == 'user':
+                    user_input.append(his)
+
+            messages = user_input
+            response = get_llm_chat_completion(messages=messages,
+                                               tools=primer_functions,
+                                               tool_choice="required",)
+
+            search_response = parse_llm_response(response)
+            logger.info(f'*************search_response:{search_response}*************************')
+            # if search_response.function_call:
+            if search_response.tool_calls:
+                logger.info('*******************Successful activate function*******************')
                 # Call the function. The JSON response may not always be valid so make sure to handle errors
-                function_name = search_response.function_call.name
+                # function_name = search_response.function_call.name
+                function_name = search_response.tool_calls[0].function.name
                 available_functions = {
                                        "snp_primer_design": snp_primer_design,
                                         "redesign_primer":redesign_primer,
                                        }
-                function_to_call = available_functions[function_name]
-                print("Function name: ", search_response.function_call.name)
-                print("Function input: ", search_response.function_call.arguments)
+                # function_to_call = available_functions[function_name]
+                logger.info(f"********************Function name:{function_name}************")
+                # print("Function input: ", search_response.function_call.arguments)
     
-                if search_response.function_call.name == "snp_primer_design":
-                    print('Successfully called primer design')
-
-
+                if function_name == "snp_primer_design":
+                    logging.info('成功调用primer design')
                     responses = snp_primer_design(input_data,stage=stage)
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
                     return responses_dict
-                elif search_response.function_call.name == "redesign_primer":
-                    print('Successfully called redesign')
+                elif function_name == "redesign_primer":
+                    print('成功调用redesign')
                     responses = redesign_primer(input_data, stage=stage)
                     history_conversation.append({'role': 'assistant', 'content': responses})
                     responses_dict = {'responses': responses, 'history_conversation': history_conversation}
@@ -566,13 +564,13 @@ def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
                 return responses_dict
 
         elif primer_type == 'redesign_primer_type':
-              print('Enter function')
+              print('进入函数')
               responses = redesign_primer(input_data,stage)
               history_conversation.append({'role': 'assistant', 'content': responses})
               responses_dict = {'responses': responses, 'history_conversation': history_conversation}
               return responses_dict
         else:
-              print('Enter function')   
+              print('进入函数')   
               responses = snp_primer_design(input_data,stage)
               history_conversation.append({'role': 'assistant', 'content': responses})
               responses_dict = {'responses': responses, 'history_conversation': history_conversation}
@@ -582,18 +580,17 @@ def primer_predict(input_data, primer_type=None,stage=1, search_prompt=""):
 
         print("Exception:"+str(e))
         print("Traceback:")
-        traceback.print_exc()  # Print exception call stack
+        traceback.print_exc() 
         return "Exception:"+str(e)
 
 app = FastAPI()
 
 
-# Parse input data
 class InputModel(BaseModel):
-    instruction: str # User input
-    conversation: list # Context conversation
+    instruction: str 
+    conversation: list 
     type: int
-    stage: int # Conversation round
+    stage: int 
     upload_file_flag: bool
     species_identification_dict: dict
     experiment_select_strain: list
@@ -601,8 +598,6 @@ class InputModel(BaseModel):
     select_target_gene: list
     strain_select: list
 
-
-# Heartbeat test to ensure server connection status
 async def heartbeat(websocket: WebSocket):
     while True:
         await asyncio.sleep(30)
@@ -616,7 +611,7 @@ async def heartbeat(websocket: WebSocket):
 executor = ProcessPoolExecutor(max_workers=50)#ThreadPoolExecutor()
 
 
-# WebSocket route
+
 @app.websocket("/ncbi")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -625,21 +620,26 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            # Parse as JSON
+            # parse to JSON
             input_data = json.loads(data)
-            logger.info(f"Endpoint: '/ncbi' received data：{input_data}")
+            logger.info(f"Endpoint: '/ncbi' 接收到数据：{input_data}")
             input_data["instruction"] = json.loads(input_data["instruction"])
             all_history_conversation = input_data["instruction"]["conversation"]
             stage = input_data["instruction"].get("stage") or 1
+            
+            if "search_type"in input_data["instruction"]:
+                search_type = input_data["instruction"]["search_type"]
+            else:
+                search_type = ""
 
 
-            # First round conversation
-            if stage == 1:
+            # 1st stage
+            if stage == 1 and search_type == "":
                 loop = asyncio.get_event_loop()
                 input_data["conversation"] = all_history_conversation
                 responses_dict = await loop.run_in_executor(executor, predict, input_data, stage)
 
-            # Multiple round conversation
+            # multi-stage
             else:
 
                 input_data["conversation"] = all_history_conversation
@@ -651,8 +651,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 loop = asyncio.get_event_loop()
                 if temp_flag:
-                    logger.info(f"Endpoint: '/ncbi' making second reply：{input_data}")
-                    print('xxxxx')
+                    logger.info(f"Endpoint: '/ncbi' 进行第二次回复：{input_data}")
+                    
                     responses_dict = await loop.run_in_executor(executor, predict, input_data, stage, search_type,'')
                 else:
                     responses_dict = await loop.run_in_executor(executor, predict, input_data)
@@ -672,22 +672,26 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            #print("Received data：",data)
-            input_data = json.loads(data) # Parse as JSON
-            logger.info(f"Endpoint: '/primer' received data：{input_data}")
+            logger.info(f"'/primer' 接收到数据：{data}")
+            
+            input_data = json.loads(data) 
+            
+
             input_data["instruction"] = json.loads(input_data["instruction"])
             all_history_conversation = input_data["instruction"]["conversation"]
             stage = input_data["instruction"].get("stage") or 1
 
-            # First round conversation
+            
             if stage == 1:
                 all_history_conversation = input_data["instruction"]["conversation"]
                 loop = asyncio.get_event_loop()
                 input_data["conversation"] = all_history_conversation
+                logger.info(f"Endpoint: '/primer' input_data：{input_data}")
+                logger.info("*************************************************")
                 responses_dict = await loop.run_in_executor(executor, primer_predict, input_data)
-            # Multiple round conversation
+            
             else:
-                print('Enter second round conversation')
+                print('进入第二轮对话')
                 input_data["conversation"] = all_history_conversation
                 primer_type = input_data["instruction"]["primer_type"]
                 
@@ -698,7 +702,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 loop = asyncio.get_event_loop()
                 if temp_flag:
-                    print('xxxxx making second reply')
+                    print('xxxxx进行第二次回复')
                     responses_dict = await loop.run_in_executor(executor, primer_predict, input_data, primer_type,stage)
                 else:
                     responses_dict = await loop.run_in_executor(executor, primer_predict, input_data)
@@ -719,9 +723,10 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            # Parse as JSON
+            
             input_data = json.loads(data)
-            logger.info(f"Endpoint: '/protocol_design' received data：{input_data}")
+            logger.info(f"Endpoint: '/protocol_design' 接收到数据：{input_data}")
+            logger.info("****************************************************")
             input_data["instruction"] = json.loads(input_data["instruction"])
             # all_history_conversation = input_data["instruction"]["conversation"]
             responses_dict = template_protocol_design(
@@ -736,15 +741,14 @@ async def websocket_endpoint(websocket: WebSocket):
         try:
             await websocket.close()
         except RuntimeError:
-            # Ignore this exception if connection is already closed
+            
             pass
 
-# File upload functionality:
-UPLOAD_FOLDER = '/reference_data/upload_file' # Set directory for uploaded files
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'fasta', 'fa', 'csv'}  # Allowed file types
+
+UPLOAD_FOLDER = '/reference_data/upload_file' 
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'fasta', 'fa', 'csv'}  
 
 
-# Check if file type is allowed
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -754,7 +758,7 @@ async def upload_file(files: List[UploadFile] = File(...)):
     uploaded_filenames = []
     for file in files:
         try:
-            print('Start uploading')
+            print('开始上传')
             contents = await file.read()
             file_path = os.path.join(UPLOAD_FOLDER, file.filename)
             with open(file_path, 'wb') as f:
@@ -772,7 +776,7 @@ async def download_reference_data(file_path:str):
     #return FileResponse(file_path)
     print('/reference_data/' + file_path)
     # pd_ = pd.read_csv('/reference_data/' + file_path)
-    # print('pd read',pd_)
+    # print('已读取pd',pd_)
     # response = FileResponse('/reference_data/' + file_path)
     response = FileResponse(file_path)
     # response.headers["Content-Disposition"] = f'attachment; filename="{file_path.split("/")[-1]}"'
@@ -785,9 +789,29 @@ async def download_reference_data(file_path:str):
     return response
 
 
+class Query(BaseModel):
+    query: str
+
+
+@app.post("/api/test_llm")
+async def test_llm(query: Query):
+    """Test LLM model"""
+    from llm_utils.utils import get_llm_chat_completion
+    response = get_llm_chat_completion(
+        messages=[
+            {"role": "user", "content": query.query},
+        ],
+        temperature=0.7,
+        top_p=0.95,
+        max_tokens=4096,
+        stream=False,
+    )
+    return response
+
+
 class ConversationExperimentModel(BaseModel):
     conversation_uuid: str
-    # Protocol design results, txt file list, use LLM to parse panel information
+    # protocol design result, txt files list, use LLM to extract panel list
     panel_list: List[str]
     protocol_path: List[str]
 
@@ -806,7 +830,7 @@ class ExperimentResponse(BaseModel):
 async def get_experiment(
     conversation_experiment: ConversationExperimentModel
 ) -> ExperimentResponse:
-    """Get experiment info based on conversation id"""
+    """get experiment by conversation"""
     # create or get experiment
     from logic.alphatool_checks import tips_test, get_panel_list_from_txt
 
@@ -826,17 +850,18 @@ async def get_experiment(
     logger.info(
         f"[get_experiment] saveExperiment: {experiment.uuid}"
     )
-    protocols = [
-        json.loads(load_protocol_file(protocol_file))
-        for protocol_file in conversation_experiment.protocol_path
-    ]
-    # FIXME: Remove test code
     # protocols = [
-    #     load_protocol_file(protocol_file)
-    #     for protocol_file in [
-    #         '/Users/gala/work/Genomics/code/pcr-agent/tests/protocol_debug.json',
-    #     ]
+    #     json.loads(load_protocol_file(protocol_file))
+    #     for protocol_file in conversation_experiment.protocol_path
     # ]
+    # FIXME: delete test code
+    protocols = [
+        load_protocol_file(protocol_file)
+        for protocol_file in [
+            '/reference_data/test_protocol.json',
+            # '/Users/gala/work/Genomics/code/pcr-agent/tests/test_protocol.json'
+        ]
+    ]
 
     # positions = []
     logger.info(
@@ -845,39 +870,13 @@ async def get_experiment(
     )
     panel_number_list = []
 
-    for panel_file in conversation_experiment.panel_list:
-        with open(panel_file, 'r') as panel_file:
-            panel_content = panel_file.read()
-            logger.info(f"[get_experiment] panel_content: {panel_content}")
-            panel_number_list.append(
-                get_panel_list_from_txt(panel_content)
-            )
 
-    # FIXME: Remove test code
-    # for panel_file in ['/Users/gala/work/Genomics/code/pcr-agent/tests/test_panel.txt']:
-    #     with open(panel_file, 'r') as panel_file:
-    #         panel_content = panel_file.read()
-    #         logger.info(f"[get_experiment] panel_content: {panel_content}")
-    #         panel_number_list.append(
-    #             get_panel_list_from_txt(panel_content)
-    #         )
-
-    experiment.panel_list = panel_number_list
-    experiment.protocols = []
+    experiment.panel_list = []
+    experiment.protocols = [protocols, ]
     experiment.current_run = {}
     experiment.current_protocol_index = 0
     experiment_manager.save_experiment(experiment)
-    # Protocol list
-    for position_list, protocol in zip(experiment.panel_list, protocols):
-        # Check protocols for tips at each position
-        pre_check_protocols = [
-            tips_test(position)
-            for position in position_list
-        ]
-        # Add check protocols to main protocol to get complete protocol list
-        one_complete_protocol = pre_check_protocols + [protocol]
-        experiment.protocols.append(one_complete_protocol)
-        experiment_manager.save_experiment(experiment)
+
 
     return ExperimentResponse(
         data=ExperimentResponse.ExperimentData(experiment_uuid=experiment.uuid),
@@ -928,7 +927,7 @@ async def ws_experiment(
         async for message in ws_conn.iter_json():
             logger.info(f"[ws_experiment] receive: {message}")
             command = message.get('command')
-            if command not in ('start', 'resume', 'stop'):
+            if command not in ('start', 'resume', 'stop', 'redo'):
                 await experiment_manager.send_ws_data(
                     ws=ws_conn,
                     code=400,
@@ -985,12 +984,12 @@ async def ws_experiment(
             experiment=experiment,
             data_type='text',
             generating=False,
-            command_options=['start', 'stop'],
+            command_options=['resume', 'stop'],
         )
         await ws_conn.close()
 
 
 if __name__ == "__main__":
-    # Start service
+    # start server
     init_everything(app)
     uvicorn.run(app, host="0.0.0.0", port=8081, timeout_keep_alive=300)

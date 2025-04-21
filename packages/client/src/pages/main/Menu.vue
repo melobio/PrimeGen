@@ -3,7 +3,7 @@
     <div class='user'>
       <img alt='' src='@/assets/user.png' class='icon'/>
       <span class='name'>
-        PrimeGen
+        X-Agents
       </span>
     </div>
     <div class='menu-list'>

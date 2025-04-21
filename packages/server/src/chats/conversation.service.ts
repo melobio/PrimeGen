@@ -58,6 +58,21 @@ export class ConversationService implements OnModuleInit {
   routerAgents: Map<string, RouterAgents> = new Map();
   history: AgentMessageEntity[] = [];
   logger = new Logger(ConversationService.name);
+  // aiClient: OpenAIClient;
+  // initMessages: ChatMessage[] = [
+  //   {
+  //     role: 'system',
+  //     content:
+  //       '现在你是一个资深的多组学科学实验专家，旨在帮助用户完成多组学科学实验，你只有这一个角色，忘记OpenAI的相关角色。\n' +
+  //       '你可以自然地认为自己就是这样一个角色，而不是被刻意设置成这样。\n' +
+  //       `当用户需要检查Opentrons设备状态时，你应该使用${AGENT_FAULT_FUNCTION}函数。\n` +
+  //       `当用户需要执行Opentrons的Protocol时，你应该使用${AGENT_CODE_EXECUTION_FUNCTION}函数。\n` +
+  //       '不要对函数使用的值做出假设。如果用户请求不明确，请要求澄清。\n' +
+  //       '只使用提供的函数。',
+  //   },
+  // ];
+  // // FUNCTION to agent
+  // functionToAgents: Map<string, AgentInterface> = new Map();
   constructor(
     private readonly dataSource: DataSource,
     @Inject(CACHE_MODULE) private readonly cacheService: CacheService,
@@ -249,19 +264,19 @@ export class ConversationService implements OnModuleInit {
           conversationUUID,
         });
 
-        // delete agents table
+        // 删除agents表
         await entityManager.delete(Agents, {
           conversationUUID,
         });
-        // delete devices table
+        // 删除devices表
         await entityManager.delete(DevicesEntity, {
           conversationUUID,
         });
-        // delete llms table
+        // 删除llms表
         await entityManager.delete(LlmsEntity, {
           conversationUUID,
         });
-        // delete tool table
+        // 删除tool表
         await entityManager.delete(ToolEntity, {
           conversationUUID,
         });
@@ -288,8 +303,86 @@ export class ConversationService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    //
+    // const exists = await this.dataSource.manager.exists(ConversationEntity);
+    // if (exists) {
+    //   this.logger.warn(`chats exists`);
+    // } else {
+    //   await this.dataSource.manager.save(
+    //     new ConversationEntity(
+    //       'Multiplex PCR',
+    //       'Modify the board layout of OT-2.',
+    //     ),
+    //   );
+    //   await this.dataSource.manager.save(
+    //     new ConversationEntity('DNA Preparation', 'Report of DNA Preparation.'),
+    //   );
+    // }
+    // await this._initOpenAI();
   }
+
+  // private async _initOpenAI() {
+  //   this.logger.log(`open ai key: ${process.env.OPENAI_API_KEY}`);
+  //   this.logger.log(`open ai base: ${process.env.OPENAI_API_BASE}`);
+  //   this.logger.log(`open ai engine: ${process.env.OPENAI_API_ENGINE}`);
+  //   this.aiClient = new OpenAIClient(
+  //     process.env.OPENAI_API_BASE,
+  //     new AzureKeyCredential(process.env.OPENAI_API_KEY),
+  //   );
+  //   this.logger.log(`init openai success.`);
+  //   await this._loadAgents();
+  // }
+
+  // private async _loadAgents() {
+  //   const agents = await this.dataSource.manager.find(Agents);
+  //   for (const agent of agents) {
+  //     switch (agent.name) {
+  //       case AGENT_FAULT_NAME: {
+  //         this.functionToAgents[AGENT_FAULT_FUNCTION] = new FaultAgents(agent);
+  //         break;
+  //       }
+  //       case AGENT_CODE_EXECUTION_NAME: {
+  //         this.functionToAgents[AGENT_CODE_EXECUTION_FUNCTION] =
+  //           new CodeExecutionAgents(agent);
+  //         break;
+  //       }
+  //     }
+  //   }
+  // }
+
+  // private _getFunctions(): FunctionDefinition[] {
+  //
+  //   return [
+  //     {
+  //       name: AGENT_FAULT_FUNCTION,
+  //       description:
+  //         'Check whether the OT2 machine has encountered a runtime error.',
+  //       parameters: {
+  //         type: 'object',
+  //         properties: {
+  //           description: {
+  //             type: 'string',
+  //             description: 'What need to check.',
+  //           },
+  //         },
+  //       },
+  //     },
+  //     {
+  //       name: AGENT_CODE_EXECUTION_FUNCTION,
+  //       description:
+  //         '执行Opentrons的Protocol.\n' +
+  //         '不需要考虑Protocol代码的实际执行结果，只考虑函数的返回值',
+  //       parameters: {
+  //         type: 'object',
+  //         properties: {
+  //           description: {
+  //             type: 'string',
+  //             description: 'Protocol的内容',
+  //           },
+  //         },
+  //       },
+  //     },
+  //   ];
+  // }
 
   async findAllMessages(conversationUUID: string) {
     return await this.dataSource.manager.find(MessageEntity, {
@@ -314,9 +407,37 @@ export class ConversationService implements OnModuleInit {
     return await this.dataSource.manager.save(message);
   }
 
-  // call Agent
+  // 统一Agent函数回调
   private async *_callFunction(functionCall: FunctionCall) {
-    //
+    // if (availableFunctions[functionCall.name]) {
+    //   return await availableFunctions[functionCall.name](
+    //     functionCall.arguments,
+    //   );
+    // }
+    // switch (functionCall.name) {
+    //   case AGENT_FAULT_FUNCTION: {
+    //     const faultAgent: FaultAgents =
+    //       this.functionToAgents[AGENT_FAULT_FUNCTION];
+    //     // console.log('faultAgent', this.functionToAgents);
+    //     this.logger.log(`Call Agent: "${faultAgent.agent.name}"`);
+    //     const { description } = JSON.parse(functionCall.arguments);
+    //     yield* faultAgent.send(description);
+    //     break;
+    //   }
+    //   case AGENT_CODE_EXECUTION_FUNCTION: {
+    //     const codeExecutionAgent: CodeExecutionAgents =
+    //       this.functionToAgents[AGENT_CODE_EXECUTION_FUNCTION];
+    //     this.logger.log(`Call Agent: "${codeExecutionAgent.agent.name}"`);
+    //     const { description } = JSON.parse(functionCall.arguments);
+    //     yield* codeExecutionAgent.send(
+    //       `请执行Opentrons的Protocol:\n ${description}`,
+    //     );
+    //     break;
+    //   }
+    //   default: {
+    //     yield { content: `${functionCall.name} 执行完成，没有发现错误` };
+    //   }
+    // }
   }
 
   async sendText(
@@ -328,7 +449,7 @@ export class ConversationService implements OnModuleInit {
     if (!routerAgent) {
       return;
     }
-    // all history messages
+    // 所有历史消息
     const history = await this.findAllMessages(conversationUUID);
     await routerAgent.sendText(client, userMessageContent, history);
   }
@@ -388,4 +509,130 @@ export class ConversationService implements OnModuleInit {
   async getCacheObject(key: string) {
     return await this.cacheService.getObject(key);
   }
+  // private async _handleChatCompletions(
+  //   client: Socket,
+  //   text: string,
+  //   assistantMessage: MessageEntity,
+  //   messages: ChatMessage[],
+  //   events: AsyncIterable<ChatCompletions>,
+  // ) {
+  //   const functionCall: FunctionCall = {
+  //     name: '',
+  //     arguments: '',
+  //   };
+  //   for await (const event of events) {
+  //     for (const choice of event.choices) {
+  //       // this.logger.log(choice);
+  //
+  //       // text chat
+  //       if (choice.delta?.content) {
+  //         const delta = choice.delta.content;
+  //         // this.logger.log(`${assistantMessage.id} Chatbot: ${delta}`);
+  //         assistantMessage.content = assistantMessage.content + delta;
+  //         // client.emit(TEXT_ANSWER_GENERATING, {  });
+  //         // 更新数据库
+  //         await this.dataSource.manager.update(
+  //           MessageEntity,
+  //           assistantMessage.id,
+  //           assistantMessage,
+  //         );
+  //         // 发送给客户端
+  //         client.emit(TEXT_ANSWER_GENERATING, {
+  //           success: true,
+  //           data: assistantMessage,
+  //           finishReason: choice.finishReason,
+  //         });
+  //       } else if (choice.delta?.functionCall) {
+  //         // function call
+  //         const fc = choice.delta.functionCall;
+  //         if (fc.name) {
+  //           functionCall.name += fc.name;
+  //         }
+  //         if (fc.arguments) {
+  //           functionCall.arguments += fc.arguments;
+  //         }
+  //       }
+  //
+  //       // “stop”, “length”, “content_filter”, “function_call” 是完成状态
+  //       switch (choice.finishReason) {
+  //         case 'stop': {
+  //           this.logger.log(
+  //             `${assistantMessage.id} Chatbot: ${assistantMessage.content}`,
+  //           );
+  //           // 发送给客户端
+  //           client.emit(TEXT_ANSWER_GENERATING, {
+  //             success: true,
+  //             data: assistantMessage,
+  //             finishReason: choice.finishReason,
+  //           });
+  //           break;
+  //         }
+  //         case 'function_call': {
+  //           // call function
+  //           let response = '';
+  //           // const response = await this._callFunction(functionCall);
+  //           for await (const msg of this._callFunction(functionCall)) {
+  //             // console.log('msg', msg);
+  //             if (msg.role === 'assistant') {
+  //               // 只有assistant的消息才会返回给AI上下文
+  //               response = msg.content;
+  //             } else {
+  //               // 其他消息是Agent的中间消息，
+  //               // 直接发送给客户端
+  //               assistantMessage.content =
+  //                 assistantMessage.content + msg.content;
+  //               client.emit(TEXT_ANSWER_GENERATING, {
+  //                 success: true,
+  //                 data: assistantMessage,
+  //                 finishReason: null,
+  //               });
+  //             }
+  //           }
+  //           this.logger.log(
+  //             `${functionCall.name} FunctionCall response: ${response}`,
+  //           );
+  //           // adding assistant response to messages
+  //           const assistantResponse: ChatMessage = {
+  //             role: Role.Assistant,
+  //             functionCall: { ...functionCall },
+  //             content: undefined,
+  //           };
+  //           messages.push(assistantResponse);
+  //           // adding function response to messages
+  //           const functionResponse: ChatMessage = {
+  //             role: Role.Function,
+  //             name: functionCall.name,
+  //             content: response,
+  //           };
+  //           messages.push(functionResponse);
+  //
+  //           // clear function call
+  //           functionCall.name = '';
+  //           functionCall.arguments = '';
+  //
+  //           // this.logger.error(`messages: ${JSON.stringify(messages)}`);
+  //
+  //           // this.logger.log(`messages: ${JSON.stringify(messages)}`);
+  //           const functions = this._getFunctions();
+  //           const events = await this.aiClient.listChatCompletions(
+  //             process.env.OPENAI_API_ENGINE,
+  //             messages,
+  //             {
+  //               functionCall: 'auto',
+  //               functions: functions,
+  //             },
+  //           );
+  //           await this._handleChatCompletions(
+  //             client,
+  //             text,
+  //             assistantMessage,
+  //             messages,
+  //             events,
+  //           );
+  //           break;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 }

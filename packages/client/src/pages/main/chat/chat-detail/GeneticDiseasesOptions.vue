@@ -137,8 +137,8 @@ const rules = ref([
     },
 ],);
 
-// 1. start position
-// 2. end position
+// 1. start 开始序列
+// 2. end 结束序列
 const optionRules = [
     {
         key: "start_pos",
@@ -236,7 +236,7 @@ const submitOption = async () => {
   let stage = props.optionInfo?.stage ?? 2;
   let state = props.optionInfo?.state ?? 'continue';
   let search_type = props.optionInfo?.search_type ?? NCBIFunctionType.genetic_disorder_type;
-  let genetic_info_data = props?.optionInfo?.data;
+  let selected_gene_options: any[] = [];
 
   if (props.optionInfo?.data?.max_length && props.optionInfo?.data?.max_length > 1) {
       let userReply = "I have submitted";
@@ -249,24 +249,21 @@ const submitOption = async () => {
           start_pos,
           end_pos,
           target_gene_path,
-          // last data
-          data: genetic_info_data,
+          // 上一次返回的值
+          data: props?.optionInfo?.data ?? {},
       }
       await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
   } else {
     operations.value.forEach((operation, index) => {
       if (operation.key == 'gene_select') {
         operations.value[index].value = selected.value
+        selected_gene_options = operation.options.filter((item: { disease: any; gene: any}) => selected.value.includes(item.gene)).map((item: { disease: any; }) => item.disease)
       }
     })
-    const selectedGeneAndDisease = operations.value.find((operation) => operation.key === 'gene_select')?.options.find((option: any) => selected.value.includes(option.gene));
-    if (selectedGeneAndDisease) {
-      const gene = selectedGeneAndDisease.gene;
-      const disease = selectedGeneAndDisease.disease;
-      let userReply = `I want to design primers for the '${gene}' gene related to '${disease}'.`;
-      let data: GeneticDisorderInfo = { operations: operations.value, stage, state, search_type, data: genetic_info_data, }
-      await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
-    }
+    // I want to perform an analysis on the genes 'CHRNA1' and 'CHRND'.
+    let userReply = "I want to perform an analysis on the genes " + "'" + selected_gene_options.join("' and '") + "'";
+    let data: GeneticDisorderInfo = { operations: operations.value, stage, state, search_type }
+    await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
   }
 
 }

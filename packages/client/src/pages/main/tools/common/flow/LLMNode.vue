@@ -153,7 +153,7 @@ watch(() => localData, () => {
   // console.log('localData', localData);
   updateLLMs(localData.value.uuid, localData.value).then((res) => {
     if (res.success) {
-      // update success
+      // 更新成功！
     }
   })
 }, { deep: true })

@@ -108,7 +108,7 @@ watch(() => localData, () => {
   if (localData.uuid) {
     updatePrompt(localData.uuid, localData).then((res) => {
       if (res.success) {
-        // update success
+        // 更新成功！
       }
     })
   }

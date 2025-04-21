@@ -34,7 +34,7 @@ import { AgentMessageEntity } from './chats/entities/agent-message.entity';
 
 @Module({
   imports: [
-    // frontend
+    // 前端
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'client/dist'),
       serveRoot: '/xpcr',

@@ -4,9 +4,6 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vuetify from 'vite-plugin-vuetify'
-import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -14,13 +11,7 @@ export default defineConfig({
   plugins: [
     vue(),
     vueJsx(),
-    vuetify({ autoImport: true }),
-    AutoImport({
-      resolvers: [ElementPlusResolver()],
-    }),
-    Components({
-      resolvers: [ElementPlusResolver()],
-    }),
+    vuetify({ autoImport: true })
   ],
   resolve: {
     alias: {
@@ -47,8 +38,7 @@ export default defineConfig({
         },
       },
       "/v1/files": {
-        // target: "http://localhost:3001",
-        target: "http://10.49.60.23:8080",
+        target: "http://localhost:3001",
         changeOrigin: true,
         rewrite: (path: string) => {
           // console.log(path)
@@ -64,7 +54,7 @@ export default defineConfig({
         }
       },
       "/xpcr-search-api": {
-        target: "http://10.49.60.23:8081",
+        target: "http://localhost:8081",
         changeOrigin: true,
         rewrite: (path) =>{
           const newPath =  path.replace(/^\/xpcr-search-api/, '');

@@ -47,7 +47,6 @@ def snp_primer_design(instruction,stage):
         primer_design_dict["search_type"] = search_type
         print('Received search:', instruction['instruction']['search_responses'])
         print('Received parameters:', instruction['instruction'])
-        #exit()
         stage += 1
         print('primer_design_dict',primer_design_dict)
         parameters = [primer_design_dict["min_amp_len"][0],primer_design_dict["max_amp_len"][0],primer_design_dict["temperature"][0],
@@ -64,7 +63,6 @@ here is the designed primer file.
     
         print('search_type',search_type)
 
-        # Get required parameters for primer design
         if search_type == 'genetic_disorder_type':
             print(f'Current results from: {search_type}')
             gen_name_list = instruction['instruction']['search_responses']['data']['history_data']['gen_name_list']
@@ -90,17 +88,16 @@ here is the designed primer file.
                                               'tags'])
 
             trans = trans_tmp[trans_tmp['gene'].isin(gen_name_list)]
-                # pd.merge(disease, trans_tmp.drop_duplicates(), left_on='Gene', right_on='gene', how='left')
             trans = trans[trans.tags.map(lambda x: "MANE_Select" in x)]
             mane = set(trans.transcript)
 
             records = []
-            with gzip.open(f'/reference_data/gencode.v46.primary_assembly.annotation.gtf.gz', 'rt') as f:  # Modify path based on location
+            with gzip.open(f'/reference_data/gencode.v46.primary_assembly.annotation.gtf.gz', 'rt') as f:
                 for line in f:
                     if line.startswith('#'):
                         continue
                     tmp = line.strip().split("\t")
-                    if tmp[2] == 'exon':  # exon
+                    if tmp[2] == 'exon':
                         chrom, ori, start, end, strand, info = tmp[0], tmp[1], tmp[3], tmp[4], tmp[6], tmp[8]
                         infod = dict()
                         gene = re.search(r'gene_name\s"(.*?)"', info).group(1)
@@ -117,26 +114,24 @@ here is the designed primer file.
             cds_disease['end'] = cds_disease['end'].astype('int')
             wd = '/reference_data'
             merge_num = 580
-            # Merge CDS with interval xx
+
             cds_disease[['chrom', 'start', 'end', 'strand', 'gene', 'transcript', 'exon_number']].to_csv(
                 f'{wd}/cds.bed', sep="\t", index=False, header=False)
             os.system(f'bedtools sort -i {wd}/cds.bed > {wd}/cds.sort.bed')
             os.system(
                 f'bedtools merge -d {merge_num} -o collapse -c 4,5,7 -i {wd}/cds.sort.bed -delim : > {wd}/cds.merge.bed')
 
-            # Add header
             cds = pd.read_csv(f'{wd}/cds.merge.bed', sep="\t", header=None)
             cds.columns = ['chrom', 'start', 'end', 'strand', 'gene', 'exon']
             cds.to_csv(f'{wd}/hg38_disease.cds_pos.tsv', index=False, sep="\t")
             os.system(f'rm {wd}/cds.bed {wd}/cds.sort.bed {wd}/cds.merge.bed')
 
-            # Extend
             max_amp_len = 270
             chr2seq = dict()
             for r in SeqIO.parse(f'{wd}/GCF_000001405.40_GRCh38.p14_genomic.fna', 'fasta'):
                 chr2seq[r.id] = str(r.seq)
             cds = pd.read_csv(f'{wd}/hg38_disease.cds_pos.tsv', sep="\t")
-            expand = 100  # Number of bases to extend CDS boundaries (adjust as needed) #72
+            expand = 100
             final_fasta_file = f'{wd}/{temp_file_name}_cds.fasta'
             with open(final_fasta_file, 'w') as out:
                 for i, r in cds.iterrows():
@@ -154,7 +149,7 @@ here is the designed primer file.
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'primer_design_agent.py')
             cmd = f'python {script_path} --fasta_path {final_fasta_file} --file_name {temp_file_name}'
             print("cmd: ",cmd)
-            process = os.popen(cmd)  # return file
+            process = os.popen(cmd)
             output = process.read()
             print(output)
             process.close()
@@ -166,8 +161,8 @@ here is the designed primer file.
                     result.append(temp_path)
 
         elif search_type == 'protein_mutation_type':
-            print(f'Current results from: {search_type} ')
-            logging.info(f'Current results from: {search_type} ')
+            print(f'Current results from: {search_type}')
+            logging.info(f'Current results from: {search_type}')
             path_list = instruction['instruction']['search_responses']['data']['protein_gene_seq_path']
             protein_mutation_dict = instruction['instruction']['search_responses']['data']['protein_mutation_dict']
             start_pos = protein_mutation_dict['start_pos']
@@ -191,7 +186,7 @@ here is the designed primer file.
                         parameters[3], parameters[4], parameters[5], start_pos, end_pos)
                     print('xxxxxxxxxxxxxx',cmd)
                 logging.info('-' * 30+'cmd: \n'+cmd)
-                process = os.popen(cmd)  # return file
+                process = os.popen(cmd)
                 output = process.read()
                 print(output)
                 process.close()
@@ -202,12 +197,10 @@ here is the designed primer file.
                 for file in os.listdir(out_path):
                     if temp_name in file and '.csv' in file:
                         temp_path = os.path.join(out_path, file)
-                        # gene_file = path_list[0]
-                        # primer_file = modify_primer_file(gene_file, temp_path)
                         result.append(temp_path)
 
         elif search_type == 'pathogen_drug_resistance_type':
-            print(f'Current results from: {search_type} ')
+            print(f'Current results from: {search_type}')
             res_path = instruction['instruction']['search_responses']['data']['filter_result_path']
             res_df = pd.read_csv(res_path)
             gene_list = list(set(list(res_df['Gene'])))
@@ -226,7 +219,6 @@ here is the designed primer file.
                     f.write('>'+gen+'\n')
                     f.write(seq_temp)
                     f.close()
-                # cmd = 'python /reference_data/plasmid.py --fasta_path {}  --snp_path {} --out_path {} --gene_name {}'.format(fa_path,snp_path,out_path,gen)
                 script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'plasmid.py')
                 if parameters ==[]:
                     cmd = 'python {} --fasta_path {} --snp_path {} --out_path {} --gene_name {}'.format(script_path,fa_path,snp_path, out_path,gen)
@@ -234,7 +226,7 @@ here is the designed primer file.
                     cmd = 'python {} --fasta_path {} --snp_path {} --out_path {} --gene_name {} --min_amp_len {} --max_amp_len {} --temperature {} --min_GC {} --max_GC {} --max_len {}'.format(
                         script_path,fa_path,snp_path, out_path,gen,parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5])
                 logging.info('-' * 30+'cmd: \n'+cmd)
-                process = os.popen(cmd)  # return file
+                process = os.popen(cmd)
                 output = process.read()
                 print(output)
                 process.close()
@@ -256,7 +248,7 @@ here is the designed primer file.
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'primer_design_agent_snp_whole_panel.py')
             cmd = f'python {script_path} --fasta_path {seqs_file} --snp_file_path {snp_file} --file_name {file_name} --output_path {out_path}'
             print('cmd',cmd)
-            process = os.popen(cmd)  # return file
+            process = os.popen(cmd)
             output = process.read()
             print(output)
             process.close()
@@ -271,7 +263,7 @@ here is the designed primer file.
             res_df = pd.DataFrame.from_dict(res_dict)
             gene_list = list(set(list(res_df['Gene name'])))
             print('gene_list', gene_list)
-            #
+
             fasta_file = "/reference_data/GCF_000001405.40_GRCh38.p14_genomic_filter.fna"
 
             with open(fasta_file, 'r') as file:
@@ -287,7 +279,7 @@ here is the designed primer file.
                 snp_df.to_csv(snp_path, index=False)
     
                 temp_seq = get_dna_seq(list(temp_df['Chromosome'])[0], list(temp_df['Gene start'])[0], list(temp_df['Gene end'])[0], file_content)
-                print('Total length of this gene:', len(temp_seq))
+                print('Total gene length:', len(temp_seq))
                 temp_path = os.path.join(dna_file_path,gen+'_seq.fa')
                 with open(temp_path, 'w') as f:
                     f.write(f'>{gen}\n')
@@ -327,14 +319,11 @@ here is the designed primer file.
                             "PRIMER_NUM_RETURN": 4,
                         },
                     )
-                    # Create a name specific to the bacterium and CDS name
                     filenameTSV = gen + "_primer_design.tsv"
-                    # Save the dictionary as a .tsv file
                     res = os.path.join(out_path, filenameTSV)
                     with open(res, "w") as f:
                         for key in primers.keys():
                             f.write("%s\t %s\n" % (key, primers[key]))
-                    # result.append(res)
                 else:
                     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'plasmid.py')
                     if parameters ==[]:
@@ -343,7 +332,7 @@ here is the designed primer file.
                         cmd = 'python {} --fasta_path {} --snp_path {} --out_path {} --gene_name {} --min_amp_len {} --max_amp_len {} --temperature {} --min_GC {} --max_GC {} --max_len {}'.format(
                             script_path,fasta_path,snp_path, out_path,gen,parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5])
                     logging.info('-' * 30+'cmd: \n'+cmd)
-                    process = os.popen(cmd)  # return file
+                    process = os.popen(cmd)
                     output = process.read()
                     print(output)
                     process.close()
@@ -356,20 +345,54 @@ here is the designed primer file.
         elif search_type == 'species_identification_type':
             search_result_dict = instruction['instruction']['search_responses']["data"]['species_identification_dict']
             print(f'Current results from: {search_type}')
-            logging.info(f'Current results from: \n{search_type}')
-            #print('Search results: \n',search_result_dict)
-            logging.info(f'Search results: \n{search_result_dict}')
+            logging.info(f'Current results from: {search_type}')
+            logging.info(f'Search results: {search_result_dict}')
             name_list = search_result_dict['organism']
-            #print(search_result_dict['Target_cds_path'])
             result = []
-            # If it's a gene file, design primers directly
             gene_path = search_result_dict['target_cds_path']
             output_path = '/reference_data/primer_result'
             if type(gene_path) == str:
                 gene_path = [gene_path]
             result = primer3_design(gene_path, parameters, output_path, name_list)
-    
-    
+
+        elif search_type == 'direct_protein_gene_search_type':
+            search_result_dict = instruction['instruction']['search_responses']["data"]['direct_protein_gene_search_dict']
+            gene_path = instruction['instruction']['search_responses']["data"]["gene_seq_path"]
+            logging.info(f'Current results from: {search_type}')
+
+            logging.info(f'Search results: {search_result_dict} {gene_path}')
+            start_pos = search_result_dict['start_pos']
+            end_pos = search_result_dict['end_pos']
+            name_list = []
+
+            for pa in gene_path:
+                temp_name = os.path.basename(pa)
+                temp_name = temp_name.split('.')[0]
+                temp_name = temp_name.replace('(', '').replace(')', '')
+                name_list.append(temp_name)
+                script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'plasmid.py')
+                if parameters == []:
+                    cmd = 'python {} --fasta_path {}  --out_path {} --gene_name {} --start_pos {} --end_pos {}'.format(
+                        script_path, pa, out_path,
+                        temp_name, start_pos, end_pos)
+
+                else:
+                    cmd = 'python {} --fasta_path {}  --out_path {} --gene_name {} --min_amp_len {} --max_amp_len {} --temperature {} --min_GC {} --max_GC {} --max_len {} --start_pos {} --end_pos {}'.format(
+                        script_path, pa, out_path, temp_name, parameters[0], parameters[1], parameters[2],
+                        parameters[3], parameters[4], parameters[5], start_pos, end_pos)
+
+                logging.info('-' * 30 + 'cmd: \n' + cmd)
+                process = os.popen(cmd)
+                output = process.read()
+                process.close()
+
+            result = []
+            for temp_name in name_list:
+                for file in os.listdir(out_path):
+                    if temp_name in file and '.csv' in file:
+                        temp_path = os.path.join(out_path, file)
+                        result.append(temp_path)
+
         if len(result)==0:
             responses = {'response': 'Sorry, primer design failed.',"operations":[],
                          "data":{'primer': result}, 'state': 'stop',
@@ -380,10 +403,8 @@ here is the designed primer file.
                          'primer_design_prompt': snp_primer_design_prompt,"stage":stage}    
         return responses
 
-    #elif stage=='3':
 
 def redesign_primer(instruction,stage):
-    #
     if stage == 1:
         stage += 1
         response = '''The current stage is the primer redesign stage. You need to provide the following three files. We will analyze the contents in the tables and redesign the primers that do not meet the requirements.'''
@@ -398,7 +419,6 @@ def redesign_primer(instruction,stage):
 
     elif stage == 2:
         stage += 1
-        # Analyze primers that do not meet the requirements and find the corresponding reference sequences
         summary_depth_file = instruction['instruction']['summary_depth']
         efficiency_file = instruction['instruction']['efficiency']
         first_design_file = instruction['instruction']['first_design_file']
@@ -425,15 +445,11 @@ def redesign_primer(instruction,stage):
         first_design_file = instruction['instruction']['data']['first_design_file'][0]
         redesign_df = pd.read_csv(redesign_df_path)
         redesign_num = len(redesign_df)
-        # redesign_amp_dict = {}
-        # for k , v in zip(list(redesign_df['amp_id']),list(redesign_df['primer_type'])):
-        #     redesign_amp_dict[k] = v
-
         result_name = f'redesign_panel_{redesign_num}'
         script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'primer_agent_redesign_getPrimer.py')
         cmd = f'python {script_path} --first_design_file {first_design_file} --bad_primer_path {redesign_df_path} --file_name {result_name}'
         print("cmd: ", cmd)
-        process = os.popen(cmd)  # return file
+        process = os.popen(cmd)
         output = process.read()
         print(output)
         process.close()
@@ -465,7 +481,6 @@ def run_cmd(cmd):
         print("Error:\n", err)
 
 def extract_json_response(response):
-    # Extract JSON content from the response
     experiment_info_dict = response.choices[0].message.content
     match = re.search(r'```json\n(.*?)\n```', experiment_info_dict, re.DOTALL)
     if match:
@@ -480,9 +495,9 @@ def primer3_design(fa_path_list, parameters, output_path, name_list=[[1]]):
     result = []
 
     print(fa_path_list)
-    logging.info(f"Current fna path: {fa_path_list}")
+    logging.info(f"当前fna路径：{fa_path_list}")
     print(parameters)
-    logging.info(f"Current primer3 parameters: {parameters}")
+    logging.info(f"当前primer3参数：{parameters}")
     #print([type(y) for y in parameters])
     
     for name_info, fa_path in zip(name_list, fa_path_list):
@@ -640,19 +655,18 @@ def primer3_design(fa_path_list, parameters, output_path, name_list=[[1]]):
         # Save the dictionary as a .tsv file
         res = os.path.join(output_path, filenameTSV)
         top_100_df = all_param_df.head(100)
-        order_top100_df = top_100_df.sort_values('PRIMER_PAIR_PENALTY')#.reset_index(drop=True, inplace=True)#,inplace=True)
+        order_top100_df = top_100_df.sort_values('PRIMER_PAIR_PENALTY')
         order_top100_df.reset_index(drop=True, inplace=True)
         order_top100_df.to_csv(res,index=False)
         logging.info("Order PENALTY&HAIRPIN filter df:\n{order_top100_df}")
         logging.info("Order PENALTY&HAIRPIN filter df index:\n{order_top100_df.index}")
         
-        #排查二聚体情况
         top_50_index = detect_dimer(order_top100_df)
         logging.info('+'*25)
         logging.info(f"Dimer result index:\n{top_50_index}")
         top50_df = order_top100_df.loc[top_50_index]
         logging.info(top50_df)
-        #排查mismatch情况
+
         mismatch_list = detect_mismatch(top50_df, seqs)
         filtermismatch_top50_df = top50_df[[bool(value) for value in mismatch_list]]
         top50_df = filtermismatch_top50_df
@@ -677,24 +691,20 @@ def analysis_target_effiency(summary_df, efficiency_df):
     sample_name_list = summary_df_summary[summary_df_summary["map_target_rate(%)"] < 90]["sample_name"].to_list()
     all_bad_primer_dict = {}
     for name in sample_name_list:
-        # print(name)
         name_efficiency_df = efficiency_df.parse(sheet_name=name)
-        filter_name_efficiency_df = name_efficiency_df[name_efficiency_df["primer_efficiency(%)"] < 50]  # .to_list()
+        filter_name_efficiency_df = name_efficiency_df[name_efficiency_df["primer_efficiency(%)"] < 50]
         for index, info_ in filter_name_efficiency_df.iterrows():
             if info_["amp_name"] not in all_bad_primer_dict:
                 all_bad_primer_dict[info_["amp_name"]] = []
             all_bad_primer_dict[info_["amp_name"]].append(info_["primer_efficiency(%)"])
-    # print('all_bad_primer_dict',all_bad_primer_dict)
-    # 如果3次重复只有有两次都符合，则也算符合条件
+
     new_primer_dict = {}
     for k in all_bad_primer_dict.keys():
         if len(all_bad_primer_dict[k]) == 1:
             continue
         else:
             new_primer_dict[k] = all_bad_primer_dict[k]
-    # print('new_primer_dict', new_primer_dict)
     effiency_bad_primer_result = {key: min(value) for key, value in new_primer_dict.items()}
-    # print('effiency_bad_primer_result', effiency_bad_primer_result)
 
     return effiency_bad_primer_result
 
@@ -705,27 +715,15 @@ def analysis_uniformity(summary_df):
     name_efficiency_df = summary_df.parse(sheet_name="amp_unique_region_depth")
     all_bad_primer_list = []
     for name in sample_name_list:
-        # print(name)
         uni = name_efficiency_df[name].to_list()
         mean = sum(uni) / len(uni)
         filter_name_efficiency_df = name_efficiency_df[name_efficiency_df[name] < mean * 0.1]
-        # print('filter_name_efficiency_df',filter_name_efficiency_df)
         bad_primer = filter_name_efficiency_df.loc[:, ['name']+sample_name_list]
         all_bad_primer_list.append(bad_primer)
 
     all_bad_primer_df = pd.concat(all_bad_primer_list)
     all_bad_primer_df.drop_duplicates()
-    # exit()
 
-    #     # continue
-    #     filter_name_efficiency_df = name_efficiency_df[name_efficiency_df["primer_efficiency(%)"]<50]
-    #     for index, info_ in filter_name_efficiency_df.iterrows():
-    #         if info_["amp_name"] not in all_bad_primer_dict:
-    #             all_bad_primer_dict[info_["amp_name"]] = []
-    #         all_bad_primer_dict[info_["amp_name"]].append(info_["primer_efficiency(%)"])
-    # # exit()
-    # effiency_bad_primer_result = {key: min(value) for key, value in all_bad_primer_dict.items()}
-    # print('analysis_uniformity', all_bad_primer_df)
     return all_bad_primer_df
 
 
@@ -762,11 +760,9 @@ def get_bad_primer(report_file_list):
     eiffency_bad_primer_result = analysis_target_effiency(summary_df, efficiency_df)
     eiffency_bad_primer_list = eiffency_bad_primer_result.keys()
 
-    #dimer analysis
     return uniformity_bad_primer_list,eiffency_bad_primer_list
 
 
-#3'端的50%序列内，不能错配
 def detect_mismatch(primer3_df, target_cds):
     print('+++',primer3_df)
     left_primer = primer3_df['PRIMER_LEFT_SEQUENCE'].tolist()
@@ -783,8 +779,8 @@ def detect_mismatch(primer3_df, target_cds):
     print('right length: ',right_primer_length)
     left_primer_list = [seq[-3:] for seq in left_primer]
     right_primer_list = [seq[-1:-4:-1] for seq in right_primer]
-    print('3‘right: ', right_primer_list)
-    print('3‘left: ', left_primer_list)
+    print('3\'right: ', right_primer_list)
+    print('3\'left: ', left_primer_list)
 
     left_target_list = [target_cds[i:i+l] for i,l in zip(left_primer_start,left_primer_length)]
     print('left target', left_target_list)
@@ -792,16 +788,13 @@ def detect_mismatch(primer3_df, target_cds):
     right_target_list = [target_cds[i-l+1:i+1] for i,l in zip(right_primer_start,right_primer_length)]
     print('right target', right_target_list)
     target_right_match_list = [i[:3] for i in right_target_list]
-    
 
-    #target_right_match_list = [target_cds[i[0]:i[1]] for i in target_cds[i-l+1:i+1] for i,l in zip(right_primer_start,right_primer_length)]]
-    #exit()
     right_index = []
     for x,y,z,u in zip(left_primer_list,right_primer_list,target_left_match_list,target_right_match_list):
-        print('左引物：',x)
-        print('左模板：',z)
-        print('右引物：',y)
-        print('右模板：',u)
+        print('Left primer:',x)
+        print('Left template:',z)
+        print('Right primer:',y)
+        print('Right template:',u)
         if x==z and Seq(u) == Seq(y).complement():
             print('Match')
             right_index.append(1)
@@ -812,7 +805,6 @@ def detect_mismatch(primer3_df, target_cds):
         print('+++++++++++++++')
 
     print(right_index)
-    #exit()
     return right_index
 
 
@@ -853,22 +845,16 @@ def detect_dimer(df, method="single"):
 
 def get_dna_seq(chr_num, start, end,file_content):
     chr_name = f'chromosome {chr_num}'
-    # fasta文件中的染色体名称
     all_chr_name = 'Homo sapiens ' + chr_name + ', GRCh38.p14 Primary Assembly'
     print(all_chr_name)
-    # 用于存储提取的内容
     extracted_content = ""
-
-    # 是否找到了chr
     found_chr = False
 
-    # 在内存中搜索包含"all_chr_name"的行并提取内容
     for i, line in enumerate(file_content):
         if not found_chr and all_chr_name in line:
             found_chr = True
         elif found_chr:
             if line.startswith('>'):
-                # 如果是新的标题行，则停止提取
                 break
             extracted_content += line
     temp_seq = extracted_content[int(start):int(end)].upper()
@@ -876,31 +862,26 @@ def get_dna_seq(chr_num, start, end,file_content):
 
 def getglCMD(kmer_file, ofile):
     cmd = f'/home/YJhou/workspace/pcr_paper/search_base/fasta-36.3.8i/bin/glsearch36 {kmer_file} /home/YJhou/workspace/pcr_paper/search_base/blast_db/refseq.fa -E 30000 -m 8 -n -T 30 --V > {ofile}'
-    #cmd = 'time blastn -task blastn-short'
-    #cmd += f' -query {kmer_file} -db {db} -num_threads 100 -perc_identity {ident} -qcov_hsp_perc {qcov_hsp_perc} -evalue 10000 -outfmt "6 qseqid sseqid qstart qend sstart send length pident mismatch gapopen evalue bitscore staxids sscinames qlen"  > {ofile}'
     return cmd
+
 def reverse_complement(seq):
     complement = {'a': 't', 't': 'a', 'c': 'g', 'g': 'c'}
     return "".join(complement[base] for base in reversed(seq))
+
 def find_primer_positions(reference_seq, forward_primer, reverse_primer):
-    # 找到左引物的起始位置
     forward_start = reference_seq.find(forward_primer)
-    # 获取右引物的互补反向序列
     reverse_complement_primer = reverse_complement(reverse_primer)
-    # 找到右引物的起始位置
     reverse_start = reference_seq.find(reverse_complement_primer)
-    # 如果找不到引物，返回None
     if forward_start == -1 or reverse_start == -1:
         return None
 
-    # 计算各个位置
     start = forward_start + 1
     insert_start = start + len(forward_primer)
     insert_end = reverse_start
     end = insert_end + len(reverse_primer)
 
-    # 返回四个位置
     return start, insert_start, insert_end, end
+
 def modify_primer_file(fasta_path,primer_file):
     seq_raw = ''
     with open(fasta_path,'r')as f:
@@ -930,24 +911,22 @@ def modify_primer_file(fasta_path,primer_file):
     new_df.insert(6,'end',end)
     new_df.to_csv(primer_file)
     return primer_file
+
 def calculate_optimal_primer(blast_result_path):
-    #with open('blast_result_path','r') as f:
     blast_df = pd.read_csv(blast_result_path, sep='\t', header=None, 
                                    names=['qseqid', 'sseqid', 'qstart', 'qend', 'sstart', 'send', 'length', 'pident', 'mismatch', 'gapopen', 
                                           'evalue', 'bitscore', 'staxids', 'sscinames', 'qlen'])
-    print('blast特异性比对结果：\n', blast_df)
+    print('blast results:', blast_df)
     exit()
-    
 
 def get_best_primer(filter_primer_df, name):
     filter_primer_path = '/reference_data/primer_blast_result'
     print(filter_primer_df)
-    #with open(f'{filter_primer_path}/{name}_primer.fna', 'w') as f:
     records = []
     for index, row in filter_primer_df.iterrows():
         f_seq = row['PRIMER_LEFT_SEQUENCE']
         r_seq = row['PRIMER_RIGHT_SEQUENCE']
-        f_l = int(len(f_seq)*1)#向下取整
+        f_l = int(len(f_seq)*1)
         r_l = int(len(r_seq)*1)
         f_record = SeqRecord(Seq(f_seq[-f_l:]), id=f"lcl|{index+1}_1", description="Forward primer chunk")
         r_record = SeqRecord(Seq(r_seq[:r_l]), id=f"lcl|{index+1}_2", description="Reverse primer chunk")
@@ -957,14 +936,11 @@ def get_best_primer(filter_primer_df, name):
     output_file = f'{filter_primer_path}/{name}_primer.fna'
     SeqIO.write(records, output_file, 'fasta')
     
-    #TODO:补充序列全比对过滤，确保引物与模板没有mismatch
-    #TODO:
     ofile = f'{filter_primer_path}/{name}_primer_glsearch36_output'
     primer_file_path = output_file
     db = '/home/YJhou/workspace/pcr_paper/search_base/blast_db/refseq'
     cmd = getglCMD(primer_file_path, ofile)
     print(cmd)
     os.system(cmd)
-    print(f'完成引物blast，存于{ofile}')
+    print(f'Completed primer blast, saved to {ofile}')
     calculate_optimal_primer(ofile)
-

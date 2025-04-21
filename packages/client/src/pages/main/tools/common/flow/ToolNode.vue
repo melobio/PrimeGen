@@ -158,7 +158,7 @@ watch(() => localData, () => {
   // console.log('localData', localData);
   updateTool(localData.uuid, localData).then((res) => {
     if (res.success) {
-      // update success
+      // 更新成功！
     }
   })
 }, { deep: true })

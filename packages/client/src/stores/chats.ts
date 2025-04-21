@@ -81,7 +81,7 @@ export const useChatStore = defineStore('chat', () => {
   const generatingMessages: GeneratingMessage[] = [];
   const cvstoexper = ref<ConversationUUIDtoPrimerFileID[]>([])
 
-  // scroll to bottom when new message comes
+  // 消息更新时，是否滚动到底部
   const scrollBottom = ref(false);
   const shouldScrollToBottomWhileGenerating = ref(false);
 
@@ -146,8 +146,8 @@ export const useChatStore = defineStore('chat', () => {
   function setBadTipInfo(info: BadTipInfo) {
     badTipInfo.value = info;
   }
-  // check every 50ms, if there is a new message, then update the message
-  // to let user know the message is generating
+  // 每50ms检查一次，是否有新的生成消息，有的话就显示出来
+  // 目的是为了让用户看到生成的过程
   function startRefreshGeneratingMessages() {
     setInterval(() => {
       if (generatingMessages.length) {
@@ -237,7 +237,7 @@ export const useChatStore = defineStore('chat', () => {
       await socket.value.emitWithAck(TEXT_QUESTION, { text, conversationUUID: currentChat.value?.uuid });
 
     if (success) {
-      data[data.length - 1].generating = false; // generating
+      data[data.length - 1].generating = false; // 正在生成中
       currentChatMessages.value = [...currentChatMessages.value, ...data];
       scrollBottom.value = true;
     }
@@ -262,8 +262,8 @@ export const useChatStore = defineStore('chat', () => {
       await socket.value.emitWithAck(VOICE_QUESTION, { voice: base64, conversationUUID: currentChat.value?.uuid });
 
     if (success) {
-      if(data[data.length - 2]) data[data.length - 2].generating = false; // user input, mark as not generating
-      if(data[data.length - 1]) data[data.length - 1].generating = true; // generating
+      if(data[data.length - 2]) data[data.length - 2].generating = false; // 用户发出的直接标记为生成结束
+      if(data[data.length - 1]) data[data.length - 1].generating = true; // 正在生成中
       currentChatMessages.value = [...currentChatMessages.value, ...data];
       scrollBottom.value = true;
     }
@@ -321,12 +321,27 @@ export const useChatStore = defineStore('chat', () => {
         }
       }
     }
+    // TODO:优化删除会话脏数据
+    // if (!currentChat.value?.uuid) {
+    //   console.warn('currentChat empty');
+    //   return;
+    // }
+    // if (!socket.value || socket.value?.connected === false) {
+    //   console.warn('socket empty or disconnected');
+    //   return;
+    // }
+    // const { success, data }: { success: boolean, data: {} } =
+    // await socket.value.emitWithAck(RESTART_CONVERSATION, { conversationUUID:restartConversationUUID.value ,restart});
+    // if(restart && success){
+    //   await getAllChats();
+    //   await getAllMessages(restartConversationUUID.value);
+    // }
     restartConversationUUID.value = ''
   }
 
   async function sendSelectOptionToNcbiSearch(
     text: string,
-    info: ProteinMutationInfo| CancerOptionInfo | GeneticDisorderInfo | PathogenDrugInfo | SpeciesIdentificationInfo | ProteinMutationLength | any,
+    info: ProteinMutationInfo| CancerOptionInfo | GeneticDisorderInfo | PathogenDrugInfo | SpeciesIdentificationInfo | ProteinMutationLength,
     message: Message) {
     if (!currentChat.value?.uuid) {
       console.warn('currentChat empty');
@@ -344,7 +359,6 @@ export const useChatStore = defineStore('chat', () => {
       option: info,
       messageId: message.id,
     }
-    // console.info(optionsMsg);
     const compressed = pako.deflate(JSON.stringify(optionsMsg));
     res= await socket.value.emitWithAck(SEND_OPTION_NCBI_SEARCH,compressed);
     if (res.success) {

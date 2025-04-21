@@ -26,28 +26,30 @@ export class AuthMiddleware implements NestMiddleware {
     this.logger.log(`req: ${req.baseUrl}`); //
     const token = this.extractTokenFromHeader(req);
     if (!token) {
+      // throw new UnauthorizedException('token不存在');
       this.logger.warn(`No token in header.`, '');
-      throw new XException(CODES.AUTH.LOGIN_INVALID, 'please login again!');
+      throw new XException(CODES.AUTH.LOGIN_INVALID, '登录失效，请重新登录');
     }
     const cacheToken = await this.cacheService.getToken<string>(token);
     // this.logger.debug(`cacheToken: ${cacheToken}`);
     if (!cacheToken) {
-      // throw new UnauthorizedException(`please login again!');`);
+      // throw new UnauthorizedException(`登录失效，请重新登录`);
       this.logger.warn(`Token #${token} not in cache`, '');
-      throw new XException(CODES.AUTH.LOGIN_INVALID, 'please login again!');
+      throw new XException(CODES.AUTH.LOGIN_INVALID, '登录失效，请重新登录');
     }
 
     const { userName } = await this.authService.verifyToken(cacheToken);
     const user = await this.userService.findUserByUserName(userName);
     if (!user) {
+      // throw '用户不存在';
       this.logger.warn(`User ${userName} not found.`, '');
-      throw new XException(CODES.AUTH.LOGIN_INVALID, 'please login again!');
+      throw new XException(CODES.AUTH.LOGIN_INVALID, '登录失效，请重新登录');
     }
 
-    // refresh cache toke
+    // 刷新缓存中的Token，续期
     await this.authService.refreshToken(token, user);
 
-    // store user in request
+    // 方便后续可以直接获取到登录的用户数据
     req.user = user;
 
     next();

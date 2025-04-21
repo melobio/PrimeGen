@@ -18,7 +18,6 @@ export interface PrimerResultContent {
     primer_design_prompt?: string;
     primer_design_dict?: Record<string, any>;
     primer?: string[];
-    data?: any;
   };
   history_conversation: Array<Record<string, string>>;
 }
@@ -167,7 +166,7 @@ export class PrimerDesign {
         search_responses,
       }),
       history,
-      type: 0, // deprecated
+      type: 0, // 无用字段
     };
     this.ws.send(JSON.stringify(sendObj));
     this.logger.log(`send: ${JSON.stringify(sendObj)}`);

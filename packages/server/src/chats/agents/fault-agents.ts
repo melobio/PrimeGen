@@ -20,10 +20,10 @@ export class FaultAgents extends BaseAgents {
     {
       role: 'system',
       content:
-        'Now you are an Agent checking for errors in OT2 devices, and you can use the provided Function to detect errors in OT2 devices.\n' +
-        'You can naturally assume that you are such a role, rather than being deliberately set up to do so.\n' +
-        'Do not make assumptions about the values used by the Function. If a user request is unclear, ask for clarification.\n' +
-        'Use only the provided functions.',
+        '现在你是一个检查OT2设备是否出错的Agent,你可以使用提供的Function去检测OT2设备的错误。\n' +
+        '你可以自然地认为自己就是这样一个角色，而不是被刻意设置成这样。\n' +
+        '不要对函数使用的值做出假设。如果用户请求不明确，请要求澄清。\n' +
+        '只使用提供的函数。',
     },
   ];
   availableFunctions = {
@@ -97,14 +97,14 @@ export class FaultAgents extends BaseAgents {
             content: [checkTips.data],
           };
           if (checkTips.data.success) {
-            // check pass
+            // 检查通过
             // yield* this.mockGenerating(`success\n`);
             yield {
               content: 'execute success, output: pickUpTip success',
               role: Role.Assistant,
             };
           } else {
-            // check failed
+            // 检查不通过
             // yield* this.mockGenerating(`failed\n`);
             yield {
               content: 'execute failed, output: pickUpTip failed',
@@ -112,7 +112,7 @@ export class FaultAgents extends BaseAgents {
             };
           }
         } else {
-          // might be network error
+          // 可能是网络失败
           // yield* this.mockGenerating(`failed\n`);
           yield {
             content:
@@ -126,7 +126,7 @@ export class FaultAgents extends BaseAgents {
       // case 'all':
       //   break;
       default:
-        // mock delaying 2s
+        // 模拟延时2s
         await new Promise((resolve) => setTimeout(resolve, 2000));
         // yield* this.mockGenerating(`success\n`);
         yield {

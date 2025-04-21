@@ -65,6 +65,24 @@ const objectToMarkdownTable = (data) => {
   return `${header}${divider}${body}`;
 };
 
+const mockResult = `
+  根据你的输入"{{INPUT}}",
+  我在NCBI上检索到了如下结果：
+  
+  [Candidatus Mycobacterium methanotrophicum_cds_from_genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Candidatus Mycobacterium wuenschmannii cds from_genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium abscessus cds from_ genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium_adipatum_cds_from_genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium agri cds from_genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium aichiense cds from _ genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium_algericum_cds_from_genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium alsense_ cds from_genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium alsiense _ cds from_ genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  [Mycobacterium alvei cds from genomic.fna](https://www.ncbi.nlm.nih.gov/nuccore/NC_017939.1?report=fasta&from=1&to=100)
+  
+  请选择一个或者多个结果
+`;
+
 export class SequenceSearchAgents extends BaseAgents {
   initMessages: ChatMessage[] = [];
   availableFunctions = {
@@ -117,7 +135,7 @@ export class SequenceSearchAgents extends BaseAgents {
     this.chatsService.setNcbiSearch(this.ncbiSearch, this.conversationUUID);
   }
 
-  // Doesn't need Search Agent Internal LLM to summarize, boost efficiency
+  // 检索不需要子Agent内部的LLM进行总结，提升反馈的效率
   async *send({
     userInput,
     description,
@@ -148,7 +166,7 @@ export class SequenceSearchAgents extends BaseAgents {
         if (msg?.operation) {
           operation = msg?.operation;
         }
-        // Send User Input to Seq Agent
+        // 将用户完整的输入传给Seq Agent
         if (msg.role === Role.Assistant) {
           content += msg.content;
         } else {
@@ -179,11 +197,9 @@ export class SequenceSearchAgents extends BaseAgents {
       | SpeciesIdentificationInfo
       | ProteinMutationInfo;
   }) {
-    this.logger.debug(
-      `callNCBISearch==query===> ${query}; optionInfo==> ${JSON.stringify(
-        optionInfo,
-      )}`,
-    );
+    this.logger.debug(`callNCBISearch==query===> ${query}`);
+    // todo:拦截 用户选项的答复 推断后的函数，然后拼接参数后再给agent发消息
+    // yield* this.mockGenerating(`Sequence Search: `);
     let success = true;
     let content = '';
     let responses;
@@ -243,17 +259,6 @@ export class SequenceSearchAgents extends BaseAgents {
               const tableStr = objectToMarkdownTable(target_gene_info);
               content += `\n ${tableStr}`;
             }
-            if (responses?.data?.history_data?.dna_seqs) {
-              content += createFileListString(
-                'dna_seqs',
-                responses?.data?.history_data,
-              );
-            }
-          } else if (
-            responses?.search_type == NCBIFunctionType.whole_genome_type
-          ) {
-            const responses = nCBIResult.responses;
-            content += createFileListString('target_fna_list', responses.data);
           }
           // else if (
           //   responses?.search_type == NCBIFunctionType.download_type

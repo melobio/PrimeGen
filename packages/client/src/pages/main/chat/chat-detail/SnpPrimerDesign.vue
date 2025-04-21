@@ -35,12 +35,12 @@ const props = defineProps<Message>()
 const operations = ref<Operation[]>([]);
 const isSubmited = ref(false);
 const formRef = ref()
-// 1,Maximum amplicon length >200 <500，
-// 2,Minimum amplicon length >100 <300
-// 3,temperature30-80
-// 4,Minimum GC content 20-70
-// 5,Maximum GC content 20-70
-// 6,Maximum length of a primer 18-25
+// 1,Maximum amplicon length(最大放大长度)大于200小于500，
+// 2,Minimum amplicon length(最小放大长度)大于100小于300
+// 3,temperature(退火温度)30-80
+// 4,Minimum GC content(最小GC含量)20-70
+// 5,Maximum GC content(最大GC含量)20-70
+// 6,Maximum length of a primer(最大引物长度)18-25
 const optionRules = [
     {
         key: "min_amp_len",
@@ -165,6 +165,7 @@ const submitOption = async () => {
             primer_design_prompt,
             primer_design_dict,
             operations: operations.value,
+            // 上一次返回的值
             data: props?.optionInfo?.data ?? {},
         }
         await chatStore.sendSelectOptionToPrimerDesign(userReply, data, props)

@@ -123,7 +123,7 @@ export class ConversationGateway
     },
   ) {
     this.logger.log('inputText: ' + text);
-    // Create a user message
+    // 创建一个user消息
     const userMessage = await this.chatsService.createMessage(
       '',
       text,
@@ -134,7 +134,7 @@ export class ConversationGateway
       `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
       true,
     );
-    // send the text to the agent
+    // 发送text到openai
     this.chatsService
       .sendText(conversationUUID, client, text)
       .catch((e) => {
@@ -168,6 +168,7 @@ export class ConversationGateway
       `${TEXT_ANSWER_GENERATING}:${conversationUUID}`,
       false,
     );
+    // todo: 停止生成信息后，拦截数据库更新数据
     return { data: [], success: true };
   }
 

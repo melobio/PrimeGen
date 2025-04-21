@@ -14,7 +14,7 @@ export const useExperimentsStore = defineStore('experiments', () => {
   async function getAllExperiments() {
     const { data } =  await getExperiments<ExperimentInterface[]>()
       experiments.value = data || [];
-      // show the first experiment by default
+      // 默认显示第一个实验
       if (!currentExperiment.value && experiments.value.length > 0) {
         currentExperiment.value = experiments.value[0];
       }

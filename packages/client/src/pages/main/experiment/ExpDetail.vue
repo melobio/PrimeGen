@@ -57,7 +57,7 @@ async function loadChildren(els: Elements, parentUUID: string, children: NodeChi
     if (uuid && type) {
       const { success, data } = await commonToolInfo<Node>(uuid, type);
       if (success) {
-        // node
+        // 结点
         const nodeExists = els.findIndex((el) => el.id === uuid) > -1;
         if (!nodeExists) {
           els.push({
@@ -67,7 +67,7 @@ async function loadChildren(els: Elements, parentUUID: string, children: NodeChi
             data: data,
           })
         }
-        // link
+        // 连线
         els.push({
           id: `${parentUUID}:${uuid}`,
           source: parentUUID,
@@ -80,7 +80,7 @@ async function loadChildren(els: Elements, parentUUID: string, children: NodeChi
             strokeWidth: 2,
           }),
         })
-        // sub node
+        // 子结点
         grandson[uuid] = data?.children || [];
       }
     }

@@ -10,7 +10,7 @@
   "steps": [
     {
       "stepName": "Confirm the experiment type and experiment objectives",
-      "purpose": "if user confirm the specific purpose of the experiment (composed of a specific type of experiment and a specific experimental subject,No need to confirm details on the objective); The experiment type only supports (Protein Mutation Analysis/ Genetic Disease Diagnosis/ Cancer Research/ Resistance Analysis/ Species Identification / Whole genome testing /Species Diagnosis /Species Classify Experiment); The aim of the experiment refers to the specific name; The purpose of the experiment must consist of the experiment type and the experimental subject. At the same time, it must be personally confirmed by the user.",
+      "purpose": "if user confirm the specific purpose of the experiment (composed of a specific type of experiment and a specific experimental subject,No need to confirm details on the objective); The experiment type only supports (Protein Mutation Analysis/ Genetic Disease Diagnosis/ Cancer Research/ Resistance Analysis/ Species Identification /Species Diagnosis /Species Classify Experiment); The aim of the experiment refers to the specific name; The purpose of the experiment must consist of the experiment type and the experimental subject. At the same time, it must be personally confirmed by the user.",
       "purposeExample":" 'Protein Mutation Analysis of Luciferase/DNA Polymerase/Deaminase/Hydrolase'、 'Diagnosis of Genetic Diseases like Myasthenia Gravis/Acatalasemia/Marfan Syndrome/Hyperlipoproteinemia Type III in Humans'、 'Cancer Research related to Lung Cancer/Colorectal Cancer/Breast Cancer/Pancreatic Cancer'、 'Pathogen Resistance Studies for E. coli/Staphylococcus/Pneumococcus/Neisseria gonorrhoeae'、 'Species Identification of Mycobacterium/Branching Mycobacterium' ",
       "state": "idle",
       "checkWithContext":true,
@@ -20,7 +20,7 @@
     },
     {
       "stepName": "Determining DNA Sequence",
-      "purpose": "Gene information(including the gene's chrom/Chromosome、start、end、gene、type、HGNC(Can be empty));only need either the gene file name or the gene information.",
+      "purpose": "Sequence file name(.fasta/.fastq/.fna/.csv,Just need the file name; no need to worry about the gene detail) or Gene information(including the gene's chrom/Chromosome、start、end、gene、type、HGNC(Can be empty));only need either the gene file name or the gene information.",
       "purposeExample":"",
       "state": "idle",
       "checkWithContext":false,
@@ -40,7 +40,7 @@
     },
     {
       "stepName": "Protocol Design",
-      "purpose": "Get Python file(.py) or JSON file(.json) for Experiment Protocol;just need the file name",
+      "purpose": "Get Python content for OT2 Protocol.;",
       "checkWithContext":false,
       "purposeExample":"",
       "state": "idle",
@@ -49,8 +49,8 @@
       ]
     },
     {
-      "stepName": "Code Execution",
-      "purpose": "Successfully execute all protocols in the experiment, obtaining PCR results.",
+      "stepName": "OT2 Execution",
+      "purpose": "Successfully executed OT2 Protocol, obtaining PCR results.",
       "checkWithContext":false,
       "purposeExample":"",
       "state": "idle",
@@ -128,7 +128,7 @@
     },
     {
       "agentName": "Protocol Generation",
-      "description": "AlphaTool Protocol Generator for PCR experiment targeting tuberculosis DNA",
+      "description": "OT2 Protocol Generator for PCR experiment targeting tuberculosis DNA",
       "dependenceAgents": [
         "Experiment Design"
       ],
@@ -140,7 +140,7 @@
     },
     {
       "agentName": "Code Execution",
-      "description": "AlphaTool Code Execution for PCR experiment targeting tuberculosis DNA",
+      "description": "OT2 Code Execution for PCR experiment targeting tuberculosis DNA",
       "dependenceAgents": [
         "Protocol Generation"
       ],
@@ -152,7 +152,7 @@
     },
     {
       "agentName": "Fault",
-      "description": "Fault checking for execution of AlphaTool Protocol code",
+      "description": "Fault checking for execution of OT2 Protocol code",
       "dependenceAgents": [
         "Protocol Generation"
       ],

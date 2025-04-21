@@ -41,7 +41,7 @@ client.interceptors.response.use( (response):any => {
   }
   return response.data;
 }, () => {
-  return new XResponse(0, 'Unknown error', false, null);
+  return new XResponse(0, '未知错误', false, null);
 })
 
 client_adpater.interceptors.response.use((response): any => {
@@ -52,7 +52,7 @@ client_adpater.interceptors.response.use((response): any => {
   }
   return new XResponse(adapterRes.code, adapterRes.msg, false, null);
 }, () => {
-  return new XResponse(0, 'Unknown error', false, null);
+  return new XResponse(0, '未知错误', false, null);
 })
 
 export function hello() {
@@ -69,17 +69,6 @@ export function login<T>(
   },
 ): Promise<XResponse<T>>{
   return client.post('/auth/login', data);
-}
-
-export function register<T>(
-  data: {
-    loginType: 'userName';
-    userName?: string;
-    password?: string;
-    confirmPassword?: string;
-  },
-): Promise<XResponse<T>>{
-  return client.post('/auth/register', data);
 }
 
 export function experiments<T>(

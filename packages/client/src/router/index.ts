@@ -17,11 +17,6 @@ const router = createRouter({
       component: () => import('@/pages/login/index.vue')
     },
     {
-      path: '/register',
-      name: 'Register',
-      component: () => import('@/pages/register/index.vue')
-    },
-    {
       path: '/about',
       name: 'about',
       // route level code-splitting
@@ -32,13 +27,13 @@ const router = createRouter({
   ]
 })
 
-// router.beforeEach(async (to, from) => {
-//   const token = Cookies.get('x-token');
-//   // console.log('====', token)
-//   if (!token && to.name !== 'Login') {
-//     return { name: 'Login' }
-//   }
-//   return true;
-// })
+router.beforeEach(async (to, from) => {
+  const token = Cookies.get('x-token');
+  // console.log('====', token)
+  if (!token && to.name !== 'Login') {
+    return { name: 'Login' }
+  }
+  return true;
+})
 
 export default router

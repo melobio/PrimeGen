@@ -8,7 +8,7 @@ html {
   overflow-y: auto !important;
 }
 
-/* global scrollbar style */
+/* 全局滚动条样式 */
 ::-webkit-scrollbar {
   width: 0.7em;
 }
@@ -22,17 +22,17 @@ html {
   border-radius: 10px;
 }
 
-/* scrollbar on hover */
+/* 滚动条悬停时的样式 */
 ::-webkit-scrollbar-thumb:hover {
   background-color: #555;
 }
 
-/* scrollbar on hold */
+/* 滚动条拖动时的样式 */
 ::-webkit-scrollbar-thumb:active {
   background-color: #333;
 }
 
-/* scrollbar button */
+/* 滚动条轨道上的按钮样式（仅针对某些浏览器） */
 ::-webkit-scrollbar-button {
   display: none;
 }

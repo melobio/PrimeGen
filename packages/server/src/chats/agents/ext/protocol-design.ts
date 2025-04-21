@@ -10,21 +10,21 @@ import { AgentType } from '@xpcr/common';
 
 // Protocol Design
 
-// Protocol Design type
+// Protocol Design类型
 export enum ProtocolDesignFunctionType {
   auto_protocol_design = 'auto_protocol_design',
   template_protocol_design = 'template_protocol_design',
 }
 
-// Protocol Design parameters
+// Protocol Design 入参
 export interface ProtocolDesignInfo {
   stage: number;
   protocol_design_type: ProtocolDesignFunctionType;
   operations?: Operation[];
-  data?: any;
+  data?: object;
 }
 
-// Protocol Design response type
+// Protocol Design 出参
 export interface ProtocolDesignResultInfo {
   responses: {
     response: string;
@@ -157,7 +157,7 @@ export class ProtocolDesign {
     );
 
     const operationsObj = {};
-    // extract operations items
+    // 将operations里的用户提交的key解开放到外层
     if (optionInfo?.operations) {
       optionInfo?.operations.forEach((item) => {
         operationsObj[item.key] = item.value;
@@ -171,10 +171,11 @@ export class ProtocolDesign {
         protocol_design_type:
           optionInfo?.protocol_design_type ??
           ProtocolDesignFunctionType.template_protocol_design,
+        // 上一次的返回 不做修改
         data: optionInfo?.data ?? {},
       }),
       history,
-      type: 0, // deprecated
+      type: 0, // 无用字段
     };
     if (this.ws.readyState == WebSocket.CLOSED) {
       this.initConnect();

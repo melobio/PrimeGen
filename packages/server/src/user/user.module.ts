@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common'
 import { UserService } from './user.service'
 import { SeedUserService } from './seed-user.service'
-import { ToolsService } from '../tools/tools.service';
-import { ExperimentsService } from '../experiments/experiments.service';
-import { ConversationService } from 'src/chats/conversation.service';
-
 
 @Module({
   imports: [],
@@ -12,9 +8,6 @@ import { ConversationService } from 'src/chats/conversation.service';
   providers: [
     UserService,
     SeedUserService,
-    ExperimentsService,
-    ToolsService,
-    ConversationService,
   ],
   exports: [
     UserService,

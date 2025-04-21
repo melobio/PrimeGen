@@ -33,7 +33,7 @@ const mdi = new MarkdownIt({
   },
 })
 const highlightBlock = (str: string, lang?: string) => {
-  return `<pre class="code-block-wrapper"><div class="code-block-header"><span class="code-block-header__lang">${lang}</span>${lang && '|'}<span class="code-block-header__copy">copy</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`
+  return `<pre class="code-block-wrapper"><div class="code-block-header"><span class="code-block-header__lang">${lang}</span>${lang && '|'}<span class="code-block-header__copy">复制</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`
 }
 const capitalizeFirstLetterRegex = (str:string) => {
     return str.replace(/^\w/, (match) => match.toUpperCase());

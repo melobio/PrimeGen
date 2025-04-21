@@ -231,12 +231,12 @@ export class ToolsService {
       new Agents(
         AgentType.FAULT,
         `${AgentType.FAULT} Agent`,
-        'Check whether the Alphatool machine has encountered a runtime error based on the provided parameters.',
+        'Check whether the OT2 or OT3 machine has encountered a runtime error based on the provided parameters.',
         [
           {
             name: AgentFunctions.CHECK_OT2_STATE,
             description:
-              'Check whether the Alphatool machine has encountered a runtime error based on the provided parameters.',
+              'Check whether the OT2 machine has encountered a runtime error based on the provided parameters.',
             parameters: {
               type: 'object',
               properties: {
@@ -283,19 +283,19 @@ export class ToolsService {
       new Agents(
         AgentType.CODE_EXECUTION,
         `${AgentType.CODE_EXECUTION} Agent`,
-        'Alphatool protocol executor. Please input a complete Python script code that can be accurately executed on Alphatool',
+        'OT2 protocol executor. Please input a complete Python script code that can be accurately executed on OT-2',
         [
           {
             name: AgentFunctions.CODE_EXECUTION,
             description:
-              'Code Execution Agent is a software component designed to execute the protocol on Alphatool and return the results.',
+              'Code Execution Agent is a software component designed to execute the protocol on OT2 and return the results.',
             parameters: {
               type: 'object',
               properties: {
                 protocol: {
                   type: 'string',
                   description:
-                    'The Alphatool protocol to be executed, empty when not provided',
+                    'The opentrons protocol to be executed, empty when not provided',
                 },
               },
             },
@@ -369,53 +369,6 @@ export class ToolsService {
             label: 'api_engine',
             key: LLMFields.API_ENGINE,
             hint: 'The engine for the Azure API.',
-            type: NodeFieldType.TextField,
-            required: true,
-            value: process.env.OPENAI_API_ENGINE || '', // default value
-            accept: {},
-          },
-        ],
-        [],
-        {
-          type: NodeTypes.LLMs,
-          name: NodeTypes.LLMs,
-          uuid: '',
-          functionName: '',
-          functionDesc: '',
-          required: false,
-        },
-        '0.0.1',
-        conversationUUID || '',
-      ),
-      new LlmsEntity(
-        LLMType.OpenAI,
-        LLMType.OpenAI,
-        'Wrapper around OpenAI-chatgpt Chat Large language models.',
-        'Wrapper around OpenAI-chatgpt Chat Large language models.',
-        [],
-        [
-          {
-            label: 'api_key',
-            key: LLMFields.API_KEY,
-            hint: 'The API key for the OPENAI API.',
-            type: NodeFieldType.TextField,
-            required: true,
-            value: process.env.OPENAI_API_KEY || '', // default value
-            accept: {},
-          },
-          {
-            label: 'api_base',
-            key: LLMFields.API_BASE,
-            hint: 'The base URL for the OPENAI API.',
-            type: NodeFieldType.TextField,
-            required: true,
-            value: process.env.OPENAI_API_BASE || '', // default value
-            accept: {},
-          },
-          {
-            label: 'api_engine',
-            key: LLMFields.API_ENGINE,
-            hint: 'The engine for the OPENAI API.',
             type: NodeFieldType.TextField,
             required: true,
             value: process.env.OPENAI_API_ENGINE || '', // default value

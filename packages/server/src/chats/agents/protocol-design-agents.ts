@@ -71,7 +71,7 @@ export class ProtocolDesignAgents extends BaseAgents {
     );
   }
 
-
+  // Protocol Design发送消息给Protocol Design Agent
   async *send({
     userInput,
     description,
@@ -119,6 +119,7 @@ export class ProtocolDesignAgents extends BaseAgents {
     await this.saveMessage(content, Role.Assistant);
   }
 
+  // Protocol Design发送消息给Protocol Design Agent
   private async *callProtocolDesign({
     query,
     optionInfo,
@@ -144,21 +145,15 @@ export class ProtocolDesignAgents extends BaseAgents {
       } else {
         protocolResultContent =
           protocolResultContentResponse?.responses || null;
+        // 回复不需要改动的字段
         protocolResultContentData = protocolResultContent.data;
+        // 回复显示的文字
         protocolResultString = protocolResultContent?.response || '';
 
         if (protocolResultContentData?.new_code) {
           protocolResultString += '\n';
           protocolResultString += createFileListString(
             'new_code',
-            protocolResultContentData,
-          );
-        }
-
-        if (protocolResultContentData?.json_file) {
-          protocolResultString += '\n';
-          protocolResultString += createFileListString(
-            'json_file',
             protocolResultContentData,
           );
         }

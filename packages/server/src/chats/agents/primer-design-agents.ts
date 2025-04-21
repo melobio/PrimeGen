@@ -10,7 +10,16 @@ import { MessageEntity, Role } from '../entities/message.entity';
 import { PrimerDesign, PrimerResultContent } from './ext/primer-design';
 import { CacheService } from 'src/cache/cache.service';
 import { ConversationService } from '../conversation.service';
-import { RedesignInfo, SnpPrimerDesignInfo } from './ext/ncbi-search';
+import { SnpPrimerDesignInfo } from './ext/ncbi-search';
+const mockResult = `
+  根据你的输入"{{INPUT}}",
+  设计出的引物如下:
+  
+  primer1.csv
+  primer2.csv
+  primer3.csv
+  primer4.csv
+`;
 
 export class PrimerDesignAgents extends BaseAgents {
   initMessages: ChatMessage[] = [];
@@ -48,7 +57,7 @@ export class PrimerDesignAgents extends BaseAgents {
     this.chatsService.setPrimerDesign(this.primerDesign, this.conversationUUID);
   }
 
-  // Primer design doesn't need summarize, use Agent internal LLM to generate response
+  // 引物设计不需要子Agent内部的LLM进行总结，提升反馈的效率
   async *send({
     userInput,
     description,
@@ -70,7 +79,7 @@ export class PrimerDesignAgents extends BaseAgents {
         if (msg?.optionInfo) {
           newOptionInfo = msg?.optionInfo;
         }
-        // Send User Input to Seq Agent
+        // 将用户完整的输入传给Seq Agent
         if (msg.role === Role.Assistant) {
           content += msg.content;
         } else {
@@ -98,7 +107,7 @@ export class PrimerDesignAgents extends BaseAgents {
     let success = true;
     let primerResult = '';
     let primerResultContent: PrimerResultContent;
-    let resultOptionInfo: SnpPrimerDesignInfo | RedesignInfo;
+    let resultOptionInfo: SnpPrimerDesignInfo;
     let primerResultContentResponses;
     if (!optionInfo) {
       optionInfo = {
@@ -124,17 +133,16 @@ export class PrimerDesignAgents extends BaseAgents {
         lastPrimerMsg,
         optionInfo,
       );
-      primerResultContentResponses = primerResultContent?.responses || null;
       if (typeof primerResultContent == 'string') {
         const errorTip = `We apologize to the failure to help immediately;It seems that our assistants have encountered a little problem;Please try to check if there is an unsubmitted operation, our assistant will be happy to serve you.`;
         primerResult = errorTip;
-      } else if (
-        primerResultContentResponses?.primer_type == 'snp_primer_design_type'
-      ) {
+      } else {
+        primerResultContentResponses = primerResultContent?.responses || null;
+
         if (primerResultContentResponses) {
           resultOptionInfo = {
             operations: primerResultContentResponses?.operations || [],
-            state: primerResultContentResponses?.state,
+            state: primerResultContentResponses?.state || '',
             primer_type: primerResultContentResponses?.primer_type || '',
             stage: primerResultContentResponses?.stage || 2,
             primer_design_prompt:
@@ -152,42 +160,12 @@ export class PrimerDesignAgents extends BaseAgents {
         primerResult = `${
           primerResultContentResponses.response || ''
         }\n${primerUrlList.join('\n')}\n`;
-      } else if (
-        primerResultContentResponses?.primer_type == 'redesign_primer_type'
-      ) {
-        resultOptionInfo = {
-          operations: primerResultContentResponses?.operations || [],
-          state: primerResultContentResponses?.state,
-          primer_type: primerResultContentResponses?.primer_type || '',
-          stage: primerResultContentResponses?.stage,
-          data: primerResultContentResponses?.data || {},
-        };
-        primerResult = `${primerResultContentResponses.response}`;
-        if (primerResultContentResponses?.data?.redesign_primer) {
-          const redesign_amp_info_path = path.join(
-            '/v1/files/xsearchdev',
-            primerResultContentResponses?.data?.redesign_primer || '',
-          );
-          primerResult += `\n[redesign_amp_info_path.csv](${redesign_amp_info_path.replaceAll(
-            ' ',
-            '%20',
-          )})`;
-        }
-        if (primerResultContentResponses?.data?.redesign_result) {
-          const redesign_result_list =
-            primerResultContentResponses?.data?.redesign_result.map((p) => {
-              const url = path.join('/v1/files/xsearchdev', p);
-              return `[${path.basename(url)}](${url.replaceAll(' ', '%20')})`;
-            });
-          primerResult += `\n${redesign_result_list.join('\n')}\n`;
-        }
-      } else {
-        primerResult = `${primerResultContentResponses.response}`;
       }
     } catch (e) {
       primerResult = e.message;
       success = false;
     }
+
     yield {
       optionInfo: resultOptionInfo,
       content: primerResult,

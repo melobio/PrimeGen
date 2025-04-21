@@ -13,23 +13,24 @@
         <h4 v-if="header == SUMMARY_MESSAGE" >
           {{ `${generating && markedContent ?'Reflecting......': 'Reflection:'}`}}
         </h4>
-        <!-- AlphaTool execution process -->
-        <CodeExecutionOptions v-if="showCodeExecutionOptions" v-bind="props"/>
         <div v-html="markedContent" v-if="markedContent && !uploadFlag" class="pre text-content"
           :class="{ 'markdown-body-generate': (generating && markedContent) }"></div>
-        <!-- thinking gif -->
+        <!-- 思考中的光标 -->
         <div v-if="generating && (!markedContent)" class="text-cursor" />
+        <!-- 物种鉴定 -->
         <SpeciesIdentification v-if="showSpeciesIdentification" v-bind="props"/>
+        <!--遗传病基因选项 -->
         <GeneticDiseasesOptions v-if="showGeneticDiseasesOptions" v-bind="props"/>
+        <!--cancer基因选项-->
         <CancerInfoOptions v-if="showCancerInfoOptions"  v-bind="props"/>
+        <!--蛋白质突变选项 或者 用户直接下载基因序列 -->
         <ProteinMutationOptions v-if="showProteinMutationOptions" v-bind="props"/>
+        <!-- Protocol设计选项 -->
         <ProtocolDesignOptions v-if="showProtocolDesignOptions" v-bind="props"/>
+        <!--病原体药物抗性选项 -->
         <PathogenDrugOptions v-if="showPathogenDrugOptions" v-bind="props"/>
-        <WholeGenomeOptions v-if="showWholeGenomeOptions" v-bind="props"/>
-        <RedesignPrimer v-if="showRedesignPrimer" v-bind="props"/>
         <UploadPrimer v-if="uploadFlag" v-bind="props"/>
         <InitiativeStartPrimerDesign v-if="showInitiativeStartPrimerDesign" v-bind="props"/>
-        <InitiativeCodeExecution v-if="showInitiativeCodeExecution" v-bind="props"/>
         <SnpPrimerDesign v-if="showSnpPrimerDesign" v-bind="props"/>
       </div>
     </div>
@@ -51,8 +52,9 @@ import IconInternetSearchAgent from '@/assets/internet_search_agent.png';
 import IconSequenceSearchAgent from '@/assets/sequence_search_agent.png';
 import IconCodeExecutionAgent from '@/assets/code_execution_agent.png';
 import IconPrimerDesignAgent from '@/assets/primer_design_agent.png';
+// TODO: 修改Protocol Design机器人图标
 import IconProtocolDesignAgent from '@/assets/protocol_design_agent.png';
-import { UPLOAD_PRIMER_EXCEL,SUMMARY_MESSAGE, NCBIFunctionType, INITIATIVE_START_PRIMER_DESIGN, INITIATIVE_START_CODE_EXECUTION, ProtocolDesignFunctionType, type Message, PrimerDesignFunctionType } from "@/stores/chat-types";
+import { UPLOAD_PRIMER_EXCEL,SUMMARY_MESSAGE, NCBIFunctionType,INITIATIVE_START_PRIMER_DESIGN, ProtocolDesignFunctionType, type Message, PrimerDesignFunctionType } from "@/stores/chat-types";
 import { computed, onMounted, onUnmounted, onUpdated, reactive, ref, watchEffect,watch } from "vue";
 import OTCommands from "@/pages/main/chat/chat-detail/OTCommands.vue";
 import JetFaultCheckResult from "@/pages/main/chat/chat-detail/JetFaultCheckResult.vue";
@@ -61,15 +63,11 @@ import UploadPrimer from '@/pages/main/chat/chat-detail/UploadPrimer.vue'
 import CancerInfoOptions from './CancerInfoOptions.vue'
 import ProteinMutationOptions from './ProteinMutationOptions.vue'
 import ProtocolDesignOptions from './ProtocolDesignOptions.vue'
-import CodeExecutionOptions from './CodeExecutionOptions.vue'
 import PathogenDrugOptions from './PathogenDrugOptions.vue'
 import SpeciesIdentification from './SpeciesIdentification.vue'
 import InitiativeStartPrimerDesign from './InitiativeStartPrimerDesign.vue'
-import InitiativeCodeExecution from './InitiativeCodeExecution.vue'
 import SnpPrimerDesign from './SnpPrimerDesign.vue'
-import WholeGenomeOptions from './WholeGenomeOptions.vue'
-import RedesignPrimer from './RedesignPrimer.vue'
-
+// import { debug } from 'console';
 
 const props = defineProps<Message>()
 const textRef = ref<HTMLElement>()
@@ -85,23 +83,15 @@ watchEffect(() => {
 });
 const showInitiativeStartPrimerDesign = computed(()=>{
   return props.header == INITIATIVE_START_PRIMER_DESIGN
-});
-
-const showInitiativeCodeExecution = computed(()=>{
-  return props.header == INITIATIVE_START_CODE_EXECUTION
-});
-
+})
 const showSnpPrimerDesign = computed(()=>{
   return props?.optionInfo?.primer_type == PrimerDesignFunctionType.snp_primer_design_type && props.agentType == AgentType.PRIMER_DESIGN ;
 })
 
+// 是否是Protocol Design选项
 const showProtocolDesignOptions = computed(()=>{
   return (props?.optionInfo?.protocol_design_type ?? '') in ProtocolDesignFunctionType && props.agentType == AgentType.PROTOCOL_DESIGN ;
 });
-
-const showCodeExecutionOptions = computed(()=>{
-  return props.agentType == AgentType.CODE_EXECUTION;
-})
 
 const showProteinMutationOptions = computed(()=>{
   let searchType = props?.optionInfo?.search_type;
@@ -117,14 +107,6 @@ const showGeneticDiseasesOptions = computed(()=>{
 })
 const showCancerInfoOptions = computed(()=>{
   return props?.optionInfo?.search_type == NCBIFunctionType.cancer_type && props.agentType == AgentType.SEQUENCE_SEARCH;
-})
-
-const showRedesignPrimer = computed(()=>{
-  return props?.optionInfo?.primer_type == PrimerDesignFunctionType.redesign_primer_type && props.agentType == AgentType.PRIMER_DESIGN;
-})
-
-const showWholeGenomeOptions = computed(()=>{
-  return props?.optionInfo?.search_type == NCBIFunctionType.whole_genome_type && props.agentType == AgentType.SEQUENCE_SEARCH;
 })
 
 const showSpeciesIdentification = computed(()=>{
@@ -169,9 +151,9 @@ const addCopyEvents = () => {
         const code = btn.parentElement?.nextElementSibling?.textContent
         if (code) {
           copyToClip(code).then(() => {
-            btn.textContent = `copied!`
+            btn.textContent = `已复制!`
             setTimeout(() => {
-              btn.textContent = `copy`
+              btn.textContent = `复制`
             }, 1000)
           })
         }
@@ -214,7 +196,7 @@ const mdi = new MarkdownIt({
 mdi.use(mila, { attrs: { target: '_blank', rel: 'noopener' } })
 mdi.use(mdKatex, { blockClass: 'katexmath-block', errorColor: ' #cc0000' })
 const highlightBlock = (str: string, lang?: string) => {
-  return `<pre class="code-block-wrapper"><div class="code-block-header"><span class="code-block-header__lang">${lang}</span>${lang && '|'}<span class="code-block-header__copy">copy</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`
+  return `<pre class="code-block-wrapper"><div class="code-block-header"><span class="code-block-header__lang">${lang}</span>${lang && '|'}<span class="code-block-header__copy">复制</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`
 }
 const capitalizeFirstLetterRegex = (str:string) => {
     return str.replace(/^\w/, (match) => match.toUpperCase());

@@ -46,7 +46,7 @@ export interface UploadFileInfo {
   upload_file?: Array<string>;
   upload_title?: string;
 }
-// submit SpeciesIdentificationInfo
+//物种鉴定提交的数据
 export interface SpeciesIdentificationInfo {
   stage: number;
   search_type?: NCBIFunctionType;
@@ -55,7 +55,7 @@ export interface SpeciesIdentificationInfo {
   operations?: Operation[];
   data?: object;
 }
-// SpeciesIdentificationResult response
+//物种鉴定的结果
 export interface SpeciesIdentificationResult {
   response: string;
   upload_file: boolean;
@@ -69,7 +69,7 @@ export interface SpeciesIdentificationResult {
   target_gene_path?: string[];
   data?: object;
 }
-// submit PathogenDrugInfo
+// 耐药提交的数据
 export interface PathogenDrugInfo {
   stage: number;
   search_type: NCBIFunctionType;
@@ -77,7 +77,7 @@ export interface PathogenDrugInfo {
   operations?: Operation[];
   data?: object;
 }
-// PathogenDrugResult response
+// 耐药的结果
 export interface PathogenDrugResult {
   response: string;
   stage: number;
@@ -90,7 +90,7 @@ export interface PathogenDrugResult {
   data?: object;
 }
 
-// submit ProteinMutationInfo
+// 蛋白质突变提交的数据
 export interface ProteinMutationInfo {
   stage: number;
   search_type: NCBIFunctionType;
@@ -98,7 +98,7 @@ export interface ProteinMutationInfo {
   operations?: Operation[];
   data?: object;
 }
-// ProteinMutationResult response
+// 蛋白质突变的结果
 export interface ProteinMutationResult {
   response: string;
   stage: number;
@@ -107,9 +107,9 @@ export interface ProteinMutationResult {
   protein_mutation_dict?: Record<string, string>;
   protein_gene_seq_path?: string[];
   operations?: Operation[];
-  data?: object;
+  data?: any;
 }
-// submit CancerOptionInfo
+//癌症提交的数据
 export interface CancerOptionInfo {
   response: string;
   cancer_list: Record<string, any>;
@@ -121,7 +121,7 @@ export interface CancerOptionInfo {
   selected_options?: Array<string>;
   data?: object;
 }
-// submit GeneticDisorderInfo
+// 遗传病提交的数据
 export interface GeneticDisorderInfo {
   response: string;
   operations?: Operation[];
@@ -130,7 +130,7 @@ export interface GeneticDisorderInfo {
   state: 'continue' | 'stop';
   search_system_prompt: string;
   selected_options?: Array<string>;
-  data?: object;
+  data?: any;
 }
 export interface SnpPrimerDesignInfo {
   operations?: Operation[];
@@ -139,17 +139,7 @@ export interface SnpPrimerDesignInfo {
   primer_type: PrimerDesignFunctionType | string;
   stage: number;
   state: 'continue' | 'stop';
-  data?: object;
 }
-
-export interface RedesignInfo {
-  operations: Operation[];
-  primer_type: PrimerDesignFunctionType | string;
-  stage: number;
-  state: 'continue' | 'stop';
-  data?: object;
-}
-
 export interface DownLoadTypeOptionsInfo {
   response: string;
   options: Array<Record<string, any>>;
@@ -158,7 +148,6 @@ export interface DownLoadTypeOptionsInfo {
   search_type: NCBIFunctionType;
   search_system_prompt: string;
   state: 'continue' | 'stop';
-  data?: object;
 }
 
 export interface Operation {
@@ -169,7 +158,7 @@ export interface Operation {
   type: string[];
 }
 
-// search response
+// search 响应结果
 export interface NCBIResultContent {
   responses: ProteinMutationInfo &
     DownLoadTypeOptionsInfo &
@@ -191,11 +180,9 @@ export enum NCBIFunctionType {
   species_identification_type = 'species_identification_type',
   pathogen_drug_resistance_type = 'pathogen_drug_resistance_type',
   download_type = 'download_type',
-  whole_genome_type = 'whole_genome_type',
 }
 export enum PrimerDesignFunctionType {
   snp_primer_design_type = 'snp_primer_design_type',
-  redesign_primer_type = 'redesign_primer_type',
 }
 export type NCBIStateType = {
   continue: 'continue';
@@ -326,7 +313,7 @@ export class NcbiSearch {
     const sendObj = {
       instruction: input,
       history,
-      type: 0, // deprecated
+      type: 0, // 无用字段
     };
     if (!this.ws) {
       this.initConnect();

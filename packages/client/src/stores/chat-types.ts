@@ -5,8 +5,7 @@ export enum NCBIFunctionType  {
   protein_mutation_type= 'protein_mutation_type',
   species_identification_type='species_identification_type',
   pathogen_drug_resistance_type= 'pathogen_drug_resistance_type',
-  download_type='download_type',
-  whole_genome_type='whole_genome_type',
+  download_type='download_type'
 }
 
 export enum ProtocolDesignFunctionType {
@@ -16,7 +15,6 @@ export enum ProtocolDesignFunctionType {
 
 export enum PrimerDesignFunctionType  {
   snp_primer_design_type = 'snp_primer_design_type',
-  redesign_primer_type = 'redesign_primer_type',
 }
 
 export interface Operation {
@@ -27,6 +25,7 @@ export interface Operation {
   type: string[];
   widget?: string;
 }
+//物种鉴定
 
 export interface SpeciesIdentificationInfo{
   stage: number;
@@ -49,6 +48,7 @@ export interface SpeciesIdentificationResult {
   target_gene_path?: string[];
   data?: object;
 }
+//耐药
 export interface PathogenDrugInfo{
   stage: number;
   search_type: NCBIFunctionType;
@@ -64,7 +64,7 @@ export interface PathogenDrugResult {
   pathogen_drug_resistance_dict?: Record<string, string>;
   operations?: Operation[];
 }
-
+//蛋白质突变
 export interface ProteinMutationInfo {
   stage: number;
   search_type: NCBIFunctionType;
@@ -72,7 +72,7 @@ export interface ProteinMutationInfo {
   operations?: Operation[];
   data?: object;
 }
-
+//蛋白质突变的结果
 export interface ProteinMutationResult {
   response: string;
   stage: number;
@@ -83,7 +83,7 @@ export interface ProteinMutationResult {
   operations?: Operation[];
   data?: any;
 }
-
+//蛋白质突变范围结果
 export interface ProteinMutationLengthResult {
   response: string;
   stage: number,
@@ -95,7 +95,7 @@ export interface ProteinMutationLengthResult {
   protein_mutation_dict?: Record<string, string>;
   data?: object;
 }
-
+// 蛋白质范围选择
 export interface ProteinMutationLength {
   stage: number;
   search_type: NCBIFunctionType;
@@ -106,7 +106,7 @@ export interface ProteinMutationLength {
   data?: object;
 }
 
-// Protocol Design
+// Protocol Design 入参
 export interface ProtocolDesignInfo {
   stage: number;
   protocol_design_type: ProtocolDesignFunctionType;
@@ -114,7 +114,7 @@ export interface ProtocolDesignInfo {
   data?: object;
 }
 
-// Protocol Design
+// Protocol Design 出参
 export interface ProtocolDesignResultInfo {
   response: string;
   stage: number;
@@ -161,13 +161,13 @@ export interface CancerResult{
   data?: object;
 }
 export interface SnpPrimerDesignInfo{
+  operations?: Operation[];
+  primer_design_dict: Record<string,string>,
+  primer_design_prompt:string;
   primer_type: PrimerDesignFunctionType;
   stage: number;
-  state?: 'continue' | 'stop';
+  state: 'continue' | 'stop';
   submitted?:boolean;
-  operations?: Operation[];
-  primer_design_dict?: Record<string,string>,
-  primer_design_prompt?:string;
   data?: object;
 }
 export interface Chat {
@@ -229,12 +229,10 @@ export const STOP_GENERATING_MESSAGE = 'STOP_GENERATING_MESSAGE';
 export const SUMMARY_MESSAGE = 'SUMMARY_MESSAGE';
 export const TEXT_ANSWER_ERROR = 'TEXT_ANSWER_ERROR';
 export const TEXT_ANSWER_CREATE = 'TEXT_ANSWER_CREATE';
-export const JETSON_BAD_TIP = 'JETSON_BAD_TIP';
-export const INITIATIVE_START_PRIMER_DESIGN = 'INITIATIVE_START_PRIMER_DESIGN';
-export const RESTART_CONVERSATION = 'RESTART_CONVERSATION';
+export const JETSON_BAD_TIP = 'JETSON_BAD_TIP'; //出现坏针头，提示用户
+export const INITIATIVE_START_PRIMER_DESIGN = 'INITIATIVE_START_PRIMER_DESIGN'; // 提示是否开始引物设计
+export const RESTART_CONVERSATION = 'RESTART_CONVERSATION'; //重新开始会话
 export const UPLOAD_PRIMER_EXCEL = 'UPLOAD_PRIMER_EXCEL';
 export const SEND_OPTION_NCBI_SEARCH = 'SEND_OPTION_NCBI_SEARCH'
 export const SEND_OPTION_PRIMER_DESIGN = 'SEND_OPTION_PRIMER_DESIGN'
 export const SEND_OPTION_PROTOCOL_DESIGN = 'SEND_OPTION_PROTOCOL_DESIGN';
-export const INITIATIVE_START_CODE_EXECUTION =
-  'INITIATIVE_START_CODE_EXECUTION';

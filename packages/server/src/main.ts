@@ -22,7 +22,7 @@ async function bootstrap() {
     .setDescription('X PCR Api Document')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('auth', 'Auth')
+    .addTag('auth', '鉴权管理')
     .addTag('agents', 'Agents')
     .build();
   const document = SwaggerModule.createDocument(app, config);

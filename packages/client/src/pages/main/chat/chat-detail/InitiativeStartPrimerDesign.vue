@@ -5,11 +5,6 @@
                 start primer design
             </v-btn>
         </div>
-        <div style="display: flex;justify-content: flex-end;">
-            <v-btn :disabled="chatStore.currentChat.isGenerating" variant="elevated" class='ml-3 mt-3' color='#2db489' @click="sendRedesignPrimer">
-                redesign primer
-            </v-btn>
-        </div>
     </div>
 </template>
 <script lang="ts" setup>
@@ -27,10 +22,6 @@ const canSubmit = computed(() => {
 
 const submit = async () => {
    chatStore.sendText('start Primer Design');
-}
-
-const sendRedesignPrimer = async () => {
-   chatStore.sendText('redesign Primer');
 }
 
 </script>

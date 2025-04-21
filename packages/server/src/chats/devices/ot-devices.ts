@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { OTApi } from './opentrons/OTApi';
 import { RunActionType, CheckActionType } from './opentrons/ot-types';
 import { JetsonApi } from './jetson/JetsonApi';
+import { JetsonResult } from '../agents/ext/code-execution';
 import { ConversationService } from '../conversation.service';
 import { JETSON_BAD_TIP } from '../conversation.constant';
 
@@ -80,16 +81,17 @@ export class OtDevices extends BaseDevices {
         const res = JSON.parse(text);
         const { event_name, bad_tip, pcr, tip, data, plot } = res;
         if (event_name == 'bad_tip_change' && bad_tip > 0) {
+          // 检测到坏针头、暂停ot2任务
           const playPauseResponse = await this.playPause(runId);
           if (playPauseResponse.success) {
             this.logger.debug(
-              `OT2 pause success====> data: ${JSON.stringify(
+              `OT2机器暂停成功====> data: ${JSON.stringify(
                 playPauseResponse.data,
               )}`,
             );
-            // stop jetson and check
+            // 终止jetson 拍摄与检测
             this.jetsonApi.check('stop', 'dropTip', false);
-            // ask user to submit command
+            // 询问用户检查机器、重新/继续任务ot2任务
             this.chatsService.wsClient.emit(JETSON_BAD_TIP, {
               runId,
               conversationUUID: this.conversationUUID,

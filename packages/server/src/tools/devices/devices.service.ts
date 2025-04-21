@@ -116,4 +116,25 @@ export class DevicesService implements OnModuleInit {
     //   }, 1000);
     // }
   }
+
+  // private async postInit(device: DevicesEntity) {
+  //   // 初始化子节点，OT2作为 AGENT_CODE_EXECUTION_NAME 的子节点
+  //   const codeExecution = await this.dataSource.manager.findOne(Agents, {
+  //     where: { name: AGENT_CODE_EXECUTION_NAME },
+  //   });
+  //   if (codeExecution) {
+  //     await this.agentsService.updateAgent(codeExecution.uuid, {
+  //       // type 需要参考 packages/client/src/pages/main/tools/ToolItem.ts
+  //       // 否则会导致渲染失败
+  //       children: [],
+  //     });
+  //     this.logger.log(
+  //       `postInit: Agent "${AGENT_CODE_EXECUTION_NAME}" add child ${device.uuid}.`,
+  //     );
+  //   } else {
+  //     this.logger.warn(
+  //       `postInit: Agent "${AGENT_CODE_EXECUTION_NAME}" not found.`,
+  //     );
+  //   }
+  // }
 }

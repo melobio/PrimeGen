@@ -1,5 +1,5 @@
 <template>
-    <template v-if="operations.length > 0 && operations[0].widget == 'table'">
+    <template v-if="optionInfo?.stage == 1">
         <v-form ref="formRef">
             <div class="species-identification-options" >
                 <div v-for="(operation, index) in operations" :key="index" class="option-item">
@@ -57,6 +57,7 @@
                             {{ item.title }} :
                         </div>
                         <div class="option-item-opt">
+                            <!-- 渲染选择题(单选或多选) -->
                             <div v-if="item.type.includes('single') || item.type.includes('multi')"
                                 :key="JSON.stringify(ifSelectedMicrobe)">
                                 <template v-if="isSubmited">
@@ -78,6 +79,7 @@
                                         :disabled="isSubmited" :items="item.options"></v-select>
                                 </template>
                             </div>
+                            <!-- 渲染文件上传 -->
                             <template v-if="item.type.includes('file')">
                                 <template v-if="item.value.length > 0 && isSubmited">
                                     <div class="file-uploaded" v-for="(fileItem, fileIndex) in operations[index].value"
@@ -113,7 +115,7 @@ import { uploadSequenceFiles } from "@/api";
 const chatStore = useChatStore();
 const props = defineProps<Message>();
 const selectedFiles = ref<Record<string, any>>({});
-
+// 打勾选项
 const selected = ref<Array<any>>([]);
 const operations = ref<Operation[]>([]);
 const formRef = ref()
@@ -124,6 +126,7 @@ const optionRules = [
     },
 ]
 
+// 定义正则表达式匹配菌株名_cds_from_genomic.fna的模式
 // *_gene.fna  // target-gene non-gene
 
 const strainFileRegex = /^(.+?)_cds_from_genomic\.(fna|fa)$/;
@@ -194,10 +197,12 @@ const getTableHeads = () => {
             'species', 'infraspecific name', 'isolate', 'accession', 'taxid', 'origin', 'ftp path']
 }
 
+// 转换成首字母大写
 const formatColumnName = (name: string) => {
   return name.replace(/(?:^|\s)\w/g, match => match.toUpperCase());
 }
 
+// 勾选了就往勾选列表增加offset
 const selectedChange = (index: number, operation_type: Array<string>) => {
     if (operation_type.includes('single')) {
         selected.value = [index]
@@ -261,6 +266,7 @@ const submitOption = async () => {
             if (item.type.includes('file')&&item.value.length>0) {
                 upload_file_flag = true;
             }
+            // 非文件类的, 选项
             else if (selected.value) {
                 operations.value[index] = { ...item, value: [item.options[selected.value[0]]] }
             }
@@ -271,6 +277,7 @@ const submitOption = async () => {
             species_identification_dict,
             operations: operations.value,
             upload_file_flag,
+            // 上一次返回的值
             data: props?.optionInfo?.data ?? {},
         }
         await chatStore.sendSelectOptionToNcbiSearch(userReply, data, props)
