@@ -1,6 +1,6 @@
 # PrimeGen
 This repository contains code and tutorials for Multiplex  PCR experiment from MGI-X.
-##citation
+## Citation
 @article{PrimeGen,
   title={Accelerating primer design for amplicon sequencing orchestrated by large language model powered agents},
   author={Yi Wang, Yuejie Hou, Lin Yang, Shishen Li, Weiting Tang, Hui Tang
