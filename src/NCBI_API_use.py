@@ -15,8 +15,8 @@ import re
 from llm_utils.utils import get_llm_chat_completion
 import json
 
-Entrez.email = "htang26186@gmail.com"
-Entrez.api_key = "68d985ea43f2d14fe207179f9d1722720c08"
+Entrez.email = ""
+Entrez.api_key = ""
 def retrieve_ncbi_ids(query_name, db_type="gene"):
     """
     Retrieve gene or protein IDs from NCBI based on name

@@ -36,8 +36,8 @@ from utils import init_logger, init_redis_cli, get_redis_conn
 logger = logging.getLogger(__name__)
 
 
-Entrez.email = "912837656@qq.com"
-Entrez.api_key = "24e5b06635f7b32dbd9b89c178a3caf3f009"#"db4b31edb00e220c3dd378908403eddbc308"
+Entrez.email = ""
+Entrez.api_key = ""
 
 
 def init_everything(app: FastAPI):
